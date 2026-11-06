@@ -20,6 +20,18 @@
 
 ## 产物核验（16KB 对齐 / 无系统 crypto 依赖）
 
+**首选：自动门禁**（packageDebug/packageRelease/packageDebugAndroidTest 后强制执行，
+同时校验 APK zip 对齐与全部打包 so 的 PT_LOAD p_align≥16384）：
+
+```bash
+./gradlew :app:verify16kAlignment
+```
+
+> 2026-11-06：该门禁曾拦截 conscrypt-android 2.5.2（libconscrypt_jni.so p_align=4096，
+> 无 16KB 版本、Play 已强制）——已移除该依赖，Android 7 TLS 1.3 改走 GMS
+> Conscrypt Provider（GmsCore_OpenSSL），缺失时回落 TLS 1.2 + 自有锚/pinning。
+> 新增 native 依赖必须过此门禁。
+
 ```bash
 SO=$(find core/native-platform/build -name "libdetectany_native.so" -path "*stripped*arm64*" | head -1)
 RE=$(ls ~/Library/Android/sdk/ndk/*/toolchains/llvm/prebuilt/*/bin/llvm-readelf | head -1)

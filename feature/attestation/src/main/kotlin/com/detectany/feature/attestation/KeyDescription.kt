@@ -88,8 +88,8 @@ object KeyDescriptionParser {
         scan(softwareEnforced, holder)
         scan(teeEnforced, holder)
 
-        val rot = holder[724]?.let { parseRootOfTrust(ASN1Sequence.getInstance(it, true)) }
-        val app = holder[727]?.let { parseApplicationId(ASN1Sequence.getInstance(it, true)) }
+        val rot = holder[724]?.let { runCatching { parseRootOfRootGuard(it) }.getOrNull() }
+        val app = holder[727]?.let { runCatching { parseApplicationId(ASN1Sequence.getInstance(it, true)) }.getOrNull() }
 
         return KeyDescription(
             attestationVersion = attestationVersion,
@@ -106,17 +106,31 @@ object KeyDescriptionParser {
         )
     }
 
-    internal fun taggedInt(holder: Map<Int, org.bouncycastle.asn1.ASN1TaggedObject>, tag: Int): Int? =
-        holder[tag]?.let { ASN1Integer.getInstance(it, true).value.toInt() }
+    /**
+     * 真实 schema（AOSP）：deviceLocked 为 BOOLEAN；verifiedBootState 为 ENUMERATED。
+     * 2026-11-06 Pixel 8/Android 16 实测：旧解析按 ENUMERATED 读 deviceLocked 直接崩溃。
+     * 逐字段防御式解析：任一字段形态不符 → 整体返回 null（不崩、不采信），绝不抛出。
+     */
+    private fun parseRootOfRootGuard(tagged: org.bouncycastle.asn1.ASN1TaggedObject): RootOfTrust? =
+        parseRootOfTrust(ASN1Sequence.getInstance(tagged, true))
 
-    private fun parseRootOfTrust(seq: ASN1Sequence): RootOfTrust {
-        return RootOfTrust(
+    private fun parseRootOfTrust(seq: ASN1Sequence): RootOfTrust? = runCatching {
+        val lockedObj = seq.getObjectAt(1)
+        val deviceLocked = when (lockedObj) {
+            is org.bouncycastle.asn1.ASN1Boolean -> lockedObj.isTrue
+            else -> ASN1Enumerated.getInstance(lockedObj).intValueExact() != 0 // 兼容旧合成向量
+        }
+        RootOfTrust(
             verifiedBootKey = ASN1OctetString.getInstance(seq.getObjectAt(0)).octets,
-            deviceLocked = ASN1Enumerated.getInstance(seq.getObjectAt(1)).intValueExact() != 0,
+            deviceLocked = deviceLocked,
             verifiedBootState = VerifiedBootState.entries[ASN1Enumerated.getInstance(seq.getObjectAt(2)).intValueExact()],
             verifiedBootHash = ASN1OctetString.getInstance(seq.getObjectAt(3)).octets,
         )
-    }
+    }.getOrNull()
+
+    /** tagged 字段防御读取：形态不符返回 null（真实厂商链形态多样）。 */
+    internal fun taggedInt(holder: Map<Int, org.bouncycastle.asn1.ASN1TaggedObject>, tag: Int): Int? =
+        holder[tag]?.let { t -> runCatching { ASN1Integer.getInstance(t, true).value.toInt() }.getOrNull() }
 
     private fun parseApplicationId(seq: ASN1Sequence): ApplicationId {
         val packageInfos = ASN1Sequence.getInstance(seq.getObjectAt(0))
@@ -163,7 +177,7 @@ object KeyDescriptionParser {
         tee.add(DERTaggedObject(703, ASN1Integer(256)))
         val rot = ASN1EncodableVector()
         rot.add(DEROctetString("vbkey".toByteArray()))
-        rot.add(ASN1Enumerated(if (deviceLocked) 1 else 0))
+        rot.add(if (deviceLocked) org.bouncycastle.asn1.ASN1Boolean.TRUE else org.bouncycastle.asn1.ASN1Boolean.FALSE)
         rot.add(ASN1Enumerated(bootState.ordinal))
         rot.add(DEROctetString("vbhash".toByteArray()))
         tee.add(DERTaggedObject(724, DERSequence(rot)))

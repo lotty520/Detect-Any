@@ -102,8 +102,10 @@ class MountAnalyzer(
             )
         }
 
-        // 3) /debug_ramdisk 落脚点（C 级）
-        entries.filter { it.mountPoint.startsWith("/debug_ramdisk") }.forEach { e ->
+        // 3) /debug_ramdisk/.magisk* 落脚点（C 级）
+        // 2026-11-06 Pixel 8/Android 16 实测：干净设备原生挂载 /debug_ramdisk(tmpfs) 与
+        // /debug_ramdisk/pts(devpts) —— 裸 /debug_ramdisk 不是 Magisk 证据，必须收窄到 .magisk 子路径
+        entries.filter { it.mountPoint.startsWith("/debug_ramdisk/.magisk") }.forEach { e ->
             add(
                 Finding(
                     ruleId = "mount.debug_ramdisk",

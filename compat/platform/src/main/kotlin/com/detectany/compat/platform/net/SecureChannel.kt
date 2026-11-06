@@ -18,8 +18,8 @@ import javax.net.ssl.X509TrustManager
  * 安全网络通道（design.md D7 / 任务 1.4）：
  * - 自有信任锚（仅信任显式提供的证书，不使用系统信任库）
  * - SPKI pinning（按主机钉住公钥摘要）
- * - 可注入 TLS Provider（Android 侧由 app 注入 Conscrypt，为 Android 7 带来 TLS 1.3；
- *   JVM/测试侧可用默认 provider）
+ * - 可注入 TLS Provider（Android 侧由 app 注入 GMS Conscrypt Provider——不内置
+ *   conscrypt AAR：其 2.5.2 so 为 4KB 对齐，被 16KB 门禁拦截不可发布）
  *
  * 本类保持纯 JVM：Provider 的选择与安装是宿主(app)的责任。
  */
