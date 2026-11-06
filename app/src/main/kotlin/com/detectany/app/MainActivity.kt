@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -173,7 +173,8 @@ fun ReportView(m: ReportModel) {
 
         Text("命中明细（点击展开证据回放）", style = MaterialTheme.typography.titleSmall)
         LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f, fill = false)) {
-            items(m.findings, key = { it.ruleId }) { f ->
+            // 同一规则可多次命中（如多个挂载条目）—— key 必须含序号，2026-11-06 真机崩溃实证
+            itemsIndexed(m.findings, key = { idx, f -> "$idx:${f.ruleId}" }) { _, f ->
                 FindingItem(f)
             }
         }

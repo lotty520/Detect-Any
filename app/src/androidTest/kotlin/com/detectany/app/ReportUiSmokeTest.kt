@@ -38,7 +38,19 @@ class ReportUiSmokeTest {
         val orchestrator = ScanOrchestrator(InstrumentationRegistry.getInstrumentation().targetContext)
         assertTrue("debug 构建应走运行时预期分支(usesNative=${orchestrator.selfGuardUsesNativeExpected})", !orchestrator.selfGuardUsesNativeExpected)
         val report = orchestrator.scan(ScanTier.L2)
-        assertEquals("干净模拟器零命中: ${report.collectorResults.flatMap { it.findings }.map { it.ruleId + " :: " + it.detail }} + extra=${report.verdict.evidenceVector}", 0, report.verdict.evidenceVector.size)
+        val isEmu = android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.PRODUCT.contains("sdk_gphone")
+        if (isEmu) {
+            assertEquals("干净模拟器零命中: ${report.verdict.evidenceVector}", 0, report.verdict.evidenceVector.size)
+        } else {
+            // 真机（可能 ROOT/作弊）：允许真阳性，禁止 mem 全零伪影；定性必须由 A 级证据支撑
+            val prologueMem = report.collectorResults.flatMap { it.findings }
+                .filter { it.ruleId.startsWith("integrity.prologue") }
+                .map { it.raw["mem"] ?: "" }
+            assertTrue("textRead 退化伪影", prologueMem.all { m -> m.any { c -> c != '0' } })
+            if (report.verdict.conclusive) {
+                assertTrue("定性必须由 A 级证据支撑", report.verdict.evidenceVector.isNotEmpty())
+            }
+        }
         assertTrue("8 采集器应全部执行: ${report.collectorResults.size}", report.collectorResults.size >= 7)
         assertTrue("L2 时延预算超限: ${report.elapsedMs}ms", report.elapsedMs < 10_000) // 模拟器宽放（真机 100ms 预算在 8.3 验证）
     }

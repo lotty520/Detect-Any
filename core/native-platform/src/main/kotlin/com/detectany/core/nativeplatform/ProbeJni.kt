@@ -30,8 +30,11 @@ object ProbeJni {
     /** 父进程 ptrace 注入残留：>=0 为 eventmsg（== zygote pid 即注入）；-1 不可执行。 */
     external fun ptraceParentEventmsg(): Long
 
-    /** 自身内存安全读取（process_vm_readv 自身）。 */
+    /** 自身内存安全读取（process_vm_readv 自身；execute-only 文本上返回全零）。 */
     external fun memRead(addr: Long, len: Int): ByteArray?
+
+    /** 自身文本段读取（execute-only 安全：临时 mprotect 加 R，读后恢复原权限）。 */
+    external fun textRead(addr: Long, len: Int): ByteArray?
 
     /** linker 权威加载列表："name\tload_bias"。 */
     external fun solist(): Array<String>

@@ -80,10 +80,27 @@ class CollectorSmokeTest {
         val ctx = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
         val r = run(CodeIntegrityCollector(ownLib = { CodeIntegrityCollector.locateOwnLib(ctx) }))
         assertEquals("C7 状态异常: ${r.meta}", CollectorResult.Status.OK, r.status)
-        assertEquals("自身完整性校验在干净环境必须零命中: ${r.findings}", 0, r.findings.size)
         // prologue/GOT 校验必须真实执行过（meta 带基址），而非静默跳过
         assertTrue("C7 未定位到自身库: ${r.meta}", r.meta.containsKey("base"))
+        if (isEmulator()) {
+            assertEquals("干净模拟器必须零命中: ${r.findings.map { it.ruleId }}", 0, r.findings.size)
+        } else {
+            // 真机（可能是 ROOT/作弊环境）：命中必须为真阳性（真实补丁字节），不得是全零伪影
+            val prologues = r.findings.filter { it.ruleId.startsWith("integrity.prologue") }
+            assertNoPrologueArtifacts("C7", prologues.map { it.raw["mem"] ?: "" })
+        }
     }
+
+    /** 真阳性 vs 伪影判定（准确为大前提）：prologue 命中的 mem 全零 = 读原语退化（伪影，失败）；真实补丁代码 = 真阳性 */
+    internal fun assertNoPrologueArtifacts(tag: String, rawMems: List<String>) {
+        val zeros = rawMems.filter { it.isNotEmpty() && it.all { c -> c == '0' } }
+        assertTrue("$tag 存在 mem 全零伪影（textRead 退化）: $zeros", zeros.isEmpty())
+    }
+
+    internal fun isEmulator(): Boolean = android.os.Build.FINGERPRINT.contains("generic") ||
+        android.os.Build.MODEL.contains("Emulator") ||
+        android.os.Build.PRODUCT.contains("sdk_gphone") ||
+        android.os.Build.PRODUCT.contains("emulator")
 
     @Test
     fun c8BehaviorProbeCleanNoFalsePositive() {

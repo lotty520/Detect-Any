@@ -30,6 +30,7 @@ long da_legacy_prctl_probe(long option, long arg2, long arg3, long arg4, long ar
 int da_nativebridge_error();
 long da_ptrace_parent_eventmsg();
 long da_mem_read(unsigned long addr, void *buf, size_t len);
+long da_text_read(unsigned long addr, void *buf, size_t len);
 int da_solist(std::vector<std::string> *out);
 int da_rwx_self_probe();
 long da_elf_read_at_vaddr(const char *path, unsigned long vaddr, unsigned char *buf, size_t len);
@@ -238,6 +239,16 @@ extern "C" JNIEXPORT jbyteArray JNICALL DA_PKG(ProbeJni_memRead)(JNIEnv *env, jo
     if (len <= 0 || len > 65536) return nullptr;
     std::vector<unsigned char> buf(static_cast<size_t>(len));
     const long n = da_mem_read(static_cast<unsigned long>(addr), buf.data(), buf.size());
+    if (n <= 0) return nullptr;
+    const jbyteArray arr = env->NewByteArray(static_cast<jsize>(n));
+    env->SetByteArrayRegion(arr, 0, static_cast<jsize>(n), reinterpret_cast<const jbyte *>(buf.data()));
+    return arr;
+}
+
+extern "C" JNIEXPORT jbyteArray JNICALL DA_PKG(ProbeJni_textRead)(JNIEnv *env, jobject, jlong addr, jint len) {
+    if (len <= 0 || len > 65536) return nullptr;
+    std::vector<unsigned char> buf(static_cast<size_t>(len));
+    const long n = da_text_read(static_cast<unsigned long>(addr), buf.data(), buf.size());
     if (n <= 0) return nullptr;
     const jbyteArray arr = env->NewByteArray(static_cast<jsize>(n));
     env->SetByteArrayRegion(arr, 0, static_cast<jsize>(n), reinterpret_cast<const jbyte *>(buf.data()));
