@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <signal.h>
 #include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -78,6 +79,14 @@ int da_ksu_probe(long magic1, long magic2, long magic3, long arg4,
     }
     if (child == 0) {
         close(pipefd[0]);
+        // Android seccomp 对白名单外 syscall 投递 SIGSYS（code=SYS_SECCOMP，TRAP 可捕获）：
+        // 预装 handler 让子进程以退出码 86 干净离场——不触发 debuggerd 墓碑、
+        // 不在 logcat 刷 Fatal signal、不污染崩溃统计（2026-11-06 真机实测教训）
+        struct sigaction sa {};
+        sa.sa_handler = [](int) { _exit(86); };
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = SA_NODEFER;
+        sigaction(31 /*SIGSYS*/, &sa, nullptr);
         const auto before = scan_fds();
         errno = 0;
         const long r = da_ksu_reboot_supercall(magic1, magic2, magic3, arg4);
@@ -108,11 +117,12 @@ int da_ksu_probe(long magic1, long magic2, long magic3, long arg4,
     close(pipefd[0]);
     int status = 0;
     waitpid(child, &status, 0);
-    if (WIFSIGNALED(status) && WTERMSIG(status) == 31 /*SIGSYS*/) {
+    if ((WIFEXITED(status) && WEXITSTATUS(status) == 86) ||
+        (WIFSIGNALED(status) && WTERMSIG(status) == 31 /*SIGSYS*/)) {
         *ret = 0;
         *err = 0;
         new_fds->clear();
-        return -2;  // seccomp 阻断：不可判定
+        return -2;  // seccomp 阻断（handler 干净退出 86 / 兜底：带信号死亡）：不可判定
     }
     // 解析子进程报告
     size_t pos = 0;
@@ -250,6 +260,56 @@ long da_mem_read(unsigned long addr, void *buf, size_t len) {
     struct iovec local {buf, len};
     struct iovec remote {reinterpret_cast<void *>(addr), len};
     return process_vm_readv(getpid(), &local, 1, &remote, 1, 0);
+}
+
+// execute-only 文本段读取（Pixel 8/Android 16 实测：r-x/--xp 文本上 process_vm_readv 返回全零，
+// 头部 r--p 单独映射故魔数可读）。做法：查 /proc/self/maps 取该区间原始权限 ->
+// 临时 mprotect 加 PROT_READ -> memcpy -> 恢复原始权限。页大小运行时获取（16KB 设备安全）。
+static int parse_perm_char(char c) {
+    switch (c) {
+        case 'r': return PROT_READ;
+        case 'w': return PROT_WRITE;
+        case 'x': return PROT_EXEC;
+        default: return 0;
+    }
+}
+
+long da_text_read(unsigned long addr, void *buf, size_t len) {
+    const long page = sysconf(_SC_PAGESIZE);
+    if (page <= 0) return -1;
+    const unsigned long astart = addr & ~static_cast<unsigned long>(page - 1);
+    const unsigned long aend = (addr + len + page - 1) & ~static_cast<unsigned long>(page - 1);
+
+    // 找覆盖该区间的 maps 行，恢复每行原始权限
+    FILE *f = fopen("/proc/self/maps", "re");
+    if (f == nullptr) return -1;
+    unsigned long bestStart = 0, bestEnd = 0;
+    int bestProt = -1;
+    char line[1024];
+    while (fgets(line, sizeof(line), f) != nullptr) {
+        unsigned long s = strtoul(line, nullptr, 16);
+        unsigned long e = strtoul(strchr(line, '-') + 1, nullptr, 16);
+        if (s <= astart && aend <= e) {
+            const char *perms = strchr(line, ' ') + 1;
+            bestProt = parse_perm_char(perms[0]) | parse_perm_char(perms[1]) | parse_perm_char(perms[2]);
+            bestStart = s;
+            bestEnd = e;
+            break;
+        }
+    }
+    fclose(f);
+    if (bestProt < 0) return -1;  // 未找到覆盖区间（越界/未映射）
+
+    if ((bestProt & PROT_READ) == 0) {
+        if (mprotect(reinterpret_cast<void *>(bestStart), bestEnd - bestStart, bestProt | PROT_READ) != 0) {
+            return -1;
+        }
+    }
+    memcpy(buf, reinterpret_cast<void *>(addr), len);
+    if ((bestProt & PROT_READ) == 0) {
+        mprotect(reinterpret_cast<void *>(bestStart), bestEnd - bestStart, bestProt);
+    }
+    return static_cast<long>(len);
 }
 
 // ---- linker 权威加载列表（dl_iterate_phdr，对抗 maps 抹除）----

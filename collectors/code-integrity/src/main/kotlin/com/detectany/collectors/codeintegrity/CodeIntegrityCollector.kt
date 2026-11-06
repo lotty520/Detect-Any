@@ -53,8 +53,12 @@ class CodeIntegrityCollector(
          * 定位自身库（两种打包形态）：
          * 1) extractNativeLibs=true：maps 中有 .../lib/arm64/libdetectany_native.so —— 磁盘=映射路径；
          * 2) extractNativeLibs=false（AGP 默认）：库直接从 APK 内加载，maps 只见 base.apk ——
-         *    基址取 dl_iterate_phdr（linker 权威表），磁盘副本从 APK zip 抽出（useLegacyPackaging=false 时 so 未压缩，
-         *    抽取即原字节，vaddr 布局与内存一致）。
+         *    磁盘副本从 APK zip 抽出，**基址用自校验投票**：在 base.apk 的各映射段起点找 ELF 魔数，
+         *    再以已知符号「磁盘 vs 内存」字节比对确认。
+         *
+         * 2026-11-06 Pixel 8 实测教训：dl_iterate_phdr 的 dlpi_addr 对 APK 内嵌库在主 app 进程
+         * 返回错误 bias（androidTest 进程恰好正确，掩盖缺陷）—— memRead 落零页、prologue 全部
+         * 假阳性（mem=全零 而非蹦床指令）。故 dlpi_addr 仅作最后兜底。
          */
         fun locateOwnLib(context: Context? = null): OwnLibPath? {
             NativePlatform.ensureLoaded()
@@ -62,11 +66,46 @@ class CodeIntegrityCollector(
             maps.firstOrNull { it.path?.endsWith(LIB_NAME) == true }?.let {
                 return OwnLibPath(it.path!!, it.start)
             }
-            // 形态 2：solist 求基址
+            // 形态 2：磁盘副本 + 自校验投票选 bias
+            val disk = context?.let { extractFromApk(it) } ?: guessDiskPath(maps) ?: return null
+            val diskBytes = runCatching { java.io.File(disk).readBytes() }.getOrNull() ?: return null
+            val elfMagic = diskBytes.take(4).toByteArray()
+
+            val apkPath = context?.applicationInfo?.sourceDir
+            val candidates = maps.filter { m ->
+                (apkPath != null && m.path == apkPath) || m.path?.endsWith("/base.apk") == true
+            }.map { it.start }
+
+            // 第二因子用 phdr 表（程序头在 r--p 头页内，hook 不改它）——
+            // 对抗设备上函数序言可被全部 hook（2026-11-06 真机实证），不能用函数字节做投票
+            val is64 = diskBytes.size > 56 && diskBytes[4] == 2.toByte()
+            val ePhoff = (if (is64) leLong(diskBytes, 32) else leInt(diskBytes, 28).toLong()).toInt()
+            val phdrCheck = if (ePhoff in 1..(diskBytes.size - 32)) diskBytes.copyOfRange(ePhoff, ePhoff + 32) else null
+
+            for (base in candidates) {
+                val head = runCatching { ProbeJni.memRead(base, 4) }.getOrNull() ?: continue
+                if (!head.contentEquals(elfMagic)) continue
+                if (phdrCheck == null) return OwnLibPath(disk, base) // 只有魔数可用
+                val memPhdr = runCatching { ProbeJni.memRead(base + ePhoff, 32) }.getOrNull() ?: continue
+                if (memPhdr.contentEquals(phdrCheck)) return OwnLibPath(disk, base) // 魔数 + phdr 双确认
+            }
+
+            // 兜底：dlpi_addr（不可靠，见注释）——仅在投票失败时使用
             val entry = ProbeJni.solist().firstOrNull { it.substringBefore('\t').endsWith(LIB_NAME) } ?: return null
             val base = entry.substringAfter('\t').toLongOrNull() ?: return null
-            val disk = context?.let { extractFromApk(it) } ?: guessDiskPath(maps)
-            return disk?.let { OwnLibPath(it, base) }
+            return OwnLibPath(disk, base)
+        }
+
+        private fun leInt(b: ByteArray, off: Int): Long {
+            var v = 0L
+            for (i in 3 downTo 0) v = (v shl 8) or (b[off + i].toLong() and 0xFF)
+            return v
+        }
+
+        private fun leLong(b: ByteArray, off: Int): Long {
+            var v = 0L
+            for (i in 7 downTo 0) v = (v shl 8) or (b[off + i].toLong() and 0xFF)
+            return v
         }
 
         private fun guessDiskPath(maps: List<com.detectany.collectors.memmap.MapEntry>): String? =
@@ -118,7 +157,8 @@ object IntegrityAnalyzer {
             val vaddr = runCatching { ElfJni.exportValue(libPath, sym) }.getOrDefault(0L)
             if (vaddr == 0L) continue
             val disk = runCatching { ElfJni.readAtVaddr(libPath, vaddr, 32) }.getOrNull() ?: continue
-            val mem = runCatching { ProbeJni.memRead(base + vaddr, 32) }.getOrNull() ?: continue
+            // execute-only 文本段：PVM 读零（Pixel 8/A16 实测），必须走 mprotect 临时放行的 textRead
+            val mem = runCatching { ProbeJni.textRead(base + vaddr, 32) }.getOrNull() ?: continue
             if (!disk.contentEquals(mem)) {
                 findings.add(
                     Finding(
@@ -128,7 +168,12 @@ object IntegrityAnalyzer {
                         category = Finding.Category.HOOK,
                         framework = null,
                         detail = "采集器入口 prologue 被改写: $sym（内存字节 != 磁盘字节）",
-                        raw = mapOf("symbol" to sym, "vaddr" to vaddr.toString()),
+                        raw = mapOf(
+                            "symbol" to sym,
+                            "vaddr" to vaddr.toString(16),
+                            "disk" to disk.take(12).joinToString("") { "%02x".format(it) },
+                            "mem" to mem.take(12).joinToString("") { "%02x".format(it) },
+                        ),
                     ),
                 )
             }
@@ -175,8 +220,8 @@ object IntegrityAnalyzer {
                         confidence = Confidence.A,
                         category = Finding.Category.HOOK,
                         framework = null,
-                        detail = "GOT[$sym] 指向 0x${resolved.toString(16)}，与磁盘期望 0x${(targetBase + expected).toString(16)} 不符",
-                        raw = mapOf("symbol" to sym, "resolved" to resolved.toString(16), "expected" to (targetBase + expected).toString(16)),
+                        detail = "GOT[$sym] 指向 0x${resolved.toString(16)}，与磁盘期望 0x${(targetBase + expected).toString(16)} 不符（目标 ${target.path}）",
+                        raw = mapOf("symbol" to sym, "resolved" to resolved.toString(16), "expected" to (targetBase + expected).toString(16), "targetLib" to (target.path ?: "")),
                     ),
                 )
             }
