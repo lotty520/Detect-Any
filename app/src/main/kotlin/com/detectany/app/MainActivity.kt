@@ -100,10 +100,11 @@ fun AppShell(orchestrator: ScanOrchestrator) {
                     NavigationBarItem(
                         selected = selected,
                         onClick = {
-                            nav.navigate(tab.route) {
-                                popUpTo(nav.graph.startDestinationId) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                            if (selected) return@NavigationBarItem
+                            // 先尝试弹栈返回（对已在返回栈中的目的地立即生效，含按钮入口的栈形态）；
+                            // 失败（仅在 saved state 中）再走统一导航恢复
+                            if (!nav.popBackStack(tab.route, inclusive = false)) {
+                                navigateTab(nav, tab.route)
                             }
                         },
                         icon = {
@@ -134,10 +135,23 @@ private fun TabIcon(tab: Tab, selected: Boolean) {
     )
 }
 
+/**
+ * 统一 tab 导航：popUpTo 起点 + saveState + singleTop + restoreState。
+ * 「查看证据」按钮与底部 tab 必须共用——2026-11-06 实证：plain navigate
+ * 产生 [scan, evidence] 栈形态后，tab 点击的 popUpTo+restoreState 组合静默失效。
+ */
+fun navigateTab(nav: NavHostController, route: String) {
+    nav.navigate(route) {
+        popUpTo(nav.graph.startDestinationId) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
 @Composable
 private fun AppNavHost(nav: NavHostController, controller: ScanController, modifier: Modifier) {
     NavHost(navController = nav, startDestination = "scan", modifier = modifier) {
-        composable("scan") { ScanScreen(controller, onOpenEvidence = { nav.navigate("evidence") }) }
+        composable("scan") { ScanScreen(controller, onOpenEvidence = { navigateTab(nav, "evidence") }) }
         composable("evidence") { EvidenceScreen(controller) }
         composable("modules") { ModulesScreen(controller) }
         composable("settings") { SettingsScreen(controller) }
