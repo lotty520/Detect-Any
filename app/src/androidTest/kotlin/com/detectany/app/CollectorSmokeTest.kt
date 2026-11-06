@@ -64,7 +64,16 @@ class CollectorSmokeTest {
     fun c5AppFingerprintClean() {
         val r = run(AppFingerprintCollector.fromContext(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext))
         assertEquals(CollectorResult.Status.OK, r.status)
-        assertEquals(0, r.findings.size)
+        if (isEmulator()) {
+            assertEquals("干净模拟器必须零命中: ${r.findings.map { it.ruleId }}", 0, r.findings.size)
+        } else {
+            // 真机可能真实安装 root/作弊管理器（2026-11-06 Pixel 8 实证：APatch manager 命中）
+            // —— 命中属真阳性，但必须为合理置信级（内容指纹 B / 包名 C），不得出现异常形态
+            assertTrue(
+                "命中置信级异常: ${r.findings.map { it.ruleId to it.confidence }}",
+                r.findings.all { it.confidence == com.detectany.core.model.Confidence.B || it.confidence == com.detectany.core.model.Confidence.C },
+            )
+        }
     }
 
     @Test
