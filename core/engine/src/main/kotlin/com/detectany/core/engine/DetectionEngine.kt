@@ -38,9 +38,12 @@ class DetectionEngine(
         }
         val results = selected.mapNotNull { c ->
             // 单项采集失败 MUST NOT 中断整体扫描（specs：采集能力降级透明）
-            runCatching { c.collect(input) }.getOrElse {
+            val t0 = System.nanoTime()
+            val r = runCatching { c.collect(input) }.getOrElse {
                 CollectorResult(c.id, CollectorResult.Status.BLOCKED, meta = mapOf("error" to (it.message ?: it.javaClass.simpleName)))
             }
+            val ms = (System.nanoTime() - t0) / 1_000_000
+            r.copy(meta = r.meta + ("elapsedMs" to ms.toString()))
         }
         val findings = results.flatMap { it.findings } + extraFindings
         val hits = rules.evaluate(findings)
