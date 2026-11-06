@@ -28,22 +28,52 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// 严重度配色（重点突出）
-val ScoreCritical = Color(0xFFC62828)
-val ScoreWarning = Color(0xFFEF6C00)
-val ScoreClean = Color(0xFF2E7D32)
-val BadgeStrong = Color(0xFFC62828)
-val BadgeMedium = Color(0xFFEF6C00)
-val BadgeWeak = Color(0xFF757575)
-val StatusOk = Color(0xFF2E7D32)
-val StatusDegraded = Color(0xFFEF6C00)
-val StatusBlocked = Color(0xFFC62828)
+// 严重度配色（重点突出）— 亮色主题
+private val ScoreCriticalLight = Color(0xFFC62828)
+private val ScoreWarningLight = Color(0xFFEF6C00)
+private val ScoreCleanLight = Color(0xFF2E7D32)
+private val BadgeStrongLight = Color(0xFFC62828)
+private val BadgeMediumLight = Color(0xFFEF6C00)
+private val BadgeWeakLight = Color(0xFF757575)
+private val StatusOkLight = Color(0xFF2E7D32)
+private val StatusDegradedLight = Color(0xFFEF6C00)
+private val StatusBlockedLight = Color(0xFFC62828)
 
-fun scoreColor(score: Int): Color = when {
-    score >= 70 -> ScoreCritical
-    score >= 40 -> ScoreWarning
-    else -> ScoreClean
+// 暗色主题变体（更高亮度，暗色背景对比度 WCAG AA）
+private val ScoreCriticalDark = Color(0xFFEF5350)
+private val ScoreWarningDark = Color(0xFFFFA726)
+private val ScoreCleanDark = Color(0xFF66BB6A)
+private val BadgeStrongDark = Color(0xFFEF5350)
+private val BadgeMediumDark = Color(0xFFFFA726)
+private val BadgeWeakDark = Color(0xFFBDBDBD)
+private val StatusOkDark = Color(0xFF66BB6A)
+private val StatusDegradedDark = Color(0xFFFFA726)
+private val StatusBlockedDark = Color(0xFFEF5350)
+
+// 全局公开（亮色，暗色场景通过 scoreColor() 动态切换）
+val ScoreCritical = ScoreCriticalLight
+val ScoreWarning = ScoreWarningLight
+val ScoreClean = ScoreCleanLight
+val BadgeStrong = BadgeStrongLight
+val BadgeMedium = BadgeMediumLight
+val BadgeWeak = BadgeWeakLight
+val StatusOk = StatusOkLight
+val StatusDegraded = StatusDegradedLight
+val StatusBlocked = StatusBlockedLight
+
+/** B5: 主题感知严重度色 */
+@Composable
+fun themedScoreColor(score: Int): Color {
+    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    return when {
+        score >= 70 -> if (dark) ScoreCriticalDark else ScoreCriticalLight
+        score >= 40 -> if (dark) ScoreWarningDark else ScoreWarningLight
+        else -> if (dark) ScoreCleanDark else ScoreCleanLight
+    }
 }
+
+@Composable
+fun scoreColor(score: Int): Color = themedScoreColor(score)
 
 /** 风险仪表盘：环形进度 + 动画分数 + 判定文案。 */
 @Composable

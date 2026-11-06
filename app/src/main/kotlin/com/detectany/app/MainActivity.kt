@@ -151,8 +151,18 @@ fun navigateTab(nav: NavHostController, route: String) {
 @Composable
 private fun AppNavHost(nav: NavHostController, controller: ScanController, modifier: Modifier) {
     NavHost(navController = nav, startDestination = "scan", modifier = modifier) {
-        composable("scan") { ScanScreen(controller, onOpenEvidence = { navigateTab(nav, "evidence") }) }
-        composable("evidence") { EvidenceScreen(controller) }
+        composable(
+            "scan",
+        ) { ScanScreen(controller, onOpenEvidence = { threat ->
+            nav.navigate("evidence" + (threat?.let { "?threat=$it" } ?: "")) {
+                popUpTo(nav.graph.startDestinationId) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }) }
+        composable("evidence" + "?threat={threat}", arguments = listOf(androidx.navigation.navArgument("threat") { nullable = true; defaultValue = null })) { entry ->
+            EvidenceScreen(controller, scrollToThreat = entry.arguments?.getString("threat"))
+        }
         composable("modules") { ModulesScreen(controller) }
         composable("settings") { SettingsScreen(controller) }
     }

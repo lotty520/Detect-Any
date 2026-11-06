@@ -45,7 +45,7 @@ import com.detectany.feature.report.ReportModel
  * 威胁页（原证据页）：按「威胁」组织——用户心智：我中了什么、多严重、证据是什么。
  */
 @Composable
-fun EvidenceScreen(controller: ScanController) {
+fun EvidenceScreen(controller: ScanController, scrollToThreat: String? = null) {
     val m = controller.reportModel
     if (m == null) {
         EmptyPage("尚无结果", "先在「扫描」页执行一次扫描")
