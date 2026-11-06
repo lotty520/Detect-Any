@@ -5,6 +5,7 @@ coroutines = "1.9.0"
 serializationJson = "1.7.3"
 composeBom = "2024.10.01"
 activityCompose = "1.9.3"
+navigationCompose = "2.8.4"
 okhttp = "4.12.0"
 conscrypt = "2.5.2"
 bouncycastle = "1.78.1"
@@ -23,6 +24,8 @@ androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = 
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+androidx-compose-icons-extended = { module = "androidx.compose.material:material-icons-extended" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 conscrypt-android = { module = "org.conscrypt:conscrypt-android", version.ref = "conscrypt" }
 bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
