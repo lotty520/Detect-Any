@@ -223,7 +223,7 @@ object BehaviorProbes {
             if (msg >= 0 && ppid > 0 && msg == ppid) {
                 findings.add(
                     Finding(
-                        ruleId = "behavior.ptrace_residue",
+                        ruleId = "behavior.ptrace_residue", // A4: NeoZygisk ≥10-30 清除残留，对该分支即将失效；ReZygisk 仍 A 级
                         collector = CollectorId.C8_BEHAVIOR,
                         confidence = Confidence.A,
                         category = Finding.Category.ZYGISK,

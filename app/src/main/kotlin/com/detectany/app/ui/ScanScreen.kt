@@ -157,6 +157,11 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
                 )
             }
 
+            // B1: 对比上次
+            controller.lastDelta?.let { d ->
+                DeltaCard(d)
+            }
+
             Text(
                 "${m.tier} · ${m.elapsedMs}ms · 采集器 ${m.degradedCollectors.size} 降级",
                 style = MaterialTheme.typography.bodySmall,
@@ -197,6 +202,38 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
                 }
             } else {
                 Text("✓ 干净：无命中观测", color = ScoreClean, style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeltaCard(d: ScanController.ScanDelta) {
+    val scoreColor = when {
+        d.scoreDiff > 0 -> ScoreCritical
+        d.scoreDiff < 0 -> ScoreClean
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val arrow = when { d.scoreDiff > 0 -> "↑"; d.scoreDiff < 0 -> "↓"; else -> "→" }
+    Card(
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "$arrow 对比上次 ${if (d.scoreDiff != 0) "${if (d.scoreDiff > 0) "+" else ""}${d.scoreDiff}" else "持平"}",
+                color = scoreColor,
+                style = MaterialTheme.typography.titleSmall,
+            )
+            if (d.newThreats.isNotEmpty()) {
+                Text("新增: ${d.newThreats.joinToString("、")}", style = MaterialTheme.typography.bodySmall, color = ScoreCritical)
+            }
+            if (d.goneThreats.isNotEmpty()) {
+                Text("消失: ${d.goneThreats.joinToString("、")}", style = MaterialTheme.typography.bodySmall, color = ScoreClean)
+            }
+            if (d.newThreats.isEmpty() && d.goneThreats.isEmpty()) {
+                Text("环境未变化", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

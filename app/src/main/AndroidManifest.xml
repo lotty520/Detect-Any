@@ -14,6 +14,9 @@
         <package android:name="mfsx.xposed.trustmealready" />
         <package android:name="io.github.vvb2060.trustmealready" />
         <package android:name="com.example.zygiskdetect" />
+        <package android:name="org.lsposed.vector" />
+        <package android:name="moe.neozygisk" />
+        <package android:name="nk.be.nyazygisk" />
     </queries>
 
     <application

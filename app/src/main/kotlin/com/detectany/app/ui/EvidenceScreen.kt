@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +21,8 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,31 +37,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.detectany.core.model.CollectorId
+import com.detectany.core.model.Confidence
+import com.detectany.core.model.Finding
 import com.detectany.feature.report.ReportModel
 
-/** 证据页：按采集器模块分组 + 置信概览 + 逐项证据回放。 */
+/**
+ * 威胁页（原证据页）：按「威胁」组织——用户心智：我中了什么、多严重、证据是什么。
+ */
 @Composable
 fun EvidenceScreen(controller: ScanController) {
     val m = controller.reportModel
     if (m == null) {
-        EmptyPage("尚无证据", "先在「扫描」页执行一次扫描")
+        EmptyPage("尚无结果", "先在「扫描」页执行一次扫描")
         return
     }
-    val groups = remember(m) {
-        m.findings.groupBy { it.collector }.entries
-            .sortedBy { (id, _) -> CollectorId.entries.indexOf(CollectorId.valueOf(id)) }
+    var filterConfidence by remember { mutableStateOf<String?>(null) }
+
+    val filtered = remember(m, filterConfidence) {
+        if (filterConfidence == null) m.findings
+        else m.findings.filter { it.confidenceLabel == filterConfidence }
     }
+    val groups = remember(filtered) { groupByThreat(filtered) }
 
     Column(Modifier.fillMaxSize()) {
-        if (m.findings.isEmpty()) {
-            Column(
-                Modifier.fillMaxWidth().padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text("✓ 干净：无命中观测", color = ScoreClean, style = MaterialTheme.typography.titleMedium)
-                Text("本次扫描未产生任何证据", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -66,11 +68,30 @@ fun EvidenceScreen(controller: ScanController) {
             val strong = m.findings.count { it.confidenceLabel == "强" }
             val medium = m.findings.count { it.confidenceLabel == "中" }
             val weak = m.findings.count { it.confidenceLabel == "弱" }
-            SummaryPill("强 $strong", BadgeStrong)
-            SummaryPill("中 $medium", BadgeMedium)
-            SummaryPill("弱 $weak", BadgeWeak)
+            FilterChip(
+                selected = filterConfidence == "强",
+                onClick = { filterConfidence = if (filterConfidence == "强") null else "强" },
+                label = { Text("强 $strong") },
+                leadingIcon = { Box(Modifier.size(8.dp).background(BadgeStrong, RoundedCornerShape(4.dp))) },
+            )
+            FilterChip(
+                selected = filterConfidence == "中",
+                onClick = { filterConfidence = if (filterConfidence == "中") null else "中" },
+                label = { Text("中 $medium") },
+                leadingIcon = { Box(Modifier.size(8.dp).background(BadgeMedium, RoundedCornerShape(4.dp))) },
+            )
+            FilterChip(
+                selected = filterConfidence == "弱",
+                onClick = { filterConfidence = if (filterConfidence == "弱") null else "弱" },
+                label = { Text("弱 $weak") },
+                leadingIcon = { Box(Modifier.size(8.dp).background(BadgeWeak, RoundedCornerShape(4.dp))) },
+            )
             Spacer(Modifier.weight(1f))
-            Text("${m.findings.size} 条", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "${groups.size} 个威胁 · ${m.findings.size} 条证据",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         LazyColumn(
@@ -78,30 +99,36 @@ fun EvidenceScreen(controller: ScanController) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            items(groups, key = { it.key }) { entry ->
-                CollectorGroup(entry.key, entry.value)
-            }
+            items(groups, key = { it.key }) { g -> ThreatCard(g) }
         }
     }
 }
 
 @Composable
-private fun CollectorGroup(collectorId: String, findings: List<ReportModel.FindingView>) {
+private fun ThreatCard(g: ThreatGroup) {
     var expanded by remember { mutableStateOf(false) }
-    val worst = if (findings.any { it.confidenceLabel == "强" }) "强"
-    else if (findings.any { it.confidenceLabel == "中" }) "中" else "弱"
-    val displayName = runCatching { CollectorId.valueOf(collectorId).displayName }.getOrDefault(collectorId)
+    val catColor = categoryColor(g.category)
+    val worstLabel = when (g.worst) { Confidence.A -> "强"; Confidence.B -> "中"; else -> "弱" }
 
-    Card(shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(defaultElevation = 1.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp).animateContentSize()) {
+    Card(
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (g.worst == Confidence.A) 2.dp else 1.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(14.dp).animateContentSize()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
             ) {
-                Text(displayName, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-                ConfidenceBadge(worst)
-                Text("${findings.size}", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(Modifier.weight(1f)) {
+                    Text(g.name, style = MaterialTheme.typography.titleMedium)
+                    if (g.desc.isNotEmpty()) {
+                        Text(g.desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                ConfidenceBadge(worstLabel)
+                Text("${g.findings.size}", style = MaterialTheme.typography.titleSmall, color = catColor)
                 Icon(
                     if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                     contentDescription = null,
@@ -109,7 +136,7 @@ private fun CollectorGroup(collectorId: String, findings: List<ReportModel.Findi
                 )
             }
             if (expanded) {
-                findings.forEachIndexed { idx, f -> FindingItem(idx, f) }
+                g.findings.forEachIndexed { idx, f -> FindingItem(idx, f) }
             }
         }
     }
@@ -127,20 +154,14 @@ fun FindingItem(idx: Int, f: ReportModel.FindingView) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ConfidenceBadge(f.confidenceLabel)
-            Text(f.framework ?: categoryLabel(f.category), style = MaterialTheme.typography.bodyMedium)
-            Text(
-                f.ruleId.substringAfterLast('.'),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-            )
+            Text(f.ruleId.substringAfterLast('.'), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f), maxLines = 1)
         }
         if (expanded) {
             Column(Modifier.padding(top = 6.dp, start = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(f.detail, style = MaterialTheme.typography.bodySmall)
+                val src = runCatching { CollectorId.valueOf(f.collector).shortName }.getOrDefault(f.collector)
                 Text(
-                    "规则 ${f.ruleId} · 采集器 ${f.collector} · 分类 ${categoryLabel(f.category)}",
+                    "来源: $src · 规则 ${f.ruleId} · 分类 ${categoryLabel(f.category)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -153,6 +174,12 @@ fun FindingItem(idx: Int, f: ReportModel.FindingView) {
             }
         }
     }
+}
+
+fun categoryColor(category: Finding.Category): Color = when (category) {
+    Finding.Category.HOOK, Finding.Category.ZYGISK -> BadgeStrong
+    Finding.Category.ANTI_DETECT_PRESENT, Finding.Category.REPACKAGED -> ScoreWarning
+    else -> BadgeMedium
 }
 
 @Composable

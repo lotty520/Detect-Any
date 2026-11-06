@@ -117,7 +117,7 @@ class MountCollector(
                     Finding(
                         ruleId = "mount.fstype_cross.${e.mountPoint.hashCode().toUInt()}",
                         collector = id,
-                        confidence = Confidence.A,
+                        confidence = Confidence.B, // A3 降权：susfs v2.x 用户态 umount 一致化
                         category = Finding.Category.ROOT_KERNEL,
                         framework = null,
                         detail = "statfs 交叉不一致: ${e.mountPoint} mountinfo=${e.fstype} 但 statfs f_type=0x${r[2].toString(16)}",

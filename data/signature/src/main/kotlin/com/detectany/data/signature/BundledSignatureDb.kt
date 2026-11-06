@@ -52,7 +52,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 2,
+      "version": 3,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE"},
         {"id": "path.zygisk.monitor", "path": "/debug_ramdisk/zygisk/monitor.sock", "framework": "zygisknext", "confidence": "C", "category": "ZYGISK"},
@@ -74,7 +74,10 @@ object BundledSignatureDb {
         {"id": "app.sukisu", "packageNames": ["com.sukisu.ultra", "io.sukisu.ultra", "com.sukisu.zako"], "dexStrings": ["sukisu", "KernelSU"], "framework": "sukisu", "confidence": "B", "category": "ROOT_KERNEL"},
         {"id": "app.apatch", "packageNames": ["me.bmax.apatch"], "dexStrings": ["superkey", "KernelPatch"], "framework": "apatch", "confidence": "B", "category": "ROOT_KERNEL"},
         {"id": "app.trustmealready", "packageNames": ["mfsx.xposed.trustmealready", "io.github.vvb2060.trustmealready"], "dexStrings": [], "framework": "trustmealready", "confidence": "C", "category": "HOOK"},
-        {"id": "app.zygiskdetect", "packageNames": ["com.example.zygiskdetect"], "dexStrings": ["zygisk", "ZygiskDetect"], "framework": "zygiskdetect", "confidence": "B", "category": "ZYGISK"}
+        {"id": "app.zygiskdetect", "packageNames": ["com.example.zygiskdetect"], "dexStrings": ["zygisk", "ZygiskDetect"], "framework": "zygiskdetect", "confidence": "B", "category": "ZYGISK"},
+        {"id": "app.vector", "packageNames": ["org.lsposed.vector"], "dexStrings": ["Vector", "lsposed"], "framework": "vector", "confidence": "B", "category": "HOOK"},
+        {"id": "app.neozygisk", "packageNames": ["moe.neozygisk"], "dexStrings": ["NeoZygisk", "zygiskd"], "framework": "neozygisk", "confidence": "B", "category": "ZYGISK"},
+        {"id": "app.nyazygisk", "packageNames": ["nk.be.nyazygisk"], "dexStrings": ["NyaZygisk", "zygiskd"], "framework": "nyazygisk", "confidence": "B", "category": "ZYGISK"}
       ],
       "sockets": [
         {"id": "sock.ksud", "name": "ksud", "framework": "ksu", "confidence": "C", "category": "ROOT_KERNEL"},
