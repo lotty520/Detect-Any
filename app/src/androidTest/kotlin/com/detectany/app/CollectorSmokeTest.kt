@@ -1,0 +1,98 @@
+package com.detectany.app
+
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.detectany.collectors.appfp.AppFingerprintCollector
+import com.detectany.collectors.behavior.BehaviorCollector
+import com.detectany.collectors.codeintegrity.CodeIntegrityCollector
+import com.detectany.collectors.fsprobe.MountCollector
+import com.detectany.collectors.fsprobe.PathProbeCollector
+import com.detectany.collectors.memmap.MemoryMapCollector
+import com.detectany.collectors.props.PropertyCollector
+import com.detectany.core.model.CollectorResult
+import com.detectany.core.model.ScanInput
+import com.detectany.core.model.ScanTier
+import com.detectany.collectors.endpoints.EndpointCollector
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * 干净模拟器上的采集器冒烟（任务组 3 设备侧验证）：
+ * 全部 8 个采集器可执行、无 BLOCKED（C4 在 API35 预期 DEGRADED）、
+ * 且干净环境零误报（误处置率 <0.1% 验收的最低门槛）。
+ */
+@RunWith(AndroidJUnit4::class)
+class CollectorSmokeTest {
+
+    private fun input() = ScanInput(ScanTier.L2, apiLevel = 35, targetSdk = 35, kernelRelease = "6.1.75", abi = "arm64-v8a")
+
+    private fun run(c: com.detectany.core.model.Collector): CollectorResult = c.collect(input())
+
+    @Test
+    fun c1PathProbeCleanNoFalsePositive() {
+        val r = run(PathProbeCollector())
+        assertEquals(CollectorResult.Status.OK, r.status)
+        assertEquals("特征路径在干净环境不应命中: ${r.findings}", 0, r.findings.size)
+    }
+
+    @Test
+    fun c2MountCollectorClean() {
+        val r = run(MountCollector())
+        assertTrue(r.status != CollectorResult.Status.BLOCKED)
+        assertEquals("挂载分析在干净环境不应命中: ${r.findings}", 0, r.findings.size)
+        assertTrue(r.meta.getValue("mounts").toInt() > 10)
+    }
+
+    @Test
+    fun c3PropertyCollectorClean() {
+        val r = run(PropertyCollector())
+        assertTrue(r.status != CollectorResult.Status.BLOCKED)
+        assertEquals("属性命中应为空(模拟器无 init.svc.magisk 族): ${r.findings}", 0, r.findings.filter { it.ruleId.startsWith("prop.") }.size)
+        assertTrue(r.meta.getValue("count").toInt() > 100)
+    }
+
+    @Test
+    fun c4EndpointCollectorDegradedOnApi35() {
+        val r = run(EndpointCollector())
+        // API 35 + targetSdk 35：/proc/net/unix 门控 BLOCKED → 采集器整体 DEGRADED（透明降级）
+        assertEquals(CollectorResult.Status.DEGRADED, r.status)
+        assertEquals(0, r.findings.size)
+    }
+
+    @Test
+    fun c5AppFingerprintClean() {
+        val r = run(AppFingerprintCollector.fromContext(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext))
+        assertEquals(CollectorResult.Status.OK, r.status)
+        assertEquals(0, r.findings.size)
+    }
+
+    @Test
+    fun c6MemoryMapClean() {
+        val r = run(MemoryMapCollector())
+        assertTrue(r.status != CollectorResult.Status.BLOCKED)
+        assertEquals("内存分析在干净环境不应命中: ${r.findings}", 0, r.findings.size)
+        assertTrue(r.meta.getValue("mappings").toInt() > 100)
+    }
+
+    @Test
+    fun c7CodeIntegrityClean() {
+        val ctx = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        val r = run(CodeIntegrityCollector(ownLib = { CodeIntegrityCollector.locateOwnLib(ctx) }))
+        assertEquals("C7 状态异常: ${r.meta}", CollectorResult.Status.OK, r.status)
+        assertEquals("自身完整性校验在干净环境必须零命中: ${r.findings}", 0, r.findings.size)
+        // prologue/GOT 校验必须真实执行过（meta 带基址），而非静默跳过
+        assertTrue("C7 未定位到自身库: ${r.meta}", r.meta.containsKey("base"))
+    }
+
+    @Test
+    fun c8BehaviorProbeCleanNoFalsePositive() {
+        val r = run(BehaviorCollector())
+        assertEquals(CollectorResult.Status.OK, r.status)
+        // 原厂内核：KSU reboot 探针不得产生 fd；APatch HELLO 不返回 magic；SELinux 对照生效
+        assertEquals("行为探针在原厂内核不得误报(meta=${r.meta}): ${r.findings.map { it.ruleId to it.detail }}", 0, r.findings.size)
+        assertTrue(r.meta.containsKey("ksuRet"))
+        assertTrue(r.meta.containsKey("apatchRet"))
+        assertTrue(r.meta.containsKey("nativebridgeError"))
+    }
+}
