@@ -70,7 +70,9 @@ class FsProbeTest {
 
     private val mountLines = listOf(
         "36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue",
-        "39 38 0:22 / /debug_ramdisk rw,relatime - tmpfs magisk rw",
+        "39 38 0:22 / /debug_ramdisk rw,relatime - tmpfs tmpfs rw",
+        "40 39 0:23 / /debug_ramdisk/pts rw - devpts devpts rw",
+        "41 39 0:24 / /debug_ramdisk/.magisk rw - tmpfs magisk rw",
         "104 30 253:7 / /data rw - ext4 /dev/block/bootdevice/by-name/userdata rw",
         "180 30 0:51 / /mnt/expand rw - tmpfs tmpfs rw",
     )
@@ -78,12 +80,12 @@ class FsProbeTest {
     @Test
     fun c2_parsesMountInfo() {
         val entries = MountInfoParser.parse(mountLines)
-        assertEquals(4, entries.size)
+        assertEquals(6, entries.size)
         assertEquals("/mnt2", entries[0].mountPoint)
         assertEquals("ext3", entries[0].fstype)
         assertEquals("rw", entries[0].mountOpts[0])
         assertEquals("tmpfs", entries[1].fstype)
-        assertEquals("magisk", entries[1].source)
+        assertEquals("tmpfs", entries[1].fstype)
     }
 
     @Test
