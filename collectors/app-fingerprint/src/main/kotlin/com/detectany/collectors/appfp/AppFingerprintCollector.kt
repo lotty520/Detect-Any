@@ -61,23 +61,46 @@ class AppFingerprintCollector(
                 }.getOrNull()
             }
             val probe: (String) -> Set<String> = { apkPath ->
-                runCatching {
-                    val f = java.io.File(apkPath)
-                    if (!f.isFile) return@runCatching emptySet<String>()
-                    val text = String(f.readBytes(), Charsets.ISO_8859_1)
-                    DEFAULT_PROBE_STRINGS.filterTo(mutableSetOf()) { text.contains(it) }
-                }.getOrDefault(emptySet())
+                // 流式分块扫描（64KB 块 + 跨块 overlap）：大 APK（Magisk 30MB+）不整读，
+                // 内存 O(块) 且提前全命中即停——C5 时延/内存双修（2026-11-06）
+                scanApkStrings(apkPath, DEFAULT_PROBE_STRINGS)
             }
             return AppFingerprintCollector(query, probe, entries)
         }
 
         /** APK 内搜索的探针字符串超集（各框架条目从中取子集）。 */
+        private const val CHUNK = 64 * 1024
+
+        /** 流式扫描 APK 字节：命中即记录，全部命中提前终止；跨块边界以 overlap 保护。 */
+        internal fun scanApkStrings(apkPath: String, probes: List<String>): Set<String> = runCatching {
+            val f = java.io.File(apkPath)
+            if (!f.isFile || probes.isEmpty()) return@runCatching emptySet<String>()
+            val maxLen = probes.maxOf { it.length }
+            val found = mutableSetOf<String>()
+            java.io.BufferedInputStream(java.io.FileInputStream(f), CHUNK).use { input ->
+                var tail = ByteArray(0)
+                val buf = ByteArray(CHUNK)
+                while (found.size < probes.size) {
+                    val n = input.read(buf)
+                    if (n <= 0) break
+                    // window = 上块尾部 + 本块（ISO-8859-1 单字节映射，无损）
+                    val window = tail + buf.copyOf(n)
+                    val wtxt = String(window, Charsets.ISO_8859_1)
+                    for (p in probes) {
+                        if (p !in found && wtxt.contains(p)) found += p
+                    }
+                    tail = window.copyOfRange(maxOf(0, window.size - (maxLen - 1)), window.size)
+                }
+            }
+            found
+        }.getOrDefault(emptySet())
         val DEFAULT_PROBE_STRINGS = listOf(
-            "me.weishu.kernelsu", "KernelSU", "ksu_driver",
-            "me.bmax.apatch", "APatch", "superkey",
-            "com.topjohnwu.magisk", "libmagisk", "magiskinit",
+            "KernelSU", "ksu_driver", "ksud",
+            "APatch", "superkey", "KernelPatch",
+            "libmagisk", "magiskinit", "magiskpolicy",
             "lspd", "XposedBridge", "edxp",
-            "zygisk", "com.rifsxd.ksunext", "sukisu",
+            "zygisk", "rifsxd", "sukisu",
+            "TrustMeAlready", "trustmealready", "ZygiskDetect",
         )
     }
 }
@@ -106,9 +129,11 @@ object AppFingerprintMatcher {
             }
             return null
         }
-        // 内容指纹：DEX 探针字符串全命中 → B（spoofed 包名兜底路径）
+        // 内容指纹：高特异探针词任一命中 → B（spoofed 包名兜底路径）
+        // 2026-11-06 真机实证：包名字符串不进自身 dex 池（me.bmax.apatch 在其 APK 中 0 次），
+        // containsAll 全命中语义导致整条漏检；any + 特异词（superkey/KernelPatch 级）误报可控
         if (entry.dexStrings.isNotEmpty()) {
-            if (presentStrings.containsAll(entry.dexStrings)) {
+            if (entry.dexStrings.any { it in presentStrings }) {
                 return Finding(
                     ruleId = entry.id,
                     collector = CollectorId.C5_APP_FINGERPRINT,

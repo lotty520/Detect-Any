@@ -11,6 +11,9 @@
         <package android:name="io.sukisu.ultra" />
         <package android:name="com.sukisu.zako" />
         <package android:name="me.bmax.apatch" />
+        <package android:name="mfsx.xposed.trustmealready" />
+        <package android:name="io.github.vvb2060.trustmealready" />
+        <package android:name="com.example.zygiskdetect" />
     </queries>
 
     <application

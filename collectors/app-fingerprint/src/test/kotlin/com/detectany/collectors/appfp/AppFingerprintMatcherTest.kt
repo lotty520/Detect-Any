@@ -27,12 +27,16 @@ class AppFingerprintMatcherTest {
     }
 
     @Test
-    fun partialDexProbeDoesNotMatch() {
+    fun partialDexProbeNowMatchesUnderAnySemantics() {
+        // 2026-11-06 语义修订：高特异词任一命中即 B（包名不进 dex 池，containsAll 导致真机漏检）
         val entry = SignatureEntries.AppEntry(
             id = "x", packageNames = listOf("p"), dexStrings = listOf("a", "b"),
             framework = "m", confidence = Confidence.B, category = Finding.Category.ROOT_USERSPACE,
         )
-        assertNull(AppFingerprintMatcher.match(entry, "p", null, setOf("a")))
+        val hit = AppFingerprintMatcher.match(entry, "p", null, setOf("a"))
+        assertEquals(Confidence.B, hit?.confidence)
+        // 完全无命中仍然 null
+        assertNull(AppFingerprintMatcher.match(entry, "p", null, emptySet()))
     }
 
     @Test

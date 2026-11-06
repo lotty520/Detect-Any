@@ -83,6 +83,10 @@ object BundledRuleSet {
             // ---- susfs（三路统计发散：mountinfo 声称的 fstype 与 statfs f_type 魔数不一致） ----
             RuleSet.RuleDef("rule.susfs", framework = "susfs", matchRuleIdPrefixes = listOf("mount.fstype_cross"), weight = 16),
 
+            // ---- 作弊工具族（2026-11-06 真机实证补录） ----
+            RuleSet.RuleDef("rule.trustmealready", framework = "trustmealready", matchRuleIdPrefixes = listOf("app.trustmealready"), weight = 12),
+            RuleSet.RuleDef("rule.zygiskdetect", framework = "zygiskdetect", matchRuleIdPrefixes = listOf("app.zygiskdetect"), weight = 10),
+
             // ---- PIF 属性伪装（成对属性偏离） ----
             RuleSet.RuleDef("rule.pif", framework = "pif", matchRuleIdPrefixes = listOf("prop.build_pair."), weight = 12),
         ),

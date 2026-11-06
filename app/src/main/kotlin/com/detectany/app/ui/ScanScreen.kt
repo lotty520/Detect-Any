@@ -44,8 +44,7 @@ fun ScanScreen(controller: ScanController, onOpenEvidence: () -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("Detect-Any", style = MaterialTheme.typography.headlineMedium)
-        Text("Root / Hook / 伪装框架检测 · 工业级", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Root / Hook / 伪装框架检测", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         // 主操作区
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
