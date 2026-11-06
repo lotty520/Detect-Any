@@ -27,7 +27,7 @@ class SignatureStoreTest {
     @Test
     fun bundledBaselineLoadsAndParses() {
         val db = BundledSignatureDb.db
-        assertEquals(1L, db.version)
+        assertEquals(2L, db.version)
         assertTrue(db.paths.size >= 10)
         assertTrue(db.apps.any { it.id == "app.sukisu" && it.dexStrings.isNotEmpty() })
         assertTrue(db.supercalls.any { it.family == "ksu_reboot" && it.magic1Hex == "deadbeef" })
@@ -64,7 +64,7 @@ class SignatureStoreTest {
         val forged = SignedUpdate(version = 5, payload = newDb, signatureBase64 = sign(otherPriv, newDb))
         val r = store.apply(forged)
         assertTrue(r is ApplyResult.Rejected && r.reason.contains("signature"))
-        assertEquals(1L, store.current().version) // 旧版保留
+        assertEquals(2L, store.current().version) // 旧版保留
     }
 
     @Test
@@ -81,17 +81,17 @@ class SignatureStoreTest {
         val (pub, priv) = keyPair()
         val store = SignatureStore(verifier = SignatureVerifier(pub))
         val delta = SignatureDb(
-            version = 2,
+            version = 3,
             paths = listOf(SignatureDb.PathEntry("path.new_marker", "/data/adb/newthing", "sukisu", "C", "ROOT_KERNEL")),
             keyboxBlacklist = listOf(SignatureDb.KeyboxEntry("aabbcc", "leaked")),
         )
-        val update = SignedUpdate(version = 2, baseVersion = 1, payload = delta, signatureBase64 = sign(priv, delta))
+        val update = SignedUpdate(version = 3, baseVersion = 2, payload = delta, signatureBase64 = sign(priv, delta))
         val r = store.apply(update)
         assertTrue(r is ApplyResult.Applied, r.toString())
         val db = store.current()
         assertTrue(db.paths.any { it.id == "path.new_marker" })
         assertTrue(db.paths.any { it.id == "path.su.system" }) // 旧条目保留
-        assertTrue(db.keyboxBlacklist.any { it.serialHex == "aabb" + "cc" })
+        assertTrue(db.keyboxBlacklist.any { it.serialHex == "aabbcc" })
     }
 
     @Test

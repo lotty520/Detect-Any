@@ -52,7 +52,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 1,
+      "version": 2,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE"},
         {"id": "path.zygisk.monitor", "path": "/debug_ramdisk/zygisk/monitor.sock", "framework": "zygisknext", "confidence": "C", "category": "ZYGISK"},
@@ -68,11 +68,13 @@ object BundledSignatureDb {
         {"id": "path.su.sbin", "path": "/sbin/su", "framework": null, "confidence": "C", "category": "ROOT_USERSPACE"}
       ],
       "apps": [
-        {"id": "app.magisk", "packageNames": ["com.topjohnwu.magisk"], "dexStrings": ["com.topjohnwu.magisk", "libmagisk"], "framework": "magisk", "confidence": "B", "category": "ROOT_USERSPACE"},
-        {"id": "app.ksu", "packageNames": ["me.weishu.kernelsu", "me.weishu.kernelsu.pr"], "dexStrings": ["me.weishu.kernelsu", "ksu_driver"], "framework": "ksu", "confidence": "B", "category": "ROOT_KERNEL"},
-        {"id": "app.ksunext", "packageNames": ["com.rifsxd.ksunext"], "dexStrings": ["com.rifsxd.ksunext", "KernelSU"], "framework": "ksunext", "confidence": "B", "category": "ROOT_KERNEL"},
+        {"id": "app.magisk", "packageNames": ["com.topjohnwu.magisk"], "dexStrings": ["libmagisk", "magiskinit", "magiskpolicy"], "framework": "magisk", "confidence": "B", "category": "ROOT_USERSPACE"},
+        {"id": "app.ksu", "packageNames": ["me.weishu.kernelsu", "me.weishu.kernelsu.pr"], "dexStrings": ["ksu_driver", "KernelSU"], "framework": "ksu", "confidence": "B", "category": "ROOT_KERNEL"},
+        {"id": "app.ksunext", "packageNames": ["com.rifsxd.ksunext"], "dexStrings": ["rifsxd", "KernelSU"], "framework": "ksunext", "confidence": "B", "category": "ROOT_KERNEL"},
         {"id": "app.sukisu", "packageNames": ["com.sukisu.ultra", "io.sukisu.ultra", "com.sukisu.zako"], "dexStrings": ["sukisu", "KernelSU"], "framework": "sukisu", "confidence": "B", "category": "ROOT_KERNEL"},
-        {"id": "app.apatch", "packageNames": ["me.bmax.apatch"], "dexStrings": ["me.bmax.apatch", "superkey"], "framework": "apatch", "confidence": "B", "category": "ROOT_KERNEL"}
+        {"id": "app.apatch", "packageNames": ["me.bmax.apatch"], "dexStrings": ["superkey", "KernelPatch"], "framework": "apatch", "confidence": "B", "category": "ROOT_KERNEL"},
+        {"id": "app.trustmealready", "packageNames": ["mfsx.xposed.trustmealready", "io.github.vvb2060.trustmealready"], "dexStrings": [], "framework": "trustmealready", "confidence": "C", "category": "HOOK"},
+        {"id": "app.zygiskdetect", "packageNames": ["com.example.zygiskdetect"], "dexStrings": ["zygisk", "ZygiskDetect"], "framework": "zygiskdetect", "confidence": "B", "category": "ZYGISK"}
       ],
       "sockets": [
         {"id": "sock.ksud", "name": "ksud", "framework": "ksu", "confidence": "C", "category": "ROOT_KERNEL"},

@@ -48,8 +48,6 @@ fun SettingsScreen(controller: ScanController) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("设置与运维", style = MaterialTheme.typography.headlineSmall)
-
         SettingsCard("数据") {
             OutlinedButton(onClick = { feedback = controller.exportReport(context) }, modifier = Modifier.fillMaxWidth()) {
                 Text("导出结构化报告（脱敏 JSON）")
