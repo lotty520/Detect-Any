@@ -69,8 +69,8 @@ class ScoreModelTest {
     }
 
     @Test
-    fun crossFrameworkBDomainsDoNotResonate() {
-        // 两条 B 分属不同框架：不定性（共振必须同域）
+    fun crossDomainTwoBsResonate() {
+        // 2026-11-06 校准：跨域双 B 也共振（真机教训：APatch B + zygiskdetect B 曾误判未定性）
         val v = model.score(
             listOf(
                 f("behavior.ksu_supercall", Confidence.B, "ksu"),
@@ -78,7 +78,21 @@ class ScoreModelTest {
             ),
             emptyList(),
         )
-        assertFalse(v.conclusive)
+        assertTrue(v.conclusive)
+    }
+
+    @Test
+    fun rootedDeviceManagerPlusToolIsConclusive() {
+        // 真机实证形态：root 管理器内容指纹(B, ROOT_KERNEL) + zygisk 工具(B, ZYGISK)
+        val v = model.score(
+            listOf(
+                Finding("app.apatch", CollectorId.C5_APP_FINGERPRINT, Confidence.B, Finding.Category.ROOT_KERNEL, "apatch", "t", emptyMap()),
+                Finding("app.zygiskdetect", CollectorId.C5_APP_FINGERPRINT, Confidence.B, Finding.Category.ZYGISK, "zygiskdetect", "t", emptyMap()),
+            ),
+            emptyList(),
+        )
+        assertTrue(v.conclusive, "rooted 设备双 B 必须定性")
+        assertTrue(v.riskScore >= 50)
     }
 
     @Test

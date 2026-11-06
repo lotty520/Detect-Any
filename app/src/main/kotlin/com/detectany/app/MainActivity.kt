@@ -33,6 +33,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.detectany.app.ui.EvidenceScreen
+import com.detectany.app.ui.theme.DetectAnyTheme
 import com.detectany.app.ui.ModulesScreen
 import com.detectany.app.ui.ScanController
 import com.detectany.app.ui.ScanScreen
@@ -44,7 +45,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val orchestrator = ScanOrchestrator(applicationContext)
         setContent {
-            MaterialTheme {
+            DetectAnyTheme {
                 Surface {
                     AppShell(orchestrator)
                 }
@@ -68,8 +69,17 @@ fun AppShell(orchestrator: ScanOrchestrator) {
     val nav = rememberNavController()
     val controller = remember { ScanController(orchestrator) }
     val currentRoute = nav.currentBackStackEntryAsState().value?.destination?.route
+    val snackbar = remember { androidx.compose.material3.SnackbarHostState() }
+
+    androidx.compose.runtime.LaunchedEffect(controller.statusLine) {
+        controller.statusLine?.let {
+            snackbar.showSnackbar(it)
+            controller.statusLine = null
+        }
+    }
 
     Scaffold(
+        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = {
@@ -124,6 +134,7 @@ fun AppShell(orchestrator: ScanOrchestrator) {
     ) { inner ->
         AppNavHost(nav, controller, Modifier.padding(inner))
     }
+
 }
 
 @Composable

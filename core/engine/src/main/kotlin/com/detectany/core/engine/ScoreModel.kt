@@ -54,11 +54,15 @@ class ScoreModel(
         }
 
         // 定性判定（判定权限矩阵）
+        // 2026-11-06 校准：B 共振放宽为「任意域两条 B」——B 为高伪装成本信号
+        // （内容指纹/行为探针级），跨域双 B 在干净设备上近乎不可能；原同域限制导致
+        // 真机「APatch 管理器(B) + zygiskdetect(B)」误判未达定性（rooted 设备漏定性）。
+        // B+C 共振仍要求同域（C 级噪声高，需域内佐证）。
         val conclusive = run {
             if (aFindings.isNotEmpty()) return@run true
-            // B 共振：同域两条 B；或同域一 B + 一 C
+            val allB = findings.filter { it.confidence == Confidence.B }
+            if (allB.size >= 2) return@run true
             bByDomain.forEach { (domain, bs) ->
-                if (bs.size >= 2) return@run true
                 if (bs.size == 1 && (cByDomain[domain]?.size ?: 0) >= 1) return@run true
             }
             false

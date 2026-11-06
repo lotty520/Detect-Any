@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -106,8 +107,8 @@ private fun SettingsCard(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun BoundaryRow(k: String, v: String) {
-    Column {
-        Text(k, style = MaterialTheme.typography.bodyMedium)
-        Text(v, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
+    ListItem(
+        headlineContent = { Text(k, style = MaterialTheme.typography.bodyMedium) },
+        supportingContent = { Text(v, style = MaterialTheme.typography.bodySmall) },
+    )
 }
