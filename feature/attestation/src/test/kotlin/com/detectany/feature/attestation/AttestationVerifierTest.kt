@@ -222,4 +222,46 @@ class AttestationVerifierTest {
         val v = AttestationVerifier(emptyList())
         assertTrue(v.verify(listOf(genCa().first)) is AttestationVerifier.Verdict.Rejected)
     }
+
+    // ---- A1: RKP-only 策略（Android 16 首发） ----
+
+    @Test
+    fun rkpOnlyDeviceRejectsRsaChain() {
+        val (root, rootKey) = genCa()
+        val v = AttestationVerifier(listOf(root))
+        val leaf = genLeaf(root, rootKey, extension = hwExt)
+        val r = v.verify(
+            listOf(leaf, root),
+            expectedChallenge = "nonce-123".toByteArray(),
+            rkpPolicy = AttestationVerifier.RkpPolicy(firstApiLevel = 36),
+        )
+        assertTrue(r is AttestationVerifier.Verdict.Rejected, "RKP-only 设备上 RSA 链必须被拒: $r")
+        assertTrue((r as AttestationVerifier.Verdict.Rejected).reason.contains("RKP"))
+    }
+
+    @Test
+    fun nonRkpDeviceAcceptsRsaChain() {
+        val (root, rootKey) = genCa()
+        val v = AttestationVerifier(listOf(root))
+        val leaf = genLeaf(root, rootKey, extension = hwExt)
+        val r = v.verify(
+            listOf(leaf, root),
+            expectedChallenge = "nonce-123".toByteArray(),
+            rkpPolicy = AttestationVerifier.RkpPolicy(firstApiLevel = 35),
+        )
+        assertTrue(r is AttestationVerifier.Verdict.Trusted, "非 RKP-only 设备 RSA 链正常通过: $r")
+    }
+
+    @Test
+    fun nullFirstApiLevelSkipsRkpCheck() {
+        val (root, rootKey) = genCa()
+        val v = AttestationVerifier(listOf(root))
+        val leaf = genLeaf(root, rootKey, extension = hwExt)
+        val r = v.verify(
+            listOf(leaf, root),
+            expectedChallenge = "nonce-123".toByteArray(),
+            rkpPolicy = AttestationVerifier.RkpPolicy(firstApiLevel = null),
+        )
+        assertTrue(r is AttestationVerifier.Verdict.Trusted, "first_api_level 未知时跳过 RKP 检查: $r")
+    }
 }

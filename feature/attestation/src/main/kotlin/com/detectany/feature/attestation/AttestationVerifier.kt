@@ -11,6 +11,48 @@ import java.util.Date
  * 证明链校验（任务 5.2/5.3）：锚定 + 只取第一个扩展 + 安全级别 + 吊销 + 应用绑定 + 字段交叉。
  * 纯 Kotlin，测试向量全部主机可测。
  */
+/**
+ * A2: 根证书锚定集动态消费 —— 官方端点 android.googleapis.com/attestation/root
+ * 返回 JSON 数组（PEM 编码根证书列表）。RSA 根 2016 版已于 2026-05-24 过期，
+ * Google 官方要求继续信任 SERIALNUMBER=f92009e853b6b045 除非入 CRL。
+ */
+class RootAnchorStore(private val fetcher: (String) -> String? = { null }) {
+    private val url get() = "https://android.googleapis.com/attestation/root"
+
+    data class AnchorResult(
+        val roots: List<java.security.cert.X509Certificate>,
+        val source: String,
+    )
+
+    fun loadDynamic(): AnchorResult? = runCatching {
+        val body = fetcher(url) ?: return@runCatching null
+        val pems = Regex("-----BEGIN CERTIFICATE-----[\\s\\S]*?-----END CERTIFICATE-----")
+            .findAll(body).map { it.value }.toList()
+        if (pems.isEmpty()) return@runCatching null
+        val cf = java.security.cert.CertificateFactory.getInstance("X.509")
+        val roots = pems.mapNotNull { pem ->
+            runCatching {
+                cf.generateCertificate(java.io.ByteArrayInputStream(pem.toByteArray()))
+                    as java.security.cert.X509Certificate
+            }.getOrNull()
+        }
+        if (roots.isEmpty()) null else AnchorResult(roots, "dynamic")
+    }.getOrNull()
+
+    companion object {
+        /**
+         * RSA 过期信任豁免（官方政策）：
+         * Google 要求对 2016 RSA 根（SERIALNUMBER=f92009e853b6b045）在过期后
+         * 继续信任签发的链，除非该序列号入 CRL。RKP 证书则必须检查过期。
+         */
+        fun isExpiredRootTrusted(cert: java.security.cert.X509Certificate): Boolean {
+            val isRsaRoot = cert.publicKey.algorithm == "RSA"
+            val isGoogleRoot = cert.subjectX500Principal.name.contains("Google")
+            return isRsaRoot && isGoogleRoot && cert.notAfter < java.util.Date()
+        }
+    }
+}
+
 class AttestationVerifier(
     /** 信任锚（Google 双根：旧 RSA 根 + 2026-02 起 ECDSA P-384 新根；由装配层注入）。 */
     private val roots: List<X509Certificate>,
@@ -30,11 +72,21 @@ class AttestationVerifier(
         data class Rejected(val reason: String) : Verdict
     }
 
+    /**
+     * A1 (P0): Android 16 首发（first_api_level ≥ 36）为 RKP-only 设备——
+     * 官方策略要求仅接受 ECDSA P-384 RKP 链。RSA 根链在 RKP-only 设备上
+     * 出现即为强伪造信号（2026-02-01 起 ECDSA 根独占 RKP 设备）。
+     */
+    data class RkpPolicy(val firstApiLevel: Int? = null) {
+        val isRkpOnlyDevice: Boolean get() = (firstApiLevel ?: 0) >= 36
+    }
+
     fun verify(
         chain: List<X509Certificate>,
         expectedChallenge: ByteArray? = null,
         expectedPackageName: String? = null,
         revokedSerials: Set<String> = emptySet(),
+        rkpPolicy: RkpPolicy = RkpPolicy(),
     ): Verdict {
         if (roots.isEmpty()) return Verdict.Rejected("no trust anchors configured")
         if (chain.isEmpty()) return Verdict.Rejected("empty chain")
@@ -66,6 +118,19 @@ class AttestationVerifier(
             val serial = cert.serialNumber.toString(16).lowercase()
             if (serial in revokedSerials) {
                 return Verdict.Revoked(cert, serial)
+            }
+        }
+
+        // A1: RKP-only 策略检查——Android 16 首发+RSA 根 = 强伪造信号
+        if (desc.hardwareBacked && rkpPolicy.isRkpOnlyDevice) {
+            val isRkpChain = chain.any { cert ->
+                cert.publicKey.algorithm == "EC" && cert.sigAlgName.contains("384")
+            }
+            if (!isRkpChain) {
+                return Verdict.Rejected(
+                    "RKP-only device (first_api_level=${rkpPolicy.firstApiLevel}) presented non-RKP RSA chain " +
+                        "— Android 16 launch devices exclusively use ECDSA P-384 RKP; RSA chain is a spoof signal",
+                )
             }
         }
 

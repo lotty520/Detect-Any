@@ -45,7 +45,7 @@ class AttestationService(
             ?: return Outcome.Degraded("attestation unavailable (no keymaster or error)", emptyList())
         try {
             val revoked = runCatching { crl.revokedSerials() }.getOrDefault(emptySet())
-            return when (val v = verifier.verify(attested.chain, attested.challenge, ownPackageName, revoked)) {
+            return when (val v = verifier.verify(attested.chain, attested.challenge, ownPackageName, revoked, AttestationVerifier.RkpPolicy(fal))) {
                 is AttestationVerifier.Verdict.Revoked -> Outcome.SpoofSuspected(
                     "revoked serial ${v.serialHex}",
                     listOf(
@@ -55,7 +55,7 @@ class AttestationService(
                             confidence = Confidence.A,
                             category = Finding.Category.ATTESTATION_SPOOF,
                             framework = "trickystore",
-                            detail = "证书链序列号 ${v.serialHex} 命中吊销清单",
+                            detail = "证书链序列号 ${v.serialHex} 命中吊销清单（注意：CRL-clean 亦不等于可信——Google 存在影子降级 Strong→Device 不入 CRL）",
                             raw = mapOf("serial" to v.serialHex),
                         ),
                     ),

@@ -29,6 +29,10 @@ class ScanController(private val orchestrator: ScanOrchestrator) {
         private set
     var statusLine by mutableStateOf<String?>(null)
 
+    /** 扫描历史（最近 5 次，B1「对比上次」数据源） */
+    val scanHistory = androidx.compose.runtime.mutableStateListOf<ReportModel>()
+    private val maxHistory = 5
+
     fun runScan(tier: ScanTier, onDone: () -> Unit = {}) {
         if (scanning) return
         scanning = true
@@ -36,11 +40,37 @@ class ScanController(private val orchestrator: ScanOrchestrator) {
         Thread {
             val raw = orchestrator.scan(tier)
             rawReport = raw
-            reportModel = ReportPresenter.present(raw)
+            val model = ReportPresenter.present(raw)
+            val prev = reportModel
+            reportModel = model
             lastTier = tier
+            // B1: 记录历史 + 计算 delta
+            scanHistory.add(model)
+            if (scanHistory.size > maxHistory) scanHistory.removeAt(0)
+            lastDelta = prev?.let { computeDelta(it, model) }
             scanning = false
             onDone()
         }.start()
+    }
+
+    /** B1: Δ分数 + 新增/消失威胁 */
+    var lastDelta by mutableStateOf<ScanDelta?>(null)
+        private set
+
+    data class ScanDelta(
+        val scoreDiff: Int,
+        val newThreats: List<String>,
+        val goneThreats: List<String>,
+    )
+
+    private fun computeDelta(prev: ReportModel, curr: ReportModel): ScanDelta {
+        val prevThreats = prev.findings.mapNotNull { it.framework }.toSet()
+        val currThreats = curr.findings.mapNotNull { it.framework }.toSet()
+        return ScanDelta(
+            scoreDiff = curr.riskScore - prev.riskScore,
+            newThreats = (currThreats - prevThreats).toList(),
+            goneThreats = (prevThreats - currThreats).toList(),
+        )
     }
 
     /** 导出当前报告；返回结果消息。 */
@@ -61,19 +91,6 @@ class ScanController(private val orchestrator: ScanOrchestrator) {
 
     val hasFindings: Boolean get() = (reportModel?.findings?.size ?: 0) > 0
 }
-
-/** 采集器中文显示名（证据页/模块页分组标题）。 */
-val CollectorId.displayName: String
-    get() = when (this) {
-        CollectorId.C1_PATH -> "C1 · 路径探测"
-        CollectorId.C2_MOUNT -> "C2 · 挂载与设备号"
-        CollectorId.C3_PROPERTY -> "C3 · 属性快照"
-        CollectorId.C4_ENDPOINT -> "C4 · 网络端点"
-        CollectorId.C5_APP_FINGERPRINT -> "C5 · 应用指纹"
-        CollectorId.C6_MEMORY_MAP -> "C6 · 内存映射"
-        CollectorId.C7_CODE_INTEGRITY -> "C7 · 指令完整性"
-        CollectorId.C8_BEHAVIOR -> "C8 · 接口行为"
-    }
 
 /** 分类标签中文。 */
 val categoryLabel: (String) -> String = {

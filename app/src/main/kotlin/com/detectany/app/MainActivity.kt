@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -58,8 +57,8 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 
 private val TABS = listOf(
     Tab("scan", "扫描", Icons.Filled.Radar),
-    Tab("evidence", "证据", Icons.Filled.BugReport),
-    Tab("modules", "模块", Icons.Filled.ViewModule),
+    Tab("evidence", "威胁", Icons.Filled.BugReport),
+    Tab("modules", "能力", Icons.Filled.ViewModule),
     Tab("settings", "设置", Icons.Filled.Settings),
 )
 
@@ -83,20 +82,10 @@ fun AppShell(orchestrator: ScanOrchestrator) {
         topBar = {
             TopAppBar(
                 title = {
-                    val risk = controller.reportModel?.riskScore
                     Text(
                         "Detect-Any",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge,
+                                                style = MaterialTheme.typography.titleLarge,
                     )
-                    if (risk != null) {
-                        Text(
-                            "  ·  $risk",
-                            color = com.detectany.app.ui.scoreColor(risk),
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                            style = MaterialTheme.typography.titleLarge,
-                        )
-                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,

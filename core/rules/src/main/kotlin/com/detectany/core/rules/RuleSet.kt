@@ -86,6 +86,9 @@ object BundledRuleSet {
             // ---- 作弊工具族（2026-11-06 真机实证补录） ----
             RuleSet.RuleDef("rule.trustmealready", framework = "trustmealready", matchRuleIdPrefixes = listOf("app.trustmealready"), weight = 12),
             RuleSet.RuleDef("rule.zygiskdetect", framework = "zygiskdetect", matchRuleIdPrefixes = listOf("app.zygiskdetect"), weight = 10),
+            RuleSet.RuleDef("rule.vector", framework = "vector", matchRuleIdPrefixes = listOf("app.vector"), weight = 12),
+            RuleSet.RuleDef("rule.neozygisk", framework = "neozygisk", matchRuleIdPrefixes = listOf("app.neozygisk"), weight = 12),
+            RuleSet.RuleDef("rule.nyazygisk", framework = "nyazygisk", matchRuleIdPrefixes = listOf("app.nyazygisk"), weight = 12),
 
             // ---- PIF 属性伪装（成对属性偏离） ----
             RuleSet.RuleDef("rule.pif", framework = "pif", matchRuleIdPrefixes = listOf("prop.build_pair."), weight = 12),
