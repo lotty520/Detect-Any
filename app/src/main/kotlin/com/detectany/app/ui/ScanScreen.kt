@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,12 +17,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -61,9 +66,13 @@ fun ScanScreen(controller: ScanController, onOpenEvidence: () -> Unit) {
         }
 
         if (controller.scanning) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                CircularProgressIndicator()
-                Text("采集中…（挂载取证 / supercall 探针 / 完整性校验）", style = MaterialTheme.typography.bodySmall)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Text(
+                    "采集中 · 挂载取证 / supercall 探针 / 指令完整性校验",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
 
@@ -129,6 +138,7 @@ private fun EmptyHero() {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidence: () -> Unit) {
     Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), modifier = Modifier.fillMaxWidth()) {
@@ -155,19 +165,26 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
             )
 
             if (m.frameworkScores.isNotEmpty()) {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SectionHeader("框架命中")
-                    m.frameworkScores.entries.sortedByDescending { it.value }.take(5).forEach { (fw, score) ->
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                        ) {
-                            Text(fw, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                "$score",
-                                color = scoreColor(score),
-                                fontFamily = FontFamily.Monospace,
-                                style = MaterialTheme.typography.titleSmall,
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        m.frameworkScores.entries.sortedByDescending { it.value }.forEach { (fw, score) ->
+                            AssistChip(
+                                onClick = onOpenEvidence,
+                                label = { Text(fw) },
+                                leadingIcon = {
+                                    Text(
+                                        "$score",
+                                        color = scoreColor(score),
+                                        fontFamily = FontFamily.Monospace,
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                },
+                                colors = AssistChipDefaults.assistChipColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                ),
                             )
                         }
                     }
