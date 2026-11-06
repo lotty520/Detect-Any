@@ -29,11 +29,18 @@ class AppFingerprintCollector(
     override fun collect(input: ScanInput): CollectorResult = try {
         val findings = mutableListOf<Finding>()
         for (entry in entries) {
+            // 两步策略（时延优化 2026-11-06）：先查包名（~0ms），命中才读 APK 内容
             val hit = entry.packageNames.asSequence()
                 .mapNotNull { name -> packageQuery(name)?.takeIf { it.installed }?.let { name to it } }
                 .firstOrNull() ?: continue
-            AppFingerprintMatcher.match(entry, hit.first, hit.second.certSha256Hex, apkStringProbe(hit.second.baseApkPath ?: ""))
-                ?.let { findings.add(it) }
+            // 有 certPins 时优先签名比对（快）；否则才走 APK 内容扫描（慢）
+            if (entry.certPins.isNotEmpty()) {
+                AppFingerprintMatcher.match(entry, hit.first, hit.second.certSha256Hex, emptySet())
+                    ?.let { findings.add(it) }
+            } else {
+                AppFingerprintMatcher.match(entry, hit.first, hit.second.certSha256Hex, apkStringProbe(hit.second.baseApkPath ?: ""))
+                    ?.let { findings.add(it) }
+            }
         }
         CollectorResult(collector = id, status = CollectorResult.Status.OK, findings = findings)
     } catch (e: Throwable) {

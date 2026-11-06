@@ -24,7 +24,13 @@ class MemoryMapCollector(
 
     override fun collect(input: ScanInput): CollectorResult = try {
         val maps = MapsParser.parse(mapsReader())
-        val smaps = MapsParser.parseSmapsPrivateDirty(smapsReader())
+        // 时延优化：smaps 体积大（数 MB），仅当 maps 有可疑路径才解析
+        val mapsSuspicious = maps.any { m ->
+            val p = m.path ?: return@any false
+            p.contains("memfd:") || p.contains("lspd") || p.contains("zygisk") ||
+                p.contains("riru") || p.contains("XposedBridge") || p.contains("edxp")
+        }
+        val smaps = if (mapsSuspicious) MapsParser.parseSmapsPrivateDirty(smapsReader()) else emptyMap()
         val findings = MemoryMapAnalyzer.analyze(maps, smaps, fdNames(), solist(), rwxProbe())
         CollectorResult(
             collector = id,

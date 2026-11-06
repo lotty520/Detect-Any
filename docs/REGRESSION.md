@@ -52,5 +52,15 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 | Pixel 8 / Android 16（**ROOT + 作弊工具，对抗组**） | 2026-11-06 | **首条真阳性**：L2=50 定性检出，HOOK 域 5 条 A 级 prologue 命中——检测器全部 JNI 入口被定向 hook（mem=`ff442d58 0c1d5093 02940495` = LDR/SBFM/BL 补丁桩，磁盘为 paciasp/stp 标准序言）；root 静态信号全被隐藏栈压制（susfs/Shamiko 效果实证），指令完整性成为唯一存活强信号（设计文档「物理不变量」论断的实战验证）。**进程作用域发现**：主 app 进程被 hook、instrumentation 进程未注入（作弊模块按进程靶向）。修复链：execute-only 文本需 textRead（mprotect 临时放行）、base 投票第二因子改用不可 hook 的 phdr 表 |
 | Pixel 8 / Android 16（干净） | 2026-11-06 | 设备测试 21/21，0 误报；**L1=19-20ms（超预算）、L2≈2.4s（超预算）** → 优化债务：C5 改 mmap 分块扫描、C3 属性枚举限流、C1 路径表 L1 子集化 | 首台真机。**修复 2 个真机发现**：① 真实 attestation 链 deviceLocked=BOOLEAN（旧 ENUMERATED 解析崩溃）→ 解析器防御化；② Android 16 原生挂载裸 /debug_ramdisk(+pts) → 挂载规则收窄至 `.magisk` 子路径 |
 
+### 时延优化记录（2026-11-06 并行化改造）
+
+| 指标 | 优化前 | 优化后 | 手段 |
+|---|---|---|---|
+| L2 总耗时 | 1400-2400ms | **889ms**（Pixel 8 实测） | CompletableFuture 并行采集器（总耗时≈max 单项） |
+| L2 瓶颈 | 串行 sum(C1..C8) | **C5=880ms**（APK 内容扫描） | C5 两步策略（先包名后 APK）；C6 lazy smaps |
+| L1 快扫 | 19-20ms | ~10ms（并行 C1+C3，待精确实测） | 并行化 + daemon 线程池 |
+
+下一步：C5 APK mmap 替代流式读 + 扫描结果缓存；C6 solist 增量。
+
 > 真机矩阵执行：每台设备按上表逐项安装框架最新版 → 跑 L2 → 导出报告
 > （`ReportExporter`）→ 汇总检出率/误报至本文件。对抗组单独记录组合风险分捕获率。
