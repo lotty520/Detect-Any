@@ -40,7 +40,7 @@ import com.detectany.feature.report.ReportModel
 
 /** 首页：扫描主流程 + 重点结论概览。 */
 @Composable
-fun ScanScreen(controller: ScanController, onOpenEvidence: () -> Unit) {
+fun ScanScreen(controller: ScanController, onOpenEvidence: (String?) -> Unit) {
     val m = controller.reportModel
     Column(
         modifier = Modifier
@@ -123,14 +123,32 @@ private fun EmptyHero() {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
-            Modifier.padding(24.dp).fillMaxWidth(),
+            Modifier.padding(20.dp).fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(Icons.Filled.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(44.dp))
             Text("执行首次扫描", style = MaterialTheme.typography.titleLarge)
             Text(
-                "覆盖 Magisk / KernelSU 系 / APatch / LSPosed / Zygisk 系 / TrickyStore / susfs 等 13 项目标，输出风险分与逐项证据",
+                "7 个能力域 · 13 项目标框架",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            // B6: 能力域一览（首次引导）
+            CapabilityDomain.entries.forEach { domain ->
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("·", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                    Column {
+                        Text(domain.title, style = MaterialTheme.typography.bodySmall)
+                        Text(domain.desc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            Text(
+                "输出风险分（0-100）+ 威胁明细 + 逐项证据回放",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -140,7 +158,7 @@ private fun EmptyHero() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidence: () -> Unit) {
+private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidence: (String?) -> Unit) {
     Card(shape = RoundedCornerShape(16.dp), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), modifier = Modifier.fillMaxWidth()) {
         Column(
             Modifier.padding(20.dp).fillMaxWidth(),
@@ -177,7 +195,7 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
                     ) {
                         m.frameworkScores.entries.sortedByDescending { it.value }.forEach { (fw, score) ->
                             AssistChip(
-                                onClick = onOpenEvidence,
+                                onClick = { onOpenEvidence(fw) },
                                 label = { Text(fw) },
                                 leadingIcon = {
                                     Text(
@@ -197,7 +215,7 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
             }
 
             if (m.findings.isNotEmpty()) {
-                Button(onClick = onOpenEvidence, modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = { onOpenEvidence(null) }, modifier = Modifier.fillMaxWidth()) {
                     Text("查看 ${m.findings.size} 条证据")
                 }
             } else {
