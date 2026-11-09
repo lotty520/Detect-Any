@@ -90,6 +90,14 @@ object BundledRuleSet {
             RuleSet.RuleDef("rule.neozygisk", framework = "neozygisk", matchRuleIdPrefixes = listOf("app.neozygisk"), weight = 12),
             RuleSet.RuleDef("rule.nyazygisk", framework = "nyazygisk", matchRuleIdPrefixes = listOf("app.nyazygisk"), weight = 12),
 
+            // ---- 新域（close-detection-gaps） ----
+            RuleSet.RuleDef("rule.frida", category = "INSTRUMENTATION", matchRuleIdPrefixes = listOf("frida."), weight = 16),
+            RuleSet.RuleDef("rule.emulator", category = "EMULATOR", matchRuleIdPrefixes = listOf("emulator."), weight = 14),
+            RuleSet.RuleDef("rule.virtual_env", category = "VIRTUAL_ENV", matchRuleIdPrefixes = listOf("virtual."), weight = 14),
+            RuleSet.RuleDef("rule.network_mitm", category = "NETWORK_MITM", matchRuleIdPrefixes = listOf("network.vpn", "network.proxy"), weight = 8),
+            RuleSet.RuleDef("rule.automation", category = "AUTOMATION", matchRuleIdPrefixes = listOf("automation."), weight = 12),
+            RuleSet.RuleDef("rule.screenshare", category = "SCREEN_SHARE", matchRuleIdPrefixes = listOf("screenshare."), weight = 14),
+
             // ---- PIF 属性伪装（成对属性偏离） ----
             RuleSet.RuleDef("rule.pif", framework = "pif", matchRuleIdPrefixes = listOf("prop.build_pair."), weight = 12),
         ),

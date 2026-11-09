@@ -40,7 +40,14 @@ class ReportUiSmokeTest {
         val report = orchestrator.scan(ScanTier.L2)
         val isEmu = android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.PRODUCT.contains("sdk_gphone")
         if (isEmu) {
-            assertEquals("干净模拟器零命中: ${report.verdict.evidenceVector}", 0, report.verdict.evidenceVector.size)
+            // 模拟器上检测到模拟器信号是真阳性；仅断无非模拟器域命中
+            val nonEmulatorFindings = report.collectorResults.flatMap { it.findings }
+                .filter { it.category != com.detectany.core.model.Finding.Category.EMULATOR }
+                .filter { it.ruleId != "screenshare.adb_enabled" } // 模拟器 ADB 恒开
+            assertEquals(
+                "干净模拟器非模拟器域应零命中: ${nonEmulatorFindings.map { it.ruleId }}",
+                0, nonEmulatorFindings.size,
+            )
         } else {
             // 真机（可能 ROOT/作弊）：允许真阳性，禁止 mem 全零伪影；定性必须由 A 级证据支撑
             val prologueMem = report.collectorResults.flatMap { it.findings }

@@ -67,6 +67,10 @@ class ScanOrchestrator(context: Context) {
         MemoryMapCollector(),
         CodeIntegrityCollector(ownLib = { CodeIntegrityCollector.locateOwnLib(appContext) }),
         BehaviorCollector(BundledSignatureDb.toSupercallSpecs(signatureStore.current())),
+        com.detectany.collectors.instrumentprobe.InstrumentProbeCollector(),
+        com.detectany.collectors.virtualenv.VirtualEnvCollector(appContext),
+        com.detectany.collectors.behaviorcheck.BehaviorCheckCollector(appContext),
+        com.detectany.collectors.screenshare.ScreenShareCollector(appContext),
     )
 
     /** 诊断暴露：debug 构建应使用运行时预期而非 native 占位常量。 */
