@@ -91,7 +91,7 @@ object BundledRuleSet {
             RuleSet.RuleDef("rule.nyazygisk", framework = "nyazygisk", matchRuleIdPrefixes = listOf("app.nyazygisk"), weight = 12),
 
             // ---- 新域（close-detection-gaps） ----
-            RuleSet.RuleDef("rule.frida", category = "INSTRUMENTATION", matchRuleIdPrefixes = listOf("frida."), weight = 16),
+            RuleSet.RuleDef("rule.frida", category = "INSTRUMENTATION", matchRuleIdPrefixes = listOf("frida.", "path.frida."), weight = 16),
             RuleSet.RuleDef("rule.emulator", category = "EMULATOR", matchRuleIdPrefixes = listOf("emulator."), weight = 14),
             RuleSet.RuleDef("rule.virtual_env", category = "VIRTUAL_ENV", matchRuleIdPrefixes = listOf("virtual."), weight = 14),
             RuleSet.RuleDef("rule.network_mitm", category = "NETWORK_MITM", matchRuleIdPrefixes = listOf("network.vpn", "network.proxy"), weight = 8),

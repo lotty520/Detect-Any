@@ -53,6 +53,7 @@ class BehaviorCheckCollector(
         findings += checkVpn()
         findings += checkProxy()
         findings += checkAccessibility()
+        findings += checkClockConsistency()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -60,6 +61,7 @@ class BehaviorCheckCollector(
             meta = mapOf(
                 "vpn" to isVpnActive().toString(),
                 "proxyHost" to (System.getProperty("http.proxyHost") ?: "null"),
+                "clockDriftMs" to lastClockDriftMs.toString(),
             ),
         )
     } catch (e: Throwable) {
@@ -145,4 +147,47 @@ class BehaviorCheckCollector(
             )
         }
     }
+
+    // ---- G1: 多时钟一致性检测（speed hack, calibration #8） ----
+    // 比较 CLOCK_BOOTTIME (elapsedRealtimeNanos) vs CLOCK_MONOTONIC (nanoTime)
+    // 速度篡改 hook 只能改一个时钟源；差值 >100ms = B 级
+    // 校准决策：排除 currentTimeMillis（受 NTP/用户调整影响）；500ms 测量窗口
+
+    private var lastClockDriftMs: Long = 0
+
+    private fun checkClockConsistency(): List<Finding> {
+        val windowMs = 500L // 测量窗口（并行引擎下不阻塞其他采集器）
+        val boottimeStart = android.os.SystemClock.elapsedRealtimeNanos()
+        val monotonicStart = System.nanoTime()
+
+        // 自旋等待窗口结束（保持 CPU 活跃，防 DOZE 干扰）
+        while (System.nanoTime() - monotonicStart < windowMs * 1_000_000) {
+            // busy-wait
+        }
+
+        val boottimeElapsed = android.os.SystemClock.elapsedRealtimeNanos() - boottimeStart
+        val monotonicElapsed = System.nanoTime() - monotonicStart
+        val driftNs = boottimeElapsed - monotonicElapsed
+        lastClockDriftMs = driftNs / 1_000_000
+
+        // 正常漂移 <5ms；阈值 100ms（10x 余量，calibration #8）
+        return if (kotlin.math.abs(lastClockDriftMs) > 100) {
+            listOf(
+                Finding(
+                    ruleId = "speedhack.clock_drift",
+                    collector = id,
+                    confidence = Confidence.B,
+                    category = Finding.Category.SPEED_HACK,
+                    framework = null,
+                    detail = "时钟源不一致: BOOTTIME 漂移 ${lastClockDriftMs}ms（>100ms 阈值）—— 速度篡改特征",
+                    raw = mapOf(
+                        "boottimeMs" to (boottimeElapsed / 1_000_000).toString(),
+                        "monotonicMs" to (monotonicElapsed / 1_000_000).toString(),
+                        "driftMs" to lastClockDriftMs.toString(),
+                    ),
+                ),
+            )
+        } else emptyList()
+    }
+
 }

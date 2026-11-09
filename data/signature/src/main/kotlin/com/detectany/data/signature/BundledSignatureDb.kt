@@ -52,7 +52,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 3,
+      "version": 4,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE"},
         {"id": "path.zygisk.monitor", "path": "/debug_ramdisk/zygisk/monitor.sock", "framework": "zygisknext", "confidence": "C", "category": "ZYGISK"},
@@ -65,7 +65,11 @@ object BundledSignatureDb {
         {"id": "path.riru.dir", "path": "/data/adb/riru", "framework": null, "confidence": "C", "category": "HOOK", "until": null},
         {"id": "path.su.system", "path": "/system/bin/su", "framework": null, "confidence": "C", "category": "ROOT_USERSPACE"},
         {"id": "path.su.system_xbin", "path": "/system/xbin/su", "framework": null, "confidence": "C", "category": "ROOT_USERSPACE"},
-        {"id": "path.su.sbin", "path": "/sbin/su", "framework": null, "confidence": "C", "category": "ROOT_USERSPACE"}
+        {"id": "path.su.sbin", "path": "/sbin/su", "framework": null, "confidence": "C", "category": "ROOT_USERSPACE"},
+        {"id": "path.frida.server", "path": "/data/local/tmp/frida-server", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"},
+        {"id": "path.frida.hkuda", "path": "/data/local/tmp/hluda-server", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"},
+        {"id": "path.frida.florida", "path": "/data/local/tmp/florida-server", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"},
+        {"id": "path.frida.gadget", "path": "/data/local/tmp/frida-gadget.so", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"}
       ],
       "apps": [
         {"id": "app.magisk", "packageNames": ["com.topjohnwu.magisk"], "dexStrings": ["libmagisk", "magiskinit", "magiskpolicy"], "framework": "magisk", "confidence": "B", "category": "ROOT_USERSPACE"},
