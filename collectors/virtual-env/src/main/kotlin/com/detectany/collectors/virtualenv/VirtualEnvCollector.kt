@@ -39,6 +39,7 @@ class VirtualEnvCollector(
         findings += checkCpuArchitecture(input)
         findings += checkSensors()
         findings += checkContainer()
+        findings += checkGlRenderer()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -227,4 +228,86 @@ class VirtualEnvCollector(
             )
         }
     }
+
+    // ---- G2: GL 渲染器指纹（calibration #6） ----
+    // 模拟器特有的 GL_RENDERER/GL_VENDOR 字符串
+    // SwiftShader → C 级（Android Go 低端设备合法使用）
+    // Translator/VBox/Bluestacks/ttVM → B 级（仅模拟器出现）
+
+    private data class GlInfo(val renderer: String?, val vendor: String?)
+
+    private fun queryGlInfo(): GlInfo = runCatching {
+        val eglDisplay = android.opengl.EGL14.eglGetDisplay(android.opengl.EGL14.EGL_DEFAULT_DISPLAY)
+        if (eglDisplay == android.opengl.EGL14.EGL_NO_DISPLAY) return@runCatching GlInfo(null, null)
+        val ver = IntArray(2)
+        if (!android.opengl.EGL14.eglInitialize(eglDisplay, ver, 0, ver, 1)) return@runCatching GlInfo(null, null)
+
+        val attribs = intArrayOf(android.opengl.EGL14.EGL_RED_SIZE, 8, android.opengl.EGL14.EGL_GREEN_SIZE, 8, android.opengl.EGL14.EGL_BLUE_SIZE, 8, android.opengl.EGL14.EGL_SURFACE_TYPE, android.opengl.EGL14.EGL_PBUFFER_BIT, android.opengl.EGL14.EGL_NONE)
+        var numConfigs = IntArray(1)
+        val configs = arrayOfNulls<android.opengl.EGLConfig>(1)
+        if (!android.opengl.EGL14.eglChooseConfig(eglDisplay, attribs, 0, configs, 0, 1, numConfigs, 0) || numConfigs[0] == 0) {
+            android.opengl.EGL14.eglTerminate(eglDisplay)
+            return@runCatching GlInfo(null, null)
+        }
+
+        val pbufferAttribs = intArrayOf(android.opengl.EGL14.EGL_WIDTH, 1, android.opengl.EGL14.EGL_HEIGHT, 1, android.opengl.EGL14.EGL_NONE)
+        val surface = android.opengl.EGL14.eglCreatePbufferSurface(eglDisplay, configs[0], pbufferAttribs, 0)
+        val ctxAttribs = intArrayOf(android.opengl.EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, android.opengl.EGL14.EGL_NONE)
+        val context = android.opengl.EGL14.eglCreateContext(eglDisplay, configs[0], android.opengl.EGL14.EGL_NO_CONTEXT, ctxAttribs, 0)
+
+        android.opengl.EGL14.eglMakeCurrent(eglDisplay, surface, surface, context)
+        val renderer = android.opengl.GLES20.glGetString(android.opengl.GLES20.GL_RENDERER)
+        val vendor = android.opengl.GLES20.glGetString(android.opengl.GLES20.GL_VENDOR)
+
+        android.opengl.EGL14.eglMakeCurrent(eglDisplay, android.opengl.EGL14.EGL_NO_SURFACE, android.opengl.EGL14.EGL_NO_SURFACE, android.opengl.EGL14.EGL_NO_CONTEXT)
+        android.opengl.EGL14.eglDestroySurface(eglDisplay, surface)
+        android.opengl.EGL14.eglDestroyContext(eglDisplay, context)
+        android.opengl.EGL14.eglTerminate(eglDisplay)
+        GlInfo(renderer, vendor)
+    }.getOrDefault(GlInfo(null, null))
+
+    private fun checkGlRenderer(): List<Finding> = buildList {
+        val gl = queryGlInfo() ?: return@buildList
+        val renderer = gl.renderer ?: return@buildList
+
+        // B 级：仅模拟器出现的字符串
+        val emulatorGlPatterns = mapOf(
+            "Translator" to "emulator_translator",
+            "Bluestacks" to "bluestacks",
+            "ttVM" to "tencent_gameloop",
+            "VBox" to "vbox",
+            "Android Emulator" to "avd",
+        )
+        for ((pattern, name) in emulatorGlPatterns) {
+            if (renderer.contains(pattern, true)) {
+                add(
+                    Finding(
+                        ruleId = "emulator.gl.$name",
+                        collector = id,
+                        confidence = Confidence.B,
+                        category = Finding.Category.EMULATOR,
+                        framework = name,
+                        detail = "GL 渲染器含模拟器特征: $pattern",
+                        raw = mapOf("rendererHash" to renderer.hashCode().toString()),
+                    ),
+                )
+            }
+        }
+
+        // C 级：SwiftShader（低端设备合法，calibration #6）
+        if (renderer.contains("SwiftShader", true)) {
+            add(
+                Finding(
+                    ruleId = "emulator.gl.swiftshader",
+                    collector = id,
+                    confidence = Confidence.C,
+                    category = Finding.Category.EMULATOR,
+                    framework = "swiftshader",
+                    detail = "GL 渲染器为 SwiftShader 软件渲染（低端设备合法；需共振）",
+                    raw = mapOf("rendererHash" to renderer.hashCode().toString()),
+                ),
+            )
+        }
+    }
+
 }
