@@ -37,6 +37,17 @@ val THREATS: Map<String, ThreatMeta> = listOf(
     ThreatMeta("pif", "PIF", "Play Integrity 指纹伪装", Finding.Category.ATTESTATION_SPOOF),
     ThreatMeta("trustmealready", "TrustMeAlready", "证书校验绕过模块", Finding.Category.HOOK),
     ThreatMeta("zygiskdetect", "Zygisk 检测工具", "注入环境探测工具在装", Finding.Category.ZYGISK),
+    ThreatMeta("frida", "Frida", "动态插桩框架", Finding.Category.INSTRUMENTATION),
+    ThreatMeta("scrcpy", "scrcpy", "屏幕镜像/远程控制", Finding.Category.SCREEN_SHARE),
+    ThreatMeta("qemu", "QEMU 模拟器", "Android 模拟器", Finding.Category.EMULATOR),
+    ThreatMeta("vbox", "VirtualBox", "模拟器虚拟化层", Finding.Category.EMULATOR),
+    ThreatMeta("bluestacks", "BlueStacks", "Android 模拟器", Finding.Category.EMULATOR),
+    ThreatMeta("anydesk", "AnyDesk", "远程桌面", Finding.Category.REMOTE_CONTROL),
+    ThreatMeta("teamviewer", "TeamViewer", "远程桌面", Finding.Category.REMOTE_CONTROL),
+    ThreatMeta("airdroid", "AirDroid", "远程管理", Finding.Category.REMOTE_CONTROL),
+    ThreatMeta("airmirror", "AirMirror", "远程控制", Finding.Category.REMOTE_CONTROL),
+    ThreatMeta("vysor", "Vysor", "屏幕镜像", Finding.Category.SCREEN_SHARE),
+    ThreatMeta("modmenu", "Mod Menu", "游戏修改菜单", Finding.Category.OVERLAY_INJECTION),
 ).associateBy { it.key }
 
 /** 未具名框架时按类别归组。 */
@@ -94,6 +105,10 @@ enum class CapabilityDomain(val title: String, val desc: String, val members: Li
     MEMORY("内存与注入痕迹", "maps/smaps/soinfo 链表交叉、RWX 自探针、fd 关联", listOf(CollectorId.C6_MEMORY_MAP)),
     INTEGRITY("完整性与自保护", "prologue/GOT 校验、签名摘要、反调试", listOf(CollectorId.C7_CODE_INTEGRITY)),
     KERNEL("内核接口行为", "supercall 探针、SELinux errno 语义、三路 diff", listOf(CollectorId.C8_BEHAVIOR)),
+    INSTRUMENTATION("动态插桩检测", "Frida 三层防线：字符串/D-Bus 协议/RWX 页特征", listOf(CollectorId.C9_INSTRUMENTATION)),
+    VIRTUAL_ENV("虚拟环境检测", "模拟器属性/硬件/传感器/容器/GL 渲染器四维交叉", listOf(CollectorId.C10_VIRTUAL_ENV)),
+    BEHAVIORAL("行为异常检测", "VPN/代理/无障碍自动化/时钟一致性", listOf(CollectorId.C11_BEHAVIORAL)),
+    SCREEN_SHARE("屏幕共享检测", "scrcpy 套接字/HID、ADB 会话、远程桌面、悬浮窗", listOf(CollectorId.C12_SCREEN_SHARE)),
 }
 
 /** 采集器短名（能力域成员行 / 证据来源行，无 C 编号）。 */
@@ -107,4 +122,8 @@ val CollectorId.shortName: String
         CollectorId.C6_MEMORY_MAP -> "内存映射"
         CollectorId.C7_CODE_INTEGRITY -> "完整性校验"
         CollectorId.C8_BEHAVIOR -> "行为探针"
+        CollectorId.C9_INSTRUMENTATION -> "插桩探针"
+        CollectorId.C10_VIRTUAL_ENV -> "虚拟环境"
+        CollectorId.C11_BEHAVIORAL -> "行为检测"
+        CollectorId.C12_SCREEN_SHARE -> "屏幕共享"
     }

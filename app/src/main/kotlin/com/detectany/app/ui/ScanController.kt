@@ -102,6 +102,16 @@ val categoryLabel: (String) -> String = {
         "ATTESTATION_SPOOF" -> "证明伪造"
         "REPACKAGED" -> "重打包"
         "ANTI_DETECT_PRESENT" -> "隐藏栈"
+        "INSTRUMENTATION" -> "动态插桩"
+        "VIRTUAL_ENV" -> "虚拟环境"
+        "EMULATOR" -> "模拟器"
+        "NETWORK_MITM" -> "网络劫持"
+        "AUTOMATION" -> "自动化"
+        "SPEED_HACK" -> "速度篡改"
+        "GPS_SPOOF" -> "GPS伪造"
+        "SCREEN_SHARE" -> "屏幕共享"
+        "REMOTE_CONTROL" -> "远程控制"
+        "OVERLAY_INJECTION" -> "悬浮窗注入"
         else -> it
     }
 }

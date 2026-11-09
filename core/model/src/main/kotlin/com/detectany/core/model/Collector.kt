@@ -1,9 +1,14 @@
 package com.detectany.core.model
 
 /**
- * 采集器 SPI：C1-C8 的统一入口（specs/signal-collection）。
+ * 采集器 SPI：C1-C12 的统一入口（specs/signal-collection）。
  * 采集器只输出取证观测（Finding）——框架无关、无判定逻辑；
  * 规则与评分在引擎侧（core:engine + core:rules）完成。
+ *
+ * 架构约束（面向接口编程）：
+ * - 全部采集器 MUST 实现 [Collector] 接口
+ * - 全部检测项 MUST 经 DetectionEngine 并行调度，无特殊路径
+ * - 特征常量 MUST 来自 SignatureDb（可热更新），采集器零硬编码框架逻辑
  */
 interface Collector {
     val id: CollectorId
@@ -15,8 +20,9 @@ interface Collector {
     fun collect(input: ScanInput): CollectorResult
 }
 
-/** 采集器编号（对齐 design.md D2）。 */
+/** 采集器编号。C1-C8 既有，C9-C12 新增（close-detection-gaps）。 */
 enum class CollectorId {
+    // ---- 既有（root/hook/injection 域） ----
     C1_PATH,
     C2_MOUNT,
     C3_PROPERTY,
@@ -25,6 +31,16 @@ enum class CollectorId {
     C6_MEMORY_MAP,
     C7_CODE_INTEGRITY,
     C8_BEHAVIOR,
+
+    // ---- 新增（instrumentation/virtual-env/behavioral/screen-share 域） ----
+    /** C9: Frida 检测（D-Bus 探测、线程名、RWX 页特征） */
+    C9_INSTRUMENTATION,
+    /** C10: 虚拟环境/模拟器（传感器、GL、容器、CPU 架构） */
+    C10_VIRTUAL_ENV,
+    /** C11: 行为异常（VPN、代理、无障碍、时钟、GPS） */
+    C11_BEHAVIORAL,
+    /** C12: 屏幕共享/远程控制（scrcpy、ADB、overlay、输入注入） */
+    C12_SCREEN_SHARE,
 }
 
 /** 扫描输入：环境快照 + 档位。 */
@@ -52,9 +68,9 @@ data class Finding(
     val ruleId: String,
     val collector: CollectorId,
     val confidence: Confidence,
-    /** 分类标签（specs/detection-engine 的 7 类） */
+    /** 分类标签 */
     val category: Category,
-    /** 命中框架（magisk/ksu/apatch/lsposed/...；泛 hook 类可为 null） */
+    /** 命中框架（magisk/ksu/frida/scrcpy/...；泛 hook 类可为 null） */
     val framework: String?,
     /** 证据回放用：人可读的原始观测描述 */
     val detail: String,
@@ -62,6 +78,7 @@ data class Finding(
     val raw: Map<String, String> = emptyMap(),
 ) {
     enum class Category {
+        // ---- 既有 ----
         ROOT_KERNEL,
         ROOT_USERSPACE,
         HOOK,
@@ -69,5 +86,27 @@ data class Finding(
         ATTESTATION_SPOOF,
         REPACKAGED,
         ANTI_DETECT_PRESENT,
+
+        // ---- 新增（close-detection-gaps） ----
+        /** Frida / objection / 动态插桩 */
+        INSTRUMENTATION,
+        /** 虚拟机 / 沙箱容器 */
+        VIRTUAL_ENV,
+        /** 模拟器 */
+        EMULATOR,
+        /** VPN / 代理 / MITM */
+        NETWORK_MITM,
+        /** 自动化脚本 / 输入注入 */
+        AUTOMATION,
+        /** 速度篡改 */
+        SPEED_HACK,
+        /** GPS 伪造 */
+        GPS_SPOOF,
+        /** 屏幕共享 / 投屏 */
+        SCREEN_SHARE,
+        /** 远程控制 */
+        REMOTE_CONTROL,
+        /** 悬浮窗 / tapjacking */
+        OVERLAY_INJECTION,
     }
 }
