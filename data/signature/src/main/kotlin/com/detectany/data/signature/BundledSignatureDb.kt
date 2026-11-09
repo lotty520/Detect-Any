@@ -52,7 +52,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 5,
+      "version": 6,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE"},
         {"id": "path.zygisk.monitor", "path": "/debug_ramdisk/zygisk/monitor.sock", "framework": "zygisknext", "confidence": "C", "category": "ZYGISK"},
@@ -94,7 +94,9 @@ object BundledSignatureDb {
       "properties": [
         {"id": "prop.init_svc_magisk", "keyPrefix": "init.svc.magisk", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE"},
         {"id": "prop.riru_bridge", "keyPrefix": "ro.dalvik.vm.native.bridge", "framework": null, "confidence": "C", "category": "HOOK", "valueContains": "libriruloader"},
-        {"id": "prop.zygisk_denylists", "keyPrefix": "ro.zygisk.denylists", "framework": "zygisknext", "confidence": "B", "category": "ROOT_USERSPACE"}
+        {"id": "prop.zygisk_denylists", "keyPrefix": "ro.zygisk.denylists", "framework": "zygisknext", "confidence": "B", "category": "ROOT_USERSPACE"},
+        {"id": "prop.magisk_version", "keyPrefix": "ro.magisk.version", "framework": "magisk", "confidence": "B", "category": "ROOT_USERSPACE"},
+        {"id": "prop.kcmdline_loaded", "keyPrefix": "kcmdline.loaded", "framework": null, "confidence": "C", "category": "ROOT_KERNEL"}
       ],
       "supercalls": [
         {"family": "ksu_reboot", "magic1Hex": "deadbeef", "magic2Hex": "cafebabe", "framework": "ksu", "since": "v2.0.0"},

@@ -53,7 +53,7 @@ object BundledRuleSet {
         version = 1,
         rules = listOf(
             // ---- Magisk（v31.x：包名复活 + /debug_ramdisk 工件 + st_dev/SELinux 强信号） ----
-            RuleSet.RuleDef("rule.magisk", framework = "magisk", matchRuleIdPrefixes = listOf("app.magisk", "mount.source_magisk", "mount.debug_ramdisk", "path.debug_ramdisk", "sock.fs.magisk_socket", "prop.init_svc_magisk", "mount.stdev_deviation", "behavior.selinux_label.magisk"), weight = 12),
+            RuleSet.RuleDef("rule.magisk", framework = "magisk", matchRuleIdPrefixes = listOf("app.magisk", "mount.source_magisk", "mount.debug_ramdisk", "path.debug_ramdisk", "sock.fs.magisk_socket", "prop.init_svc_magisk", "prop.magisk_version", "mount.stdev_deviation", "behavior.selinux_label.magisk"), weight = 12),
             // ---- KSU 系（reboot supercall 为主信号） ----
             RuleSet.RuleDef("rule.ksu", framework = "ksu", matchRuleIdPrefixes = listOf("behavior.ksu_supercall", "app.ksu", "path.ksu", "sock.ksud", "behavior.legacy_prctl", "behavior.selinux_label.ksu_file"), weight = 14),
             RuleSet.RuleDef("rule.ksunext", framework = "ksunext", matchRuleIdPrefixes = listOf("app.ksunext"), weight = 12),
