@@ -21,6 +21,7 @@ int da_prop_get(const char *key, char *buf, size_t buf_size, int *truncated);
 
 // raw_syscalls.cpp / probes.cpp / elf_inspect.cpp 新增探针
 long da_svc_statfs(const char *path, unsigned long *f_type, unsigned long *bsize, unsigned long *blocks);
+int da_supercall_timing(long *out_truncate_ns, long *out_ftruncate_ns, long *out_getpid_ns, int iterations);
 int da_fd_names(std::vector<std::string> *out);
 int da_ksu_probe(long magic1, long magic2, long magic3, long arg4,
                  long *ret, int *err, std::vector<std::string> *new_fds);
@@ -252,6 +253,15 @@ extern "C" JNIEXPORT jbyteArray JNICALL DA_PKG(ProbeJni_textRead)(JNIEnv *env, j
     if (n <= 0) return nullptr;
     const jbyteArray arr = env->NewByteArray(static_cast<jsize>(n));
     env->SetByteArrayRegion(arr, 0, static_cast<jsize>(n), reinterpret_cast<const jbyte *>(buf.data()));
+    return arr;
+}
+
+extern "C" JNIEXPORT jlongArray JNICALL DA_PKG(ProbeJni_supercallTiming)(JNIEnv *env, jobject, jint iterations) {
+    long tr = 0, ftr = 0, pid = 0;
+    da_supercall_timing(&tr, &ftr, &pid, iterations);
+    jlong out[3] = {tr, ftr, pid};
+    jlongArray arr = env->NewLongArray(3);
+    env->SetLongArrayRegion(arr, 0, 3, out);
     return arr;
 }
 

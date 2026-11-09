@@ -27,6 +27,13 @@ object ProbeJni {
     /** 旧版 KSU prctl 探针：long[2] = [ret, errno]。原厂内核对未知 option 返回 -EINVAL。 */
     external fun prctlProbe(option: Long, a2: Long, a3: Long, a4: Long, a5: Long): LongArray
 
+    /**
+     * 时序侧信道：long[3] = [truncate_median_ns, ftruncate_median_ns, getpid_median_ns]。
+     * syscall 45 被 APatch supercall handler hook（superkey 字符串比对开销）；
+     * syscall 46 未被 hook。差值 = supercall handler 的额外处理时间。
+     */
+    external fun supercallTiming(iterations: Int): LongArray
+
     /** 父进程 ptrace 注入残留：>=0 为 eventmsg（== zygote pid 即注入）；-1 不可执行。 */
     external fun ptraceParentEventmsg(): Long
 

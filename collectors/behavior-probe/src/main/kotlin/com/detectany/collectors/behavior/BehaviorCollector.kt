@@ -47,6 +47,7 @@ class BehaviorCollector(
         findings += BehaviorProbes.selinuxLabelSemantics()
         findings += BehaviorProbes.nativebridgeSticky()
         findings += BehaviorProbes.ptraceResidue(tripleExecutor)
+        findings += BehaviorProbes.supercallTimingSideChannel()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -262,4 +263,65 @@ object BehaviorProbes {
         val after = stat.substringAfterLast(')')
         return after.trim().split(Regex("\\s+")).getOrNull(1)?.toLongOrNull() ?: -1
     }
+
+    /**
+     * 时序侧信道：syscall 45 (truncate) 被 APatch supercall handler hook，
+     * 每次调用都做 superkey 字符串比对后才 fall through → 额外开销。
+     * 对比 syscall 46 (ftruncate, 未被 hook)：差值 = supercall handler 处理时间。
+     *
+     * 原厂内核：45 ≈ 46（同为文件系统调用，成本相近）
+     * APatch 内核：45 > 46（多出 key 比对开销，典型 100-500ns）
+     */
+    fun supercallTimingSideChannel(): List<Finding> {
+        // 模拟器/QEMU 上跳过——虚拟化使所有 syscall 时序不可靠（2026-11-09 模拟器误报实证）
+        val isQemu = (System.getProperty("ro.kernel.qemu") == "1") ||
+            android.os.Build.FINGERPRINT.contains("generic", true) ||
+            android.os.Build.HARDWARE.contains("goldfish", true) ||
+            android.os.Build.HARDWARE.contains("ranchu", true) ||
+            android.os.Build.PRODUCT.contains("sdk_gphone", true)
+        if (isQemu) {
+            lastMeta = lastMeta + mapOf("timingSkipped" to "emulator")
+            return emptyList()
+        }
+
+        val timing = runCatching { ProbeJni.supercallTiming(2000) }.getOrNull()
+            ?: return emptyList()
+
+        val truncateNs = timing[0]   // syscall 45 (hooked)
+        val ftruncateNs = timing[1]  // syscall 46 (not hooked)
+        val getpidNs = timing[2]     // baseline
+        val overheadNs = truncateNs - ftruncateNs
+        lastMeta = lastMeta + mapOf(
+            "timingTruncate" to truncateNs.toString(),
+            "timingFtruncate" to ftruncateNs.toString(),
+            "timingGetpid" to getpidNs.toString(),
+            "timingOverhead" to overheadNs.toString(),
+        )
+
+        // APatch 的 superkey 比对至少要做一次字符串比较 + 分支判断
+        // 阈值：overhead > 200ns 且 > getpid 的 2 倍（排除调度噪声）
+        // 这不需要 manager 在装——内核里的 hook 每次调用都在
+        val thresholdNs = 200L
+        val isSignificant = overheadNs > thresholdNs && overheadNs > getpidNs * 2
+
+        return if (isSignificant) {
+            listOf(
+                Finding(
+                    ruleId = "behavior.supercall_timing",
+                    collector = CollectorId.C8_BEHAVIOR,
+                    confidence = Confidence.B, // 行为差异，非物理不变量但难消除
+                    category = Finding.Category.ROOT_KERNEL,
+                    framework = "apatch",
+                    detail = "syscall 45 比 46 慢 ${overheadNs}ns（阈值 ${thresholdNs}ns）—— 内核 supercall handler 存在（manager 卸载后仍可检出）",
+                    raw = mapOf(
+                        "truncateNs" to truncateNs.toString(),
+                        "ftruncateNs" to ftruncateNs.toString(),
+                        "getpidNs" to getpidNs.toString(),
+                        "overheadNs" to overheadNs.toString(),
+                    ),
+                ),
+            )
+        } else emptyList()
+    }
+
 }
