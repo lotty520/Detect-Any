@@ -63,37 +63,36 @@ class CodeIntegrityCollector(
         fun locateOwnLib(context: Context? = null): OwnLibPath? {
             NativePlatform.ensureLoaded()
             val maps = MapsParser.parse(java.io.File("/proc/self/maps").readLines())
+
+            // 路径 1（最可靠）：maps 中直接有 libdetectany_native.so
             maps.firstOrNull { it.path?.endsWith(LIB_NAME) == true }?.let {
                 return OwnLibPath(it.path!!, it.start)
             }
-            // 形态 2：磁盘副本 + 自校验投票选 bias
+
+            // 路径 2：solist（linker 权威 load bias）+ 符号字节验证
+            // 注：phdr 投票在模拟器和真机上均产生假阳性（2026-11-09），
+            //     因为多个 APK 内嵌 so 可能通过魔数+phdr 双检查 → 已移除。
+            //     solist 是 linker 维护的权威地址，用已知符号字节做最终验证。
             val disk = context?.let { extractFromApk(it) } ?: guessDiskPath(maps) ?: return null
             val diskBytes = runCatching { java.io.File(disk).readBytes() }.getOrNull() ?: return null
-            val elfMagic = diskBytes.take(4).toByteArray()
 
-            val apkPath = context?.applicationInfo?.sourceDir
-            val candidates = maps.filter { m ->
-                (apkPath != null && m.path == apkPath) || m.path?.endsWith("/base.apk") == true
-            }.map { it.start }
+            val solistEntry = ProbeJni.solist().firstOrNull { it.substringBefore('\t').endsWith(LIB_NAME) }
+            val solistBase = solistEntry?.substringAfter('\t')?.toLongOrNull()
+            if (solistBase == null || solistBase <= 0) return null
 
-            // 第二因子用 phdr 表（程序头在 r--p 头页内，hook 不改它）——
-            // 对抗设备上函数序言可被全部 hook（2026-11-06 真机实证），不能用函数字节做投票
-            val is64 = diskBytes.size > 56 && diskBytes[4] == 2.toByte()
-            val ePhoff = (if (is64) leLong(diskBytes, 32) else leInt(diskBytes, 28).toLong()).toInt()
-            val phdrCheck = if (ePhoff in 1..(diskBytes.size - 32)) diskBytes.copyOfRange(ePhoff, ePhoff + 32) else null
+            // 验证：读一个已知符号的 prologue 字节（disk vs memory）
+            // 用 textRead（mprotect 方式，处理 execute-only 页）
+            val verifySym = "Java_com_detectany_core_nativeplatform_SyscallJni_statSvc"
+            val verifyVaddr = runCatching { ElfJni.exportValue(disk, verifySym) }.getOrDefault(0L)
+            if (verifyVaddr == 0L) return null
+            val verifyDisk = runCatching { ElfJni.readAtVaddr(disk, verifyVaddr, 16) }.getOrNull() ?: return null
+            val verifyMem = runCatching { ProbeJni.textRead(solistBase + verifyVaddr, 16) }.getOrNull()
 
-            for (base in candidates) {
-                val head = runCatching { ProbeJni.memRead(base, 4) }.getOrNull() ?: continue
-                if (!head.contentEquals(elfMagic)) continue
-                if (phdrCheck == null) return OwnLibPath(disk, base) // 只有魔数可用
-                val memPhdr = runCatching { ProbeJni.memRead(base + ePhoff, 32) }.getOrNull() ?: continue
-                if (memPhdr.contentEquals(phdrCheck)) return OwnLibPath(disk, base) // 魔数 + phdr 双确认
+            return if (verifyMem != null && verifyMem.contentEquals(verifyDisk)) {
+                OwnLibPath(disk, solistBase) // 字节匹配 = base 正确
+            } else {
+                null // 不匹配 = solist 有误或被 hook → 宁可不检出也不假阳性
             }
-
-            // 兜底：dlpi_addr（不可靠，见注释）——仅在投票失败时使用
-            val entry = ProbeJni.solist().firstOrNull { it.substringBefore('\t').endsWith(LIB_NAME) } ?: return null
-            val base = entry.substringAfter('\t').toLongOrNull() ?: return null
-            return OwnLibPath(disk, base)
         }
 
         private fun leInt(b: ByteArray, off: Int): Long {
@@ -191,7 +190,7 @@ object IntegrityAnalyzer {
             val sym = line.substringBefore('\t')
             if (sym !in GOT_SAMPLE_SYMBOLS) continue
             val gotVaddr = line.substringAfter('\t').toLongOrNull() ?: continue
-            val slotBytes = runCatching { ProbeJni.memRead(base + gotVaddr, 8) }.getOrNull() ?: continue
+            val slotBytes = runCatching { ProbeJni.textRead(base + gotVaddr, 8) }.getOrNull() ?: continue
             val resolved = bytesToLong(slotBytes)
             if (resolved == 0L) continue
             val target = maps.firstOrNull { resolved >= it.start && resolved < it.end }
