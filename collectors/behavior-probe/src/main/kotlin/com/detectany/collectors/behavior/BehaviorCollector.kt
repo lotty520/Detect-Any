@@ -47,7 +47,6 @@ class BehaviorCollector(
         findings += BehaviorProbes.selinuxLabelSemantics()
         findings += BehaviorProbes.nativebridgeSticky()
         findings += BehaviorProbes.ptraceResidue(tripleExecutor)
-        findings += BehaviorProbes.supercallTimingSideChannel()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -273,6 +272,14 @@ object BehaviorProbes {
      * APatch 内核：45 > 46（多出 key 比对开销，典型 100-500ns）
      */
     fun supercallTimingSideChannel(): List<Finding> {
+        // ⛔ 已禁用（2026-11-09 差分测量证伪）
+        // 差分对照组（newfstatat/fstat）证明：truncate vs ftruncate 的差异
+        // 是路径解析成本（~2000ns），不是 supercall 开销。
+        // APatch supercall handler 的净开销 < 噪声底（差分结果 -202ns ≈ 0）。
+        // 之前的 200ns 阈值把路径解析天然差误判为 supercall → 假阳性。
+        // 保留方法体用于未来改进（如纳秒级 TSC 访问），当前不产出 Finding。
+        return emptyList()
+        /*
         // 模拟器/QEMU 上跳过——虚拟化使所有 syscall 时序不可靠（2026-11-09 模拟器误报实证）
         val isQemu = (System.getProperty("ro.kernel.qemu") == "1") ||
             android.os.Build.FINGERPRINT.contains("generic", true) ||
@@ -309,10 +316,10 @@ object BehaviorProbes {
                 Finding(
                     ruleId = "behavior.supercall_timing",
                     collector = CollectorId.C8_BEHAVIOR,
-                    confidence = Confidence.B, // 行为差异，非物理不变量但难消除
+                    confidence = Confidence.B,
                     category = Finding.Category.ROOT_KERNEL,
                     framework = "apatch",
-                    detail = "syscall 45 比 46 慢 ${overheadNs}ns（阈值 ${thresholdNs}ns）—— 内核 supercall handler 存在（manager 卸载后仍可检出）",
+                    detail = "syscall 45 比 46 慢 ${overheadNs}ns（阈值 ${thresholdNs}ns）",
                     raw = mapOf(
                         "truncateNs" to truncateNs.toString(),
                         "ftruncateNs" to ftruncateNs.toString(),
@@ -322,6 +329,7 @@ object BehaviorProbes {
                 ),
             )
         } else emptyList()
+        */
     }
 
 }
