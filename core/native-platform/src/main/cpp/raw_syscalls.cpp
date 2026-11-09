@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <time.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
@@ -172,6 +173,63 @@ long da_apatch_supercall(const char *key, long ver_and_cmd, long arg3, long arg4
     constexpr long kNr = 46L;
 #endif
     return guarded(kNr, reinterpret_cast<long>(key), ver_and_cmd, arg3, arg4, true);
+}
+
+// ftruncate 裸调用（syscall 46，APatch 不 hook 此调用——用于时序基线对比）
+long da_svc_ftruncate(int fd, long length) {
+#if defined(__aarch64__)
+    constexpr long kNr = 46L;
+#else
+    constexpr long kNr = 46L; // arm32 ftruncate 也是 46
+#endif
+    return guarded(kNr, fd, length, 0, 0, true);
+}
+
+// ---- 时序侧信道：syscall 45 (被 APatch hook) vs 46 (未被 hook) ----
+// APatch 的 supercall handler 在 syscall 45 上做 superkey 字符串比对后
+// 才 fall through 到真实 truncate → 可测量的额外开销。
+// 返回 long[4]: [truncate_median_ns, ftruncate_median_ns, getpid_median_ns, iterations]
+int da_supercall_timing(long *out_truncate_ns, long *out_ftruncate_ns, long *out_getpid_ns, int iterations) {
+    if (iterations <= 0 || iterations > 10000) iterations = 1000;
+
+    struct timespec ts {};
+    auto now_ns = [&ts]() -> long {
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return ts.tv_sec * 1000000000L + ts.tv_nsec;
+    };
+
+    // ---- truncate (syscall 45, APatch hooked) ----
+    long total_tr = 0;
+    for (int i = 0; i < iterations; i++) {
+        long t0 = now_ns();
+        da_apatch_supercall("detectany_timing_probe_not_a_key", 0, 0, 0);
+        total_tr += now_ns() - t0;
+    }
+    *out_truncate_ns = total_tr / iterations;
+
+    // ---- ftruncate (syscall 46, NOT hooked) ----
+    long total_ftr = 0;
+    for (int i = 0; i < iterations; i++) {
+        long t0 = now_ns();
+        da_svc_ftruncate(-1, 0); // invalid fd → EBADF, same cost class
+        total_ftr += now_ns() - t0;
+    }
+    *out_ftruncate_ns = total_ftr / iterations;
+
+    // ---- getpid (baseline, cheapest syscall) ----
+    long total_pid = 0;
+    for (int i = 0; i < iterations; i++) {
+        long t0 = now_ns();
+#if defined(__aarch64__)
+        guarded(172L /*getpid*/, 0, 0, 0, 0, false); // 172 on arm64
+#else
+        guarded(20L /*getpid*/, 0, 0, 0, 0, false);   // 20 on arm32
+#endif
+        total_pid += now_ns() - t0;
+    }
+    *out_getpid_ns = total_pid / iterations;
+
+    return 0;
 }
 
 // ptrace 裸调用（C8 父进程残留探针用）
