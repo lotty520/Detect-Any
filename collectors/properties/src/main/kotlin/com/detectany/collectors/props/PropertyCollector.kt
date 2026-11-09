@@ -63,9 +63,29 @@ object PropertyAnalyzer {
         for (entry in entries) {
             // 前缀匹配（init.svc.magisk 命中 init.svc.magiskd / init.svc.magisk_p92d 等整族）+ 值条件
             val valueCond = entry.valueContains
+            // valueContains=null → 属性存在即命中（如 ro.zygisk.denylists 残留检测）
             val hit = map.entries.firstOrNull {
                 it.key.startsWith(entry.keyPrefix) &&
                     (valueCond == null || it.value.contains(valueCond))
+            }
+            // 对于 ro. 前缀的残留检测：值无关，存在即信号
+            if (hit == null && entry.keyPrefix.startsWith("ro.") && valueCond == null) {
+                // 精确匹配（非前缀）的 ro. 属性，存在即命中
+                val exact = map[entry.keyPrefix]
+                if (exact != null) {
+                    add(
+                        Finding(
+                            ruleId = entry.id,
+                            collector = CollectorId.C3_PROPERTY,
+                            confidence = entry.confidence,
+                            category = entry.category,
+                            framework = entry.framework,
+                            detail = "残留属性存在: ${entry.keyPrefix}=$exact（root 框架残留痕迹）",
+                            raw = mapOf("key" to entry.keyPrefix.hashCode().toString()),
+                        ),
+                    )
+                    continue
+                }
             }
             if (hit != null) {
                 add(

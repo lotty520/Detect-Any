@@ -63,7 +63,7 @@ object BundledRuleSet {
             // ---- LSPosed ----
             RuleSet.RuleDef("rule.lsposed", framework = "lsposed", matchRuleIdPrefixes = listOf("sock.lsposed", "mem.known_path", "behavior.selinux_label.lsposed", "path.riru", "prop.riru_bridge"), weight = 12),
             // ---- ZN/ReZygisk（NativeBridge + ptrace 残留 + socket 族） ----
-            RuleSet.RuleDef("rule.zygisknext", framework = "zygisknext", matchRuleIdPrefixes = listOf("behavior.nativebridge_sticky", "behavior.ptrace_residue", "path.zygisk", "sock.zygiskd", "sock.fs.zygisk", "path.rezygisk", "mem.injected_memfd"), weight = 12),
+            RuleSet.RuleDef("rule.zygisknext", framework = "zygisknext", matchRuleIdPrefixes = listOf("behavior.nativebridge_sticky", "behavior.ptrace_residue", "path.zygisk", "sock.zygiskd", "sock.fs.zygisk", "path.rezygisk", "mem.injected_memfd", "prop.zygisk_denylists"), weight = 12),
             RuleSet.RuleDef("rule.rezygisk", framework = "rezygisk", matchRuleIdPrefixes = listOf("path.rezygisk"), weight = 12),
             // ---- 通用 hook（三路 diff / 完整性 / maps 篡改：强信号不定框架） ----
             RuleSet.RuleDef("rule.hook", category = "HOOK", matchRuleIdPrefixes = listOf("triple.svc_libc", "triple.java_native", "behavior.triple_diff", "integrity.prologue", "integrity.got_", "mem.maps_tampered", "mem.hidden_mapping", "mem.fd_data_adb"), weight = 15),
