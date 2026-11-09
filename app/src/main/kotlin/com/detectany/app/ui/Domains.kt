@@ -76,7 +76,7 @@ fun groupByThreat(findings: List<ReportModel.FindingView>): List<ThreatGroup> {
         .groupBy { f -> f.framework ?: CATEGORY_FALLBACK[f.category] ?: f.category }
         .map { (key, fs) ->
             val meta = THREATS[key]
-            val worst = fs.maxOf { confRank(it.confidenceLabel) }
+            val worst = fs.minOf { confRank(it.confidenceLabel) }  // min = 最强信号
             ThreatGroup(
                 key = key,
                 name = meta?.name ?: key,
@@ -86,12 +86,12 @@ fun groupByThreat(findings: List<ReportModel.FindingView>): List<ThreatGroup> {
                 worst = CONF_RANKS[worst] ?: Confidence.C,
             )
         }
-        .sortedWith(compareByDescending<ThreatGroup> { confRankLabel(it.worst) }.thenByDescending { it.findings.size })
+        .sortedWith(compareBy<ThreatGroup> { confRankLabel(it.worst) }.thenByDescending { it.findings.size })
 }
 
 private fun confRank(label: String): Int = when (label) { "强" -> 0; "中" -> 1; else -> 2 }
 private fun confRankLabel(c: Confidence): Int = when (c) { Confidence.A -> 0; Confidence.B -> 1; else -> 2 }
-private val CONF_RANKS = listOf(Confidence.C, Confidence.B, Confidence.A)
+private val CONF_RANKS = listOf(Confidence.A, Confidence.B, Confidence.C)  // rank 0=强→A
 
 // ---------------------------------------------------------------------------
 // 检测能力域（模块分组）
