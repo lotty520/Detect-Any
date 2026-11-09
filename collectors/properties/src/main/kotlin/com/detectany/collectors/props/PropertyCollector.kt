@@ -122,6 +122,27 @@ object PropertyAnalyzer {
             }
         }
 
+        // verified boot 交叉：声称 green 但设备有任何 root 历史痕迹 = 矛盾
+        // 用 propGet 直读（ro.boot.* 可能不在 foreach 枚举结果中）
+        val vbs = com.detectany.core.nativeplatform.PropJni.propGet("ro.boot.verifiedbootstate") ?: map["ro.boot.verifiedbootstate"]
+        if (vbs == "green") {
+            val zygiskResidual = map.keys.any { it.startsWith("ro.zygisk.") }
+            val magiskResidual = map.keys.any { it.startsWith("ro.magisk.") || it.startsWith("init.svc.magisk") }
+            if (zygiskResidual || magiskResidual) {
+                add(
+                    Finding(
+                        ruleId = "prop.verified_boot_lie",
+                        collector = CollectorId.C3_PROPERTY,
+                        confidence = Confidence.A, // 物理矛盾：verified boot green + root 残留 = 属性被伪造
+                        category = Finding.Category.ANTI_DETECT_PRESENT,
+                        framework = null,
+                        detail = "verified boot 声称 green 但存在 root 框架残留属性——属性被伪造（深度隐藏特征）",
+                        raw = mapOf("vbs" to vbs.hashCode().toString()),
+                    ),
+                )
+            }
+        }
+
         // 通用强信号：ro.debuggable / test-keys
         if (map["ro.debuggable"] == "1") {
             add(
