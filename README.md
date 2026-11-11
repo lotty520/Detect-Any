@@ -139,7 +139,7 @@ Detect-Any/
 
 | Doc | |
 |---|---|
-| [Detection Catalog](docs/DETECTION_CATALOG.md) | All 58 detection items |
+| [Detection Catalog](docs/DETECTION_CATALOG.md) | All 90+ detection items (signature DB v12 + behavioral probes) |
 | [Capability Boundaries](docs/CAPABILITY_BOUNDARIES.md) | What is explicitly not promised |
 | [Regression Matrix](docs/REGRESSION.md) | Device test data |
 | [Runbook](docs/RUNBOOK.md) | Build, ops, release checklist |
