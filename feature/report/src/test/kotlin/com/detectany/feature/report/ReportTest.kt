@@ -82,20 +82,20 @@ class ReportTest {
             Base64.getEncoder().encodeToString(kp.public.encoded) to kp.private
         }
         val store = SignatureStore(verifier = com.detectany.data.signature.SignatureVerifier(pub))
-        val delta = BundledSignatureDb.db.copy(version = 15)
+        val delta = BundledSignatureDb.db.copy(version = BundledSignatureDb.db.version + 1)
         val sig = Signature.getInstance("Ed25519").apply {
             initSign(priv)
             update(com.detectany.data.signature.UpdateCodec.payloadBytes(delta))
         }
         val json = com.detectany.data.signature.BundledSignatureDb.json.encodeToString(
             com.detectany.data.signature.SignedUpdate.serializer(),
-            com.detectany.data.signature.SignedUpdate(15, null, delta, Base64.getEncoder().encodeToString(sig.sign())),
+            com.detectany.data.signature.SignedUpdate(BundledSignatureDb.db.version + 1, null, delta, Base64.getEncoder().encodeToString(sig.sign())),
         )
         // 手动导入
         val imported = SignatureImport(store).import(json)
-        assertTrue(imported is SignatureImport.Result.Applied && imported.version == 15L, imported.toString())
+        assertTrue(imported is SignatureImport.Result.Applied && imported.version == BundledSignatureDb.db.version + 1L, imported.toString())
         // 与在线路径同构：同一 store 状态推进语义（导入即 apply）
-        assertEquals(15L, store.current().version)
+        assertEquals(BundledSignatureDb.db.version + 1L, store.current().version)
     }
 
     @Test

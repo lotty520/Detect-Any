@@ -4,6 +4,7 @@ import com.detectany.core.model.CollectorId
 import com.detectany.core.model.CollectorResult
 import com.detectany.core.model.Confidence
 import com.detectany.core.model.ScanTier
+import com.detectany.core.model.SignatureEntries
 import com.detectany.core.nativeplatform.StatOutcome
 import com.detectany.core.nativeplatform.SyscallBackend
 import com.detectany.core.nativeplatform.TriplePathExecutor
@@ -113,11 +114,12 @@ class FsProbeTest {
     }
 
     @Test
-    fun c2_stDevDeviationYieldsStrongFinding() {
+    fun c2_stDevDeviationYieldsFinding() {
         val analyzer = MountAnalyzer(expectedStDev = mapOf("/sys" to 20L))
         val findings = analyzer.analyze(emptyList(), mapOf("/sys" to 21L)) // PayPal 实测形态
         val f = findings.first { it.ruleId == "mount.stdev_deviation./sys" }
-        assertEquals(Confidence.A, f.confidence)
+        // P2-2（2026-11-11）：降 C——tmpfs 设备号跨重启稳定性未验证
+        assertEquals(Confidence.C, f.confidence)
     }
 
     @Test
@@ -154,6 +156,36 @@ class FsProbeTest {
         assertEquals(Confidence.B, f.confidence)
         assertEquals("susfs", f.framework)
         assertEquals(FindingCategory.ROOT_KERNEL, f.category)
+    }
+
+    @Test
+    fun c2_baselineLookupActivatesTooClean() {
+        // P2-2 接线：机型命中 deviceBaselines → too_clean 以 mountCountMin 直判
+        val baseline = SignatureEntries.DeviceBaselineEntry(model = "TestModel", mountCountMin = 200, stDev = emptyMap())
+        val collector = MountCollector(
+            mountInfoReader = { plainMount }, // 仅 4 条 << 200
+            filesystemsReader = { cleanFsLines },
+            baselineLookup = { m -> if (m == "TestModel") baseline else null },
+            deviceModel = { "TestModel" },
+            statSampler = { null },
+        )
+        val result = collector.collect(input)
+        val f = result.findings.first { it.ruleId == "mount.too_clean" }
+        assertEquals(Confidence.B, f.confidence)
+    }
+
+    @Test
+    fun c2_baselineMissKeepsSilent() {
+        // 机型不在基线库 → 信号维持不判（无数据不拍脑袋）
+        val collector = MountCollector(
+            mountInfoReader = { plainMount },
+            filesystemsReader = { cleanFsLines },
+            baselineLookup = { null },
+            deviceModel = { "UnknownModel" },
+            statSampler = { null },
+        )
+        val result = collector.collect(input)
+        assertTrue(result.findings.none { it.ruleId == "mount.too_clean" })
     }
 
     @Test
