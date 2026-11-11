@@ -41,6 +41,20 @@ void assemble_sig(unsigned char out[32]) {
     for (int i = 0; i < 32; i++) out[i] = SIG_A[i] ^ SIG_B[i];
 }
 
+// P3（2026-11-11）：占位哨兵——首字节若仍是占位特征值，release 装配未完成，
+// 上层应降级 SelfGuard 而非用占位常量误报 repackaged(A)。
+// 占位 XOR 首字节 = 0x5a^0x35 = 0x6f；发布装配时替换常量后此函数自然返回 false。
+jboolean da_sig_is_placeholder() {
+    unsigned char buf[32];
+    assemble_sig(buf);
+    return buf[0] == 0x6f ? JNI_TRUE : JNI_FALSE;
+}
+
+// CRC 占位哨兵：占位 XOR = 0x53b51cf8；发布装配替换常量后自然返回 false
+jboolean da_crc_is_placeholder() {
+    return (CRC_A ^ CRC_B) == 0x53b51cf8u ? JNI_TRUE : JNI_FALSE;
+}
+
 }  // namespace
 
 // ---- GuardJni（com.detectany.selfguard）----
@@ -57,6 +71,16 @@ Java_com_detectany_selfguard_GuardJni_assembleExpectedSignature(JNIEnv *env, job
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_detectany_selfguard_GuardJni_assembleExpectedDexCrc(JNIEnv *, jobject) {
     return static_cast<jlong>(static_cast<uint32_t>(CRC_A ^ CRC_B));
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_detectany_selfguard_GuardJni_signatureIsPlaceholder(JNIEnv *, jobject) {
+    return da_sig_is_placeholder();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_com_detectany_selfguard_GuardJni_crcIsPlaceholder(JNIEnv *, jobject) {
+    return da_crc_is_placeholder();
 }
 
 extern "C" JNIEXPORT jboolean JNICALL

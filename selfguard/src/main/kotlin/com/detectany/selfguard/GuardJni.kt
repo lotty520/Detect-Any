@@ -17,4 +17,6 @@ object GuardJni {
 
     /** 调试器探针：0 无 / 1 有 / -1 不可判定。 */
     external fun debuggerProbe(): Int
+    external fun signatureIsPlaceholder(): Boolean
+    external fun crcIsPlaceholder(): Boolean
 }

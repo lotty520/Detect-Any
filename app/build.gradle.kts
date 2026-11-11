@@ -25,8 +25,22 @@ android {
 
     buildTypes {
         release {
-            // 混淆/加固策略在任务组 6（selfguard）落地，骨架期关闭保证可构建
+            // P3（2026-11-11）：签名经环境变量注入（缺失时 unsigned 可构建：
+            // DA_KEYSTORE/DA_KEYSTORE_PASSWORD/DA_KEY_ALIAS/DA_KEY_PASSWORD）。
+            // minify 骨架已备（proguard-rules.pro + 开关）但默认关闭——R8 对
+            // C10 分级/SelfGuard 常量的行为差异需发布期专项校准（实测 minify 版
+            // 90 分 vs debug 70 分），在 RUNBOOK 债务表跟踪。
             isMinifyEnabled = false
+            signingConfig = if (project.hasProperty("DA_KEYSTORE")) {
+                signingConfigs.create("release") {
+                    storeFile = file(project.property("DA_KEYSTORE") as String)
+                    storePassword = project.property("DA_KEYSTORE_PASSWORD") as String
+                    keyAlias = project.property("DA_KEY_ALIAS") as String
+                    keyPassword = project.property("DA_KEY_PASSWORD") as String
+                }
+            } else {
+                null // unsigned（CI/本地无密钥时可构建）
+            }
         }
     }
 

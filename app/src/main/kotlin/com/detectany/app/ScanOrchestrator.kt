@@ -115,6 +115,10 @@ class ScanOrchestrator(context: Context) {
             abi = android.os.Build.SUPPORTED_ABIS.firstOrNull(),
         )
         // 自保护 Finding 并入整体评分（任务 6.3）
-        return engine.scan(input, tier, extraFindings = selfGuard.inspect())
+        val report = engine.scan(input, tier, extraFindings = selfGuard.inspect())
+        if (report.verdict.evidenceVector.isNotEmpty()) {
+            android.util.Log.i("DA-FIND", report.verdict.evidenceVector.joinToString(","))
+        }
+        return report
     }
 }

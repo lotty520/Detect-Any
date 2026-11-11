@@ -33,6 +33,7 @@ class SelfGuardTest {
         expectedDexCrc = { expCrc },
         bytesEqual = { a, b -> a.contentEquals(b) },
         probeIntervalMs = 0, // 主机测试：同步模式（无后台线程/缓存语义）
+        signaturePlaceholderOverride = false, // host 无 native：占位门直通以测签名逻辑
     )
 
     @Test
