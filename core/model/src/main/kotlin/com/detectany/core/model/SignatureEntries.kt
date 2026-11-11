@@ -9,6 +9,7 @@ data class SignatureEntries(
     val sockets: List<SocketEntry> = emptyList(),
     val properties: List<PropertyEntry> = emptyList(),
     val apps: List<AppEntry> = emptyList(),
+    val filesystems: List<FilesystemEntry> = emptyList(),
 ) {
     data class PathEntry(
         val id: String,
@@ -36,6 +37,15 @@ data class SignatureEntries(
         val category: Finding.Category,
         /** 值条件：非 null 时值必须包含该子串才命中（如 native.bridge 必须含 loader 名，排除全机型默认值 "0"） */
         val valueContains: String? = null,
+    )
+
+    data class FilesystemEntry(
+        val id: String,
+        /** /proc/filesystems 行内文件系统名（nodev 前缀已剥离） */
+        val fsName: String,
+        val framework: String?,
+        val confidence: Confidence,
+        val category: Finding.Category,
     )
 
     data class AppEntry(
