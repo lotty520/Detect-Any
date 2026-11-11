@@ -33,3 +33,9 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# AI tooling workspace (local only)
+.zcode/
+
+# Dev-session UI test screenshots (not README assets)
+gui-test-screenshots/
