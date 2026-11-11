@@ -14,7 +14,7 @@
 
 | Home | Scan Result | Threats | Capabilities | Settings |
 |:---:|:---:|:---:|:---:|:---:|
-| <img src="screenshots/home.png" width="180"> | <img src="screenshots/scan_result.png" width="180"> | <img src="screenshots/threats.png" width="180"> | <img src="screenshots/capabilities.png" width="180"> | <img src="screenshots/settings.png" width="180"> |
+| <img src="screenshots/01-home.png" width="180" height="400"> | <img src="screenshots/02-scan.png" width="180" height="400"> | <img src="screenshots/03-threats.png" width="180" height="400"> | <img src="screenshots/04-capabilities.png" width="180" height="400"> | <img src="screenshots/05-settings.png" width="180" height="400"> |
 
 ---
 
