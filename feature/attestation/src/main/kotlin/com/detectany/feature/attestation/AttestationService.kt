@@ -98,6 +98,11 @@ class AttestationService(
                     else Outcome.SpoofSuspected("cross-check anomalies: ${anomalies.size}", findings)
                 }
             }
+        } catch (e: Throwable) {
+            // 2026-11-10 审计修复：原 try 只有 finally 无 catch——ASN.1 解析异常
+            // （历史教训：deviceLocked BOOLEAN schema 变体曾致崩）会穿透冒泡。
+            // 证明层异常 = 优雅降级（不采信不误报），永不上抛扫描流程。
+            return Outcome.Degraded("attestation parse error: " + e.javaClass.simpleName, emptyList())
         } finally {
             client.cleanup()
         }
