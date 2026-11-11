@@ -12,9 +12,9 @@
 | 覆盖框架 | 19 个（含分叉/继任者） |
 | 能力域 | 7 个 |
 | 特征库条目（可热更新） | 30 条 |
-| 代码内联检测项 | 28 条 |
+| 代码内联检测项 | 40+ 条（SIM/电池/地理/传感器节律/云手机共振等 2026-11-10 扩展） |
 | 规则 | 20 条 |
-| **总计监测项** | **58 项** |
+| **总计监测项** | **90+ 项**（特征库 v12 65 条 + 行为/完整性/自保护内联探测） |
 
 ---
 
@@ -51,7 +51,7 @@
 | mount.overlay.* | overlay 挂载条目（模块挂载形态） | B |
 | mount.source_magisk | 挂载 source 含 magisk | C |
 | mount.debug_ramdisk | /debug_ramdisk/.magisk* 子路径挂载 | C |
-| mount.too_clean | 挂载条目数显著低于同机型基线（隐藏栈） | B |
+| mount.too_clean ⚠️未接线（无机型基线数据，2026-11-10 审计） | 挂载条目数显著低于同机型基线（隐藏栈） | B |
 | mount.stdev_deviation.* | st_dev 四路采样与基线不符（PayPal 向量） | **A** |
 | mount.fstype_cross.* | mountinfo fstype vs statfs f_type 不一致（susfs） | B ⬇（降权：v2.x umount 一致化） |
 
@@ -73,6 +73,7 @@
 | prop.debuggable | ro.debuggable=1 | C |
 | prop.test_keys | ro.build.tags 含 test-keys | C |
 | prop.build_pair.* | Build 侧 vs bootimage 镜像侧成对属性不一致（PIF） | B |
+| prop.build_pair.model/device/brand ★v13 | ro.product.* vs ro.vendor.product.*（vendor 分区侧副本，改机常漏改） | B |
 | prop.area_anomaly.* | /dev/__properties__/ 文件不可读或 size=0（resetprop 痕迹） | B |
 
 ---
@@ -110,6 +111,13 @@
 | **app.vector** ★新 | org.lsposed.vector | Vector, lsposed | vector | B |
 | **app.neozygisk** ★新 | moe.neozygisk | NeoZygisk, zygiskd | neozygisk | B |
 | **app.nyazygisk** ★新 | nk.be.nyazygisk | NyaZygisk, zygiskd | nyazygisk | B |
+| **app.magiskdelta** ★v7 | io.github.huskydg.magisk | huskydg, Magisk | magisk | B |
+| **app.lspatch** ★v7 | org.lsposed.lspatch | LSPatch, metaloader | lspatch | B |
+| **app.fakegps** ★v8 | com.lexa.fakegps 等 3 变体 | —（纯包名） | fakegps | C |
+| **app.fakecamera** ★v9 | com.droidrooter.virtualcamera, com.adriangl.pict2cam | —（纯包名） | fakecamera | C |
+| **app.deviceidchanger** ★v9 | com.aksym.androiddeviceidchanger | —（纯包名） | deviceidchanger | C |
+| **app.virtualnet** ★v10 | com.droidrooter.virtualnet | —（纯包名） | virtualnet | C |
+| **app.screenrecorder** ★v8 | AZ/DU/XRecorder 5 变体 | —（纯包名） | screenrecorder | C |
 
 ### 匹配逻辑
 
@@ -210,10 +218,10 @@
 | rule.hook | HOOK（通用） | triple.svc_libc, triple.java_native, behavior.triple_diff, integrity.prologue, integrity.got_, mem.maps_tampered, mem.hidden_mapping, mem.fd_data_adb | 15 |
 | rule.anti_detect | ANTI_DETECT（隐藏栈） | mount.too_clean, prop.area_anomaly, mount.fstype_cross | 16 |
 | rule.su_binary | ROOT_USERSPACE | path.su. | 8 |
-| rule.repackaged | REPACKAGED | selfguard.repackaged_signature, selfguard.dex_crc, mem.known_path | 18 |
-| rule.trickystore | trickystore | attest.keybox_revoked, attest.cross., attest.software_backed | 18 |
-| rule.susfs | susfs | mount.fstype_cross | 16 |
-| rule.pif | pif | prop.build_pair. | 12 |
+| rule.repackaged | REPACKAGED | selfguard.repackaged_signature, selfguard.dex_crc, mem.known_path, app.lspatch | 18 |
+| rule.trickystore | trickystore | attest.keybox_revoked, attest.cross., attest.software_backed, path.trickystore | 18 |
+| rule.susfs | susfs | mount.fstype_cross, fs.susfs | 16 |
+| rule.pif | pif | prop.build_pair., path.pif | 12 |
 | rule.trustmealready ★新 | trustmealready | app.trustmealready | 12 |
 | rule.zygiskdetect ★新 | zygiskdetect | app.zygiskdetect | 10 |
 
@@ -229,3 +237,13 @@
 | **C 级** | 仅加权，永不单独定性 |
 | **anti_detect** | 权重 ×1.5（隐藏栈风险高于普通 root） |
 | 定性门槛 | conclusive → riskScore ≥ 50 |
+
+
+## C9 动态插桩检测（Frida 四防线，2026-11-10 补录——此前目录缺失该域）
+
+| 检测项 | 说明 | 置信 |
+|---|---|---|
+| frida.maps_strings | /proc/self/maps 扫 frida-agent/linjector/gadget 模式 | B |
+| frida.thread_names | /proc/self/task/*/comm 扫 gum-js-loop/gmain/pool-frida | B |
+| frida.rwx_pages | 连续 RWX 匿名页 + Frida 典型布局 | B |
+| frida.dbus_port* | D-Bus AUTH 握手协议指纹 ⚠️ 端口枚举 API28+ 受 EACCES 门控（默认 27042 恒探测；多端口仅 root/旧版可达，改端口兜底=其余三防线） | B |
