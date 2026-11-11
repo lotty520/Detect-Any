@@ -3,6 +3,7 @@ package com.detectany.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
@@ -45,6 +46,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 2026-11-11 华为修复：EMUI(API 31) 沉浸式下系统栏覆盖内容。
+        // 显式 edge-to-edge + 让 M3 Scaffold/TopAppBar/NavigationBar 各自消费 insets
+        // （跨版本一致行为：模拟器 35 与华为 31 均正常）
+        this.enableEdgeToEdge()
         val orchestrator = ScanOrchestrator(applicationContext)
         setContent {
             DetectAnyTheme {

@@ -42,12 +42,22 @@ class ScanOrchestrator(context: Context) {
 
     private val entries get() = BundledSignatureDb.toEntries(signatureStore.current())
 
+    /** Google 双根信任锚（P2 收尾，2026-11-11）：assets 内置 RSA 2016 + ECDSA P-384
+     *  双根（源：android.googleapis.com/attestation/root），L3 从形式降级转为实质判定。 */
+    private val attestationRoots: List<java.security.cert.X509Certificate> = runCatching {
+        val cf = java.security.cert.CertificateFactory.getInstance("X.509")
+        listOf("attestation_root_rsa.pem", "attestation_root_ecdsa.pem").flatMap { name ->
+            appContext.assets.open(name).use { input ->
+                cf.generateCertificates(input).filterIsInstance<java.security.cert.X509Certificate>()
+            }
+        }
+    }.getOrDefault(emptyList())
+
     /** P2-1（2026-11-11）：C13 硬件证明采集器（L3 专用）。
-     *  锚点：真机双根未装配前 AttestationVerifier 空锚 → Rejected 降级路径（不误报，
-     *  AttestationDeviceSmokeTest 契约）；CRL 离线快照兜底；first_api_level 走 PropJni。 */
+     *  锚点：assets 双根（加载失败时空锚 → Rejected 降级路径，不误报）。 */
     private val attestationCollector = com.detectany.feature.attestation.AttestationCollector(
         service = com.detectany.feature.attestation.AttestationService(
-            verifier = com.detectany.feature.attestation.AttestationVerifier(emptyList()),
+            verifier = com.detectany.feature.attestation.AttestationVerifier(attestationRoots),
             crl = com.detectany.feature.attestation.CrlStore(fetcher = { error("online channel pending P2-3") }),
             firstApiLevel = {
                 runCatching {
