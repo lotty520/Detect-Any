@@ -14,6 +14,7 @@ data class SignatureDb(
     val sockets: List<SocketEntry> = emptyList(),
     val properties: List<PropertyEntry> = emptyList(),
     val supercalls: List<SupercallEntry> = emptyList(),
+    val filesystems: List<FilesystemEntry> = emptyList(),
     val keyboxBlacklist: List<KeyboxEntry> = emptyList(),
     val deviceBaselines: List<DeviceBaseline> = emptyList(),
 ) {
@@ -75,6 +76,19 @@ data class SignatureDb(
         val helloCmdHex: String? = null,
         val helloMagicHex: String? = null,
         val framework: String,
+        val since: String? = null,
+        val until: String? = null,
+    )
+
+    /** 内核注册文件系统类型（/proc/filesystems 挂载名比对；susfs 等非隐藏场景残留） */
+    @Serializable
+    data class FilesystemEntry(
+        val id: String,
+        /** /proc/filesystems 行内文件系统名（nodev 前缀已剥离） */
+        val fsName: String,
+        val framework: String?,
+        val confidence: String,
+        val category: String,
         val since: String? = null,
         val until: String? = null,
     )
