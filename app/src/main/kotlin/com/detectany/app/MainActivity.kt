@@ -70,6 +70,11 @@ class MainActivity : ComponentActivity() {
             .register(this, executor)
     }
 
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        runCatching { com.detectany.collectors.screenshare.InputEventMonitor.onMotionEvent(ev) }
+        return super.dispatchTouchEvent(ev)
+    }
+
     override fun onStop() {
         screenRecordingHandle?.close()
         screenRecordingHandle = null

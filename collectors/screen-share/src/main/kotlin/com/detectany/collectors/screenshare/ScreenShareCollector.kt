@@ -57,6 +57,7 @@ class ScreenShareCollector(
         findings += checkRemoteDesktop()
         findings += checkOverlay()
         findings += checkScreenRecordingState()
+        findings += checkInputBehavior()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -66,10 +67,46 @@ class ScreenShareCollector(
                 "adbEnabled" to isAdbEnabled().toString(),
                 "remoteDesktopApps" to findRemoteDesktopApps().size.toString(),
                 "screenRecording" to (ScreenRecordingMonitor.stateVisible?.toString() ?: "unknown"),
+                "inputEvents" to InputEventMonitor.snapshot().total.toString(),
             ),
         )
     } catch (e: Throwable) {
         CollectorResult(collector = id, status = CollectorResult.Status.BLOCKED, meta = mapOf("error" to (e.message ?: e.javaClass.simpleName)))
+    }
+
+    // ---- G6 输入行为（P2-4）：注入/合成比例（滚动窗口快照，初版全 C——节律 FP 面待样本） ----
+
+    private fun checkInputBehavior(): List<Finding> {
+        val snap = InputEventMonitor.snapshot()
+        if (snap.total < 30) return emptyList() // 样本不足（冷启动即扫）——meta 见下
+        val findings = mutableListOf<Finding>()
+        if (snap.accessibilityRatio > 0.3f) {
+            findings.add(
+                Finding(
+                    ruleId = "input.accessibility_ratio",
+                    collector = id,
+                    confidence = Confidence.C, // 残障辅助服务合法注入——白名单联动前不升
+                    category = Finding.Category.AUTOMATION,
+                    framework = null,
+                    detail = "Input events: ${(snap.accessibilityRatio * 100).toInt()}% accessibility-injected over last ${snap.total} events (auto-clicker / remote-control signature; also legitimate for accessibility users)",
+                    raw = mapOf("ratio" to snap.accessibilityRatio.toString(), "total" to snap.total.toString()),
+                ),
+            )
+        }
+        if (snap.syntheticRatio > 0.5f || snap.virtualRatio > 0.5f) {
+            findings.add(
+                Finding(
+                    ruleId = "input.synthetic_ratio",
+                    collector = id,
+                    confidence = Confidence.C,
+                    category = Finding.Category.AUTOMATION,
+                    framework = null,
+                    detail = "Input events: synthetic/virtual-device source ${(maxOf(snap.syntheticRatio, snap.virtualRatio) * 100).toInt()}% (Instrumentation/adb injection or virtual HID)",
+                    raw = mapOf("synthetic" to snap.syntheticRatio.toString(), "virtual" to snap.virtualRatio.toString()),
+                ),
+            )
+        }
+        return findings
     }
 
     // ---- 系统级录制状态（G5，API 34+；状态由 ScreenRecordingMonitor 持有） ----

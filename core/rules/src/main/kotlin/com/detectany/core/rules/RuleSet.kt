@@ -130,7 +130,7 @@ object BundledRuleSet {
 
             // ---- SIM 卡状态异常（矛盾态，C 级） ----
             RuleSet.RuleDef("rule.sim_anomaly", category = "SIM_ANOMALY", matchRuleIdPrefixes = listOf("sim.", "geo."), weight = 8),
-            RuleSet.RuleDef("rule.automation", category = "AUTOMATION", matchRuleIdPrefixes = listOf("automation."), weight = 12),
+            RuleSet.RuleDef("rule.automation", category = "AUTOMATION", matchRuleIdPrefixes = listOf("automation.", "input."), weight = 12),
             RuleSet.RuleDef("rule.screenshare", category = "SCREEN_SHARE", matchRuleIdPrefixes = listOf("screenshare.", "app.screenrecorder"), weight = 14),
 
             // ---- GPS 伪造（G4：伪造定位应用在装） ----
