@@ -22,7 +22,32 @@ class SelfGuardService(
     private val expectedDexCrc: () -> Long = { GuardJni.assembleExpectedDexCrc() },
     /** 生产走 native 常数时间比较；主机测试注入 contentEquals */
     private val bytesEqual: (ByteArray, ByteArray) -> Boolean = { a, b -> GuardJni.constantTimeEquals(a, b) },
+    /** 反调试探测周期（后台定时 fork；0 = 每次 inspect 同步 fork——主机测试/旧行为兼容） */
+    private val probeIntervalMs: Long = 30_000L,
 ) {
+    @Volatile internal var lastDebuggerProbe: Int = 0
+
+    @Volatile internal var lastProbeAtMs: Long = 0L
+
+    private val probeScheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+        Thread(r, "DetectAny-GuardProbe").apply { isDaemon = true }
+    }
+
+    init {
+        if (probeIntervalMs > 0) {
+            // 2026-11-10 L1 时延修复：fork 子进程在现代大进程上一次 80-118ms（P8 实测），
+            // 每次 inspect 同步 fork 拖垮快扫。改为后台定时探测 + inspect 读缓存快照；
+            // 缓存超过 3 周期未刷新（探测线程死亡等）则视为无信号（FN 方向，安全）。
+            probeScheduler.scheduleAtFixedRate({
+                runCatching {
+                    lastDebuggerProbe = debuggerProbe()
+                    lastProbeAtMs = System.currentTimeMillis()
+                }
+            }, 0L, probeIntervalMs, java.util.concurrent.TimeUnit.MILLISECONDS)
+        }
+    }
+
+
     /** 巡检（幂等、无副作用、永不抛出）。 */
     fun inspect(): List<Finding> = buildList {
         // 6.1 签名摘要（repackaged 强证据：重打包必换签名）
@@ -80,7 +105,12 @@ class SelfGuardService(
         }
 
         // 6.2 子进程 ATTACH 反查（调试器独占 ptrace → EPERM）
-        val probe = debuggerProbe()
+        // 后台定时模式读缓存快照（新鲜度 3 周期内）；同步模式（probeIntervalMs=0）保留旧行为
+        val probe = if (probeIntervalMs > 0) {
+            if (System.currentTimeMillis() - lastProbeAtMs <= probeIntervalMs * 3) lastDebuggerProbe else 0
+        } else {
+            debuggerProbe()
+        }
         if (probe == 1) {
             add(
                 Finding(
@@ -127,7 +157,10 @@ class SelfGuardService(
 }
 
 /**
- * 静默延迟响应（任务 6.3）：MUST NOT 即时崩溃/弹窗；检出后延迟回调（默认 5s），
+ * 静默延迟响应（任务 6.3）：集成面 API——spec 要求「静默记分并可延迟响应」，
+ * 静默记分由 findings 并入评分满足（生产无崩溃无弹窗）；延迟回调能力在此提供，
+ * 响应动作（如何处置）由集成方接线（app 自身不消费属预期，2026-11-10 审计注记）。
+ * MUST NOT 即时崩溃/弹窗；检出后延迟回调（默认 5s），
  * 攻击者无法从即时反馈定位检测点。可在任意作用域调用（coroutine）。
  */
 class SilentResponsePolicy(

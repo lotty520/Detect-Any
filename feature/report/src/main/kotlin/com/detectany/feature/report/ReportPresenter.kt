@@ -95,6 +95,7 @@ object ReportExporter {
     data class ExportedReport(
         val exportedAtMs: Long,
         val appVersion: String,
+        val schemaVersion: Int = 1, // 2026-11-10 审计：导出格式演进保护（消费方可按版本分支）
         val tier: String,
         val riskScore: Int,
         val conclusive: Boolean,
