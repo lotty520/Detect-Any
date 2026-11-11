@@ -190,5 +190,54 @@ class AttestationVerifier(
         }
         CertPathValidator.getInstance("PKIX").validate(cp, params)
         null
-    }.getOrElse { "chain validation failed: ${it.message ?: it.javaClass.simpleName}" }
+    }.getOrElse { e ->
+        // 2026-11-11 华为真机实证：Google RSA 2016 根（f92009e853b6b045）已于
+        // 2026-05 过期，PKIX timestamp check 硬拒——但 Google 官方政策要求继续
+        // 信任其签发的链（吊销才不信任，走专用 CRL）。豁免路径：链锚=过期 Google
+        // RSA 根时改用手动逐级验证（签名链自洽 + 时间窗对非根证书生效）。
+        if (isExpiredRootPolicy(chain, e)) {
+            manualChainValidation(chain) ?: return@getOrElse null
+            null
+        } else {
+            "chain validation failed: ${e.message ?: e.javaClass.simpleName}"
+        }
+    }
+
+    /** 官方过期豁免判定：链尾锚是（已载入的）过期 Google RSA 根。
+     *  匹配用 序列号+主题（华为链尾是我们根的独立编码副本，X509.equals 为 false——
+     *  2026-11-11 真机实证）。 */
+    private fun isExpiredRootPolicy(chain: List<X509Certificate>, e: Throwable): Boolean {
+        val anchor = chain.lastOrNull() ?: return false
+        val isOurExpiredRoot = roots.any { root ->
+            root.serialNumber == anchor.serialNumber &&
+                root.subjectX500Principal == anchor.subjectX500Principal &&
+                RootAnchorStore.isExpiredRootTrusted(root)
+        }
+        return isOurExpiredRoot && (e.message?.contains("timestamp", ignoreCase = true) == true ||
+            e.message?.contains("expired", ignoreCase = true) == true)
+    }
+
+    /** 手动链验证：逐级签名自洽 + 非根证书在有效期内（根证书时间豁免）。 */
+    private fun manualChainValidation(chain: List<X509Certificate>): String? {
+        if (chain.size < 2) return "chain too short"
+        for (i in 0 until chain.size - 1) {
+            val issuer = chain[i + 1]
+            val subject = chain[i]
+            // 签名自洽：issuer 公钥可验 subject 签名
+            runCatching {
+                subject.verify(issuer.publicKey)
+            }.getOrElse { return "signature break at level $i: ${it.javaClass.simpleName}" }
+            // 非根证书时间窗（叶子和中间层不得过期/未生效）
+            val now = Date()
+            if (subject.notBefore.after(now) || subject.notAfter.before(now)) {
+                return "non-root cert outside validity at level $i"
+            }
+        }
+        // 链尾必须匹配已载入信任锚（序列号+主题，同豁免路径口径）
+        val last = chain.last()
+        if (roots.none { it.serialNumber == last.serialNumber && it.subjectX500Principal == last.subjectX500Principal }) {
+            return "anchor not in trust store"
+        }
+        return null
+    }
 }

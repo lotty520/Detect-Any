@@ -30,7 +30,7 @@ android {
             // minify 骨架已备（proguard-rules.pro + 开关）但默认关闭——R8 对
             // C10 分级/SelfGuard 常量的行为差异需发布期专项校准（实测 minify 版
             // 90 分 vs debug 70 分），在 RUNBOOK 债务表跟踪。
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             signingConfig = if (project.hasProperty("DA_KEYSTORE")) {
                 signingConfigs.create("release") {
                     storeFile = file(project.property("DA_KEYSTORE") as String)

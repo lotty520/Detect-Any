@@ -39,7 +39,12 @@ class AttestationCollector(
         }
 
     override fun collect(input: ScanInput): CollectorResult = try {
-        val future = executor.submit { runCatching { service.run() }.getOrNull() }
+        // 2026-11-11 根因修复：Kotlin lambda 被 ExecutorService.submit 绑定为 Runnable
+        // 重载 → Future.get() 恒 null（真机实证 lambda 返回 Degraded 但 outcome=null，
+        // 伪装成永久 timeout）。显式 Callable 强制走带返回值的重载。
+        val future: java.util.concurrent.Future<AttestationService.Outcome?> = executor.submit(
+            java.util.concurrent.Callable { runCatching { service.run() }.getOrNull() }
+        )
         val outcome = try {
             future.get(timeoutMs, TimeUnit.MILLISECONDS)
         } catch (_: TimeoutException) {
