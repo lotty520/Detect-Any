@@ -5,81 +5,95 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![minSdk](https://img.shields.io/badge/minSdk-24_(Android_7.0)-orange.svg)](app/build.gradle.kts)
 [![16KB](https://img.shields.io/badge/Page_Size-16KB_Aligned-green.svg)](docs/RUNBOOK.md)
-[![Tests](https://img.shields.io/badge/Tests-195_total-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-136_total-brightgreen.svg)](#testing)
 
 ---
 
 ## Screenshots
 
-| Home | Scan Result | Capabilities | Settings |
-|:---:|:---:|:---:|:---:|
-| ![Home](screenshots/home.png) | ![Result](screenshots/scan_result.png) | ![Capabilities](screenshots/capabilities.png) | ![Settings](screenshots/settings.png) |
+| Home | Scan Result | Threats | Capabilities | Settings |
+|:---:|:---:|:---:|:---:|:---:|
+| ![Home](screenshots/home.png) | ![Result](screenshots/scan_result.png) | ![Threats](screenshots/threats.png) | ![Capabilities](screenshots/capabilities.png) | ![Settings](screenshots/settings.png) |
 
 ---
 
 ## Overview
 
-Detect-Any scans Android devices for 19 root frameworks, injection layers, and attestation spoofing tools. It produces a single weighted risk score (0-100) with per-item evidence replay, organized into four user-facing views:
+Detect-Any scans Android devices for 25+ root frameworks, injection layers, spoofing tools, and risk postures. It produces a single weighted risk score (0-100) with per-item evidence replay, organized into four user-facing views and three scan tiers:
 
-- **Scan** — risk gauge, verdict badge, threat chips, delta vs previous scan
-- **Threats** — findings grouped by detected framework with drill-down evidence
-- **Capabilities** — 7 detection capability domains with per-probe status and timing
-- **Settings** — report export, signature update import, capability boundaries
+- **L1 Quick** — fast signals only, single-digit milliseconds
+- **L2 Full** — all 12 collectors in parallel with evidence vector
+- **L3 Deep** — L2 + hardware key attestation (Keymaster chain, CRL, field cross-checks)
+
+Views: **Scan** (risk gauge, verdict badge, delta vs previous scan) · **Threats** (findings grouped by framework with drill-down evidence) · **Capabilities** (12 detection domains with per-probe status and timing) · **Settings** (report export, signature update import).
 
 ## Covered Targets
 
-| Category | Frameworks |
+| Category | Frameworks / Tools |
 |---|---|
 | Kernel Root | KernelSU, KernelSU-Next, SukiSU-Ultra, APatch |
-| Userspace Root | Magisk |
+| Userspace Root | Magisk (+ Magisk Delta) |
 | Zygisk Injection | ZygiskNext, ReZygisk, NeoZygisk, NyaZygisk |
 | Hook Frameworks | LSPosed, Vector, TrustMeAlready |
 | Repackaging | LSPatch |
-| Attestation Spoofing | TrickyStore, PIF |
-| Hiding Stack | susfs, Shamiko |
-| Detection Tools | ZygiskDetect |
+| Attestation Spoofing | TrickyStore, PIF (+ forks) |
+| Hiding Stack | susfs (incl. verified-boot contradiction), Shamiko |
+| Dynamic Instrumentation | Frida (all variants incl. hluda/Florida, renamed builds) |
+| Emulators / VMs | QEMU family, 4-dimension cross (props/hardware/sensors/GL) |
+| Cloud Phones | cross-subsystem C-signal resonance (sensor rhythm, battery cross-layer, SIM absence) |
+| Device Spoofing | appenv (应用变量), Device ID Changer, VirtualNet, fake GPS/camera tools |
+| Risk Postures | VPN/proxy (3 layers), SIM anomalies, geo inconsistency, speed-hack clock drift, screen sharing/recording, overlay injection, automation services |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│              :app  (Compose UI)              │
-├─────────────────────────────────────────────┤
-│           :core:engine (parallel)            │
-│    collectors → rules → weighted score       │
-├────────┬────────────┬──────────────────────┤
-│ :core  │ :collectors│     :feature          │
-│ rules  │ filesystem │  attestation          │
-│ model  │ properties │  report / export      │
-│ native │ endpoints  ├──────────────────────┤
-│ (JNI)  │ fingerprints│    :selfguard        │
-│        │ memory     │  anti-debug           │
-│        │ integrity  │  integrity check      │
-│        │ behavior   │                       │
-├────────┴────────────┴──────────────────────┤
-│ :data:signature  │  :compat:platform        │
-│ (hot-updatable)  │  (API 24-16 gating)      │
-└──────────────────┴─────────────────────────┘
+┌────────────────────────────────────────────────┐
+│              :app  (Compose UI, 4 tabs)         │
+├────────────────────────────────────────────────┤
+│        :core:engine (parallel, L1/L2/L3)        │
+│   13 collectors → rules → weighted score        │
+├────────┬─────────────────┬─────────────────────┤
+│ :core  │   :collectors   │      :feature        │
+│ rules  │ fs / props      │  attestation (C13)   │
+│ model  │ endpoints       │  report / export     │
+│ native │ fingerprints    ├─────────────────────┤
+│  (JNI) │ memory / integ  │     :selfguard       │
+│        │ behavior probes │  anti-debug (async)  │
+│        │ virt-env / a11y │  repackaging check   │
+│        │ screen-share    │                      │
+├────────┴─────────────────┴─────────────────────┤
+│ :data:signature (v15, hot-updatable, ed25519)  │
+│ :compat:platform (API 24-16 capability gating) │
+└────────────────────────────────────────────────┘
 ```
+
+21 Gradle modules. Every detection flow implements the `Collector` SPI — no special paths, the engine runs all collectors in parallel (total scan time = slowest collector, not the sum).
 
 ## Detection Approach
 
-The engine combines multiple independent signal types into a weighted score:
-
 | Signal Class | Grade | Description |
 |---|---|---|
-| Physical invariants | A | Cross-layer consistency checks that are physically impossible to hide from userspace |
-| Behavioral probes | B | Active probes that detect framework-specific responses |
-| Static traces | C | Filesystem paths, socket names, package identifiers |
+| Physical invariants | A | Prologue byte comparison (memory vs disk), triple-path syscall diff, verified-boot contradiction, maps-tamper self-probe — impossible to hide from userspace |
+| Behavioral probes | B | Supercall magic numbers (source-audited per framework), D-Bus protocol handshake, sensor rhythm, mount forensics |
+| Static traces | C | Signature DB artifacts: paths, sockets, packages, properties, kernel fstypes |
 
-**Grade A** signals alone can trigger a conclusive verdict. **Grade B** requires two hits from independent domains. **Grade C** contributes weight but never triggers alone.
+**A** alone triggers a conclusive verdict · **B** requires two hits from independent domains (or cloud-phone C-resonance: ≥3 cross-subsystem signals) · **C** adds weight but never triggers alone.
 
-### Hardware Attestation
+### Hardware Attestation (L3)
 
-- Dual-root chain validation (RSA 2016 + ECDSA P-384 2026)
-- RKP-only enforcement for Android 16 launch devices
-- Google's official certificate revocation list consumption
-- Anti-relay via application ID binding
+- Dual-root chain validation (RSA 2016 + ECDSA P-384 2026), RKP-only for Android 16 launch devices
+- Google's official certificate revocation list consumption (offline snapshot fallback)
+- Per-invocation challenge embedding (chain-freshness proof), 3s timeout governance — a slow Keymaster degrades, never blocks
+- Field cross-checks: RootOfTrust vs system claims, patch level, StrongBox capability
+
+## Accuracy Discipline
+
+Accuracy is the product's prime directive — false positives destroy trust, false negatives are recoverable:
+
+- **Clean-environment protocol**: every probe change must re-verify on a clean emulator (mandatory, in [AGENTS.md](AGENTS.md))
+- **Device matrix**: clean emulator + adversarial Pixel 8 (APatch+susfs deep hiding) + clean mid-range Huawei + cloud-style rooted emulator (TP matrix)
+- **Honest boundary docs**: unreachable/unwired/dormant entries are labeled, never over-promised ([DETECTION_ACCURACY.md](docs/DETECTION_ACCURACY.md) grades all 142 items by evidence chain)
+- Historical FP fixes (OEM prop pairs, emulator artifacts, timing side-channel) are documented as lessons in [AGENTS.md](AGENTS.md)
 
 ## Requirements
 
@@ -87,7 +101,7 @@ The engine combines multiple independent signal types into a weighted score:
 |---|---|
 | minSdk | 24 (Android 7.0) |
 | ABIs | arm64-v8a, armeabi-v7a |
-| Page size | 16KB aligned |
+| Page size | 16KB aligned (build-enforced gate) |
 | Native size | ~613KB stripped |
 
 ## Build
@@ -103,52 +117,61 @@ cd Detect-Any
 ## Testing
 
 ```bash
-# Host unit tests (153)
-./gradlew test
-
-# Device tests (42 per device)
-./gradlew :app:connectedDebugAndroidTest
-
-# 16KB alignment gate
-./gradlew :app:verify16kAlignment
+./gradlew test                              # host unit tests (115)
+./gradlew :app:connectedDebugAndroidTest    # device tests (21 per device)
+./gradlew :app:verify16kAlignment           # 16KB alignment gate
+./gradlew :app:lintDebug                    # NewApi = 0 enforced
 ```
 
 ## Performance
 
-| Metric | Value (Pixel 8) |
-|---|---|
-| Full scan (L2) | 847ms |
-| Quick scan (L1) | ~10ms |
+| Metric | Pixel 8 (flagship) | Huawei mid-range (Kirin 710F) |
+|---|---|---|
+| Quick scan (L1) | 9-13ms | 0-1ms |
+| Full scan (L2) | ~969ms (dual-manager adversarial setup) | 722-887ms |
+| Deep scan (L3) | L2 + ~3.7s attestation | pending device retest |
 
 ## Project Structure
 
 ```
 Detect-Any/
-├── app/                    # Compose UI + navigation
-├── core/                   # Engine, rules, model, JNI bridge
-├── collectors/             # Detection probe implementations
-├── feature/                # Attestation, report/export
-├── data/signature/         # Hot-updatable signature database
-├── compat/platform/        # API level gating
-├── selfguard/              # Self-protection
-├── docs/                   # Documentation
-└── openspec/               # Behavior contracts
+├── app/                     # Compose UI + navigation (4 tabs, L1/L2/L3 tiers)
+├── core/
+│   ├── model/               # Collector SPI, Finding, Confidence grades
+│   ├── engine/              # Parallel orchestration, score model, tiers
+│   ├── rules/               # Rule engine (single-attribution matching)
+│   └── native-platform/     # JNI: raw svc executor, ELF parser, probes
+├── collectors/              # 13 probe modules (one per detection domain)
+├── feature/
+│   ├── attestation/         # Hardware key attestation (C13, L3 tier)
+│   └── report/              # Report presenter, exporter, update import
+├── data/signature/          # Hot-updatable signature DB (v15, ed25519-signed)
+├── compat/platform/         # API 24-16 capability gating
+├── selfguard/               # Self-protection (async anti-debug, integrity)
+├── docs/                    # Engineering documentation
+└── openspec/                # 10 behavior-contract specs (31+ requirements)
 ```
 
 ## Documentation
 
 | Doc | |
 |---|---|
-| [Detection Catalog](docs/DETECTION_CATALOG.md) | All 90+ detection items (signature DB v12 + behavioral probes) |
+| [Detection Catalog](docs/DETECTION_CATALOG.md) | All 90+ detection items (signature DB v15 + behavioral probes) |
+| [Detection Accuracy](docs/DETECTION_ACCURACY.md) | Per-item evidence grading (TP/FP verified, blind spots, boundaries) |
+| [Framework Interfaces](docs/FRAMEWORK_INTERFACES.md) | Source-audited stable interface constants (supercall magics etc.) |
+| [Threat Model](docs/CHEATING_THREAT_MODEL.md) | 80+ tools across 12 domains, incl. BTMOB RAT intel |
+| [Coverage Analysis](docs/COVERAGE_ANALYSIS.md) | 3-layer × 6-dimension coverage matrix |
 | [Capability Boundaries](docs/CAPABILITY_BOUNDARIES.md) | What is explicitly not promised |
-| [Regression Matrix](docs/REGRESSION.md) | Device test data |
-| [Runbook](docs/RUNBOOK.md) | Build, ops, release checklist |
+| [Regression Matrix](docs/REGRESSION.md) | Device test data, timing benchmarks, fix chains |
+| [Runbook](docs/RUNBOOK.md) | Build, ops, hot-update, release checklist |
 
 ## Known Limitations
 
 - Kernel Patch Modules (KPM) are not detectable from userspace
-- Full susfs configuration may partially conceal static traces
-- ptrace residue detection is being neutralized by newer Zygisk implementations
+- Cloud phones passing through real peripherals require server-side correlation (virtual-peripherals form is detectable via C-resonance)
+- RAT families with randomized packages (BTMOB class) hit a package-visibility wall — accessibility/overlay signals only
+- Modern Android (API 28+) restricts `/proc/net` reading: multi-port D-Bus enumeration falls back to the default port, unix-socket probing is gated
+- Deep hiding that wipes all property residue leaves behavioral signals only
 
 ## License
 
