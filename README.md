@@ -6,6 +6,7 @@
 [![minSdk](https://img.shields.io/badge/minSdk-24_(Android_7.0)-orange.svg)](app/build.gradle.kts)
 [![16KB](https://img.shields.io/badge/Page_Size-16KB_Aligned-green.svg)](docs/RUNBOOK.md)
 [![Tests](https://img.shields.io/badge/Tests-136_total-brightgreen.svg)](#testing)
+[![CI](https://github.com/lotty520/Detect-Any/actions/workflows/ci.yml/badge.svg)](https://github.com/lotty520/Detect-Any/actions/workflows/ci.yml)
 
 ---
 
@@ -95,6 +96,25 @@ Accuracy is the product's prime directive — false positives destroy trust, fal
 - **Honest boundary docs**: unreachable/unwired/dormant entries are labeled, never over-promised ([DETECTION_ACCURACY.md](docs/DETECTION_ACCURACY.md) grades all 142 items by evidence chain)
 - Historical FP fixes (OEM prop pairs, emulator artifacts, timing side-channel) are documented as lessons in [AGENTS.md](AGENTS.md)
 
+## Comparison with Open-Source Alternatives
+
+Measured against the leading open-source detection libraries (Nov 2026):
+
+| | Detect-Any | [RootBeer](https://github.com/scottyab/rootbeer) ⭐3.0k | [Ruru](https://github.com/byxiaorun/Ruru) ⭐841 | [android-rasp](https://github.com/securevale/android-rasp) ⭐155 | [Free-RASP](https://github.com/talsec/Free-RASP-Android) ⭐279 |
+|---|---|---|---|---|---|
+| Detection items | **142 (evidence-graded)** | ~15 | focused (hidden manager) | ~20 | closed-core |
+| Native layer (C/C++) | **1,400 lines** (svc guard, ELF parser, probes) | none | partial | none | closed |
+| Physical-invariant A-grade signals | **prologue bytes, syscall diff, verified-boot contradiction** | — | — | — | — |
+| Deep hiding (susfs + manager uninstalled) | **yes (adversarial-device verified)** | no (acknowledged) | partial | no | unknown |
+| Hardware attestation | **L3 tier (chain, CRL, cross-checks)** | — | — | — | — |
+| Hot-updatable signature DB | **ed25519-signed, versioned** | — | — | — | — |
+| 16KB page-size | **build-enforced gate** | n/a | n/a | n/a | n/a |
+| Behavioral contracts | **10 specs, 31+ requirements** | — | — | — | — |
+| Honest per-item accuracy docs | **142-item evidence ledger** | — | — | — | — |
+| License | Apache-2.0 | Apache-2.0 | Apache-2.0 | Apache-2.0 | **non-commercial free tier, closed core** |
+
+Notes: RootBeer remains the most widely adopted; Free-RASP's repository hosts a demo app only — the detection core ships as a closed-source binary from a private Maven repository. Detection-Any focuses on auditability: every claim is traceable to a test, device log, or source-audited constant.
+
 ## Requirements
 
 | | |
@@ -156,6 +176,7 @@ Detect-Any/
 
 | Doc | |
 |---|---|
+| [Contributing](CONTRIBUTING.md) | How to add detection items without breaking accuracy |
 | [Detection Catalog](docs/DETECTION_CATALOG.md) | All 90+ detection items (signature DB v15 + behavioral probes) |
 | [Detection Accuracy](docs/DETECTION_ACCURACY.md) | Per-item evidence grading (TP/FP verified, blind spots, boundaries) |
 | [Framework Interfaces](docs/FRAMEWORK_INTERFACES.md) | Source-audited stable interface constants (supercall magics etc.) |
