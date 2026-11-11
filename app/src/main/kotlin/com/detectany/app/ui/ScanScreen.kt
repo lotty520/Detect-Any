@@ -55,7 +55,7 @@ fun ScanScreen(controller: ScanController, onOpenEvidence: (String?) -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ScanButton(
                 "L2 完整扫描", Icons.Filled.Radar, primary = true, enabled = !controller.scanning,
-                subtitle = "全部 8 采集器 + 证明",
+                subtitle = "全部 12 采集器（特征库 v12）", // 2026-11-10 审计：原「8+证明」双重失实——证明域未接线（见 COVERAGE 断链记录）
                 modifier = Modifier.weight(1.6f),
             ) { controller.runScan(ScanTier.L2) }
             ScanButton(

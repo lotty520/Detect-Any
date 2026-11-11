@@ -47,6 +47,12 @@ val THREATS: Map<String, ThreatMeta> = listOf(
     ThreatMeta("airdroid", "AirDroid", "远程管理", Finding.Category.REMOTE_CONTROL),
     ThreatMeta("airmirror", "AirMirror", "远程控制", Finding.Category.REMOTE_CONTROL),
     ThreatMeta("vysor", "Vysor", "屏幕镜像", Finding.Category.SCREEN_SHARE),
+    ThreatMeta("fakegps", "GPS 伪造工具", "伪造定位应用在装", Finding.Category.GPS_SPOOF),
+    ThreatMeta("fakecamera", "虚拟摄像头", "摄像头伪造工具在装（KYC 风险）", Finding.Category.CAMERA_SPOOF),
+    ThreatMeta("deviceidchanger", "设备身份伪造", "IMEI/Android ID 伪造工具在装", Finding.Category.DEVICE_SPOOF),
+    ThreatMeta("virtualnet", "网络身份伪造", "WiFi/蜂窝身份伪造模块在装", Finding.Category.DEVICE_SPOOF),
+    ThreatMeta("appenv", "改机工具", "应用变量类改机模块在装（per-app 伪造设备信息）", Finding.Category.DEVICE_SPOOF),
+    ThreatMeta("screenrecorder", "第三方录屏", "屏幕录制应用在装", Finding.Category.SCREEN_SHARE),
     ThreatMeta("modmenu", "Mod Menu", "游戏修改菜单", Finding.Category.OVERLAY_INJECTION),
 ).associateBy { it.key }
 
@@ -59,6 +65,21 @@ private val CATEGORY_FALLBACK = mapOf(
     "ATTESTATION_SPOOF" to "证明伪造",
     "REPACKAGED" to "重打包",
     "ANTI_DETECT_PRESENT" to "隐藏栈 / 反检测",
+    "GPS_SPOOF" to "GPS 伪造",
+    "CAMERA_SPOOF" to "摄像头伪造",
+    "DEVICE_SPOOF" to "设备身份伪造",
+    "SIM_ANOMALY" to "SIM 状态异常",
+    "SCREEN_SHARE" to "屏幕共享",
+    "REMOTE_CONTROL" to "远程控制 / RAT",
+    // 2026-11-10 审计：7 个类别缺兜底——framework=null 的 finding 在 UI
+    // 显示裸枚举名（P8 实见 "AUTOMATION"），补齐 20 类全覆盖
+    "INSTRUMENTATION" to "动态插桩",
+    "VIRTUAL_ENV" to "虚拟环境",
+    "EMULATOR" to "模拟器",
+    "NETWORK_MITM" to "网络劫持",
+    "AUTOMATION" to "自动化工具",
+    "SPEED_HACK" to "速度篡改",
+    "OVERLAY_INJECTION" to "悬浮窗注入",
 )
 
 data class ThreatGroup(

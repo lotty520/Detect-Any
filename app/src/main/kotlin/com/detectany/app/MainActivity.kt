@@ -40,6 +40,9 @@ import com.detectany.app.ui.SettingsScreen
 
 class MainActivity : ComponentActivity() {
 
+    /** API 34+ 系统录屏回调注销句柄（onStart 注册 / onStop 注销，状态留存于 Monitor）。 */
+    private var screenRecordingHandle: AutoCloseable? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val orchestrator = ScanOrchestrator(applicationContext)
@@ -50,6 +53,22 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // mainExecutor 需 API 28；register 内部门控 API 34+，<34 直接返回 null
+        // 不触达 executor——但为满足 minSdk 24 静态契约，改用等价构建
+        val executor = if (android.os.Build.VERSION.SDK_INT >= 28) mainExecutor
+        else java.util.concurrent.Executors.newSingleThreadExecutor()
+        screenRecordingHandle = com.detectany.collectors.screenshare.ScreenRecordingMonitor
+            .register(this, executor)
+    }
+
+    override fun onStop() {
+        screenRecordingHandle?.close()
+        screenRecordingHandle = null
+        super.onStop()
     }
 }
 

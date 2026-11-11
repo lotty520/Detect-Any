@@ -60,8 +60,8 @@ class ScanOrchestrator(context: Context) {
 
     private fun buildCollectors(): List<Collector> = listOf(
         PathProbeCollector(paths = entries.paths),
-        MountCollector(),
-        PropertyCollector(entries = entries.properties),
+        MountCollector(fsEntries = entries.filesystems),
+        PropertyCollector(signatureEntries = entries.properties),
         EndpointCollector(entries = entries.sockets),
         AppFingerprintCollector.fromContext(appContext, entries.apps),
         MemoryMapCollector(),

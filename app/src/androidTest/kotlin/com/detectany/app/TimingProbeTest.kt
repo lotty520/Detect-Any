@@ -21,7 +21,9 @@ class TimingProbeTest {
             "DetectAnyTiming",
             "L1ms=${l1.joinToString(",")} L2ms=${l2.joinToString(",")}",
         )
-        // 模拟器宽放断言（真机 10/100ms 预算见 docs/REGRESSION.md 矩阵）
+        // 模拟器宽放断言（真机 10/100ms 预算见 docs/REGRESSION.md 矩阵）。
+        // 2026-11-10 C5 探针下推修复后 L2 回到 969ms（双 manager 场景），
+        // 断言从临时宽放 6s 收回 3s（保留 3 倍余量覆盖低端真机）。
         assert(l1.average() < 500) { "L1=${l1}" }
         assert(l2.average() < 3000) { "L2=${l2}" }
     }

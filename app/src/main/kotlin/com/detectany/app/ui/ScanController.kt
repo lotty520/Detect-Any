@@ -77,7 +77,7 @@ class ScanController(private val orchestrator: ScanOrchestrator) {
     fun exportReport(context: Context): String {
         val raw = rawReport ?: return "尚无报告可导出（先执行扫描）"
         return runCatching {
-            val json = ReportExporter.export(raw)
+            val json = ReportExporter.export(raw, appVersion = com.detectany.app.BuildConfig.VERSION_NAME)
             val dir = context.getExternalFilesDir(null) ?: context.cacheDir
             val out = File(dir, "detectany_report_${System.currentTimeMillis()}.json")
             out.writeText(json)

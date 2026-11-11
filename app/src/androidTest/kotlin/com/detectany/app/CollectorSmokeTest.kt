@@ -48,7 +48,14 @@ class CollectorSmokeTest {
     fun c3PropertyCollectorClean() {
         val r = run(PropertyCollector())
         assertTrue(r.status != CollectorResult.Status.BLOCKED)
-        assertEquals("属性命中应为空(模拟器无 init.svc.magisk 族): ${r.findings}", 0, r.findings.filter { it.ruleId.startsWith("prop.") }.size)
+        if (isEmulator()) {
+            assertEquals("模拟器应零属性命中: ${r.findings}", 0, r.findings.filter { it.ruleId.startsWith("prop.") }.size)
+        } else {
+            // 真机（含对抗组 ROOT 设备）：残留属性/verified boot 矛盾属真阳性，不断言零命中；
+            // 只排除不可能为真的类别（模拟器属性出现在真机 = 假阳性）
+            val fp = r.findings.filter { it.category == com.detectany.core.model.Finding.Category.EMULATOR }
+            assertEquals("真机不应出现模拟器类属性命中: ${fp}", 0, fp.size)
+        }
         assertTrue(r.meta.getValue("count").toInt() > 100)
     }
 

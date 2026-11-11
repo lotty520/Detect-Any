@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- G5：系统录屏回调（API 34+ 安装时权限；低版本自动忽略） -->
+    <uses-permission android:name="android.permission.DETECT_SCREEN_RECORDING" />
+
     <!-- C5 应用指纹：声明式枚举（specs：不申报 QUERY_ALL_PACKAGES） -->
     <queries>
         <package android:name="com.topjohnwu.magisk" />
+        <package android:name="io.github.huskydg.magisk" />
         <package android:name="me.weishu.kernelsu" />
         <package android:name="me.weishu.kernelsu.pr" />
         <package android:name="com.rifsxd.ksunext" />
@@ -11,12 +15,30 @@
         <package android:name="io.sukisu.ultra" />
         <package android:name="com.sukisu.zako" />
         <package android:name="me.bmax.apatch" />
+        <package android:name="org.lsposed.lspatch" />
         <package android:name="mfsx.xposed.trustmealready" />
         <package android:name="io.github.vvb2060.trustmealready" />
         <package android:name="com.example.zygiskdetect" />
         <package android:name="org.lsposed.vector" />
         <package android:name="moe.neozygisk" />
         <package android:name="nk.be.nyazygisk" />
+        <!-- G4 GPS 伪造 -->
+        <package android:name="com.lexa.fakegps" />
+        <package android:name="com.theappninjas.fakegpsjoystick" />
+        <package android:name="com.theappninjas.gpsjoystick" />
+        <!-- 虚拟摄像头 / 设备身份伪造 -->
+        <package android:name="com.droidrooter.virtualcamera" />
+        <package android:name="com.adriangl.pict2cam" />
+        <package android:name="com.aksym.androiddeviceidchanger" />
+        <package android:name="com.droidrooter.virtualnet" />
+        <package android:name="com.sollyu.xposed.hook.model" />
+        <package android:name="com.variable.apkhook" />
+        <!-- G5 第三方录屏 -->
+        <package android:name="com.hecorat.screenrecorder.free" />
+        <package android:name="com.hecorat.screenrecorder.premium" />
+        <package android:name="com.du.screenrecorder" />
+        <package android:name="videoeditor.videorecorder.screenrecorder" />
+        <package android:name="videoeditor.videorecorder.screenrecorder.lite" />
     </queries>
 
     <application
