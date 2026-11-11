@@ -51,7 +51,7 @@ class AttestationService(
                     listOf(
                         Finding(
                             ruleId = "attest.keybox_revoked",
-                            collector = CollectorId.C1_PATH.let { CollectorId.C1_PATH }, // 占位采集器 ID（C9 无独立编号，挂 C1 便于聚合）
+                            collector = CollectorId.C13_ATTESTATION, // P2-1：独立编号取代 C1 占位
                             confidence = Confidence.A,
                             category = Finding.Category.ATTESTATION_SPOOF,
                             framework = "trickystore",
@@ -71,7 +71,7 @@ class AttestationService(
                     listOf(
                         Finding(
                             ruleId = "attest.software_backed",
-                            collector = CollectorId.C1_PATH,
+                            collector = CollectorId.C13_ATTESTATION,
                             confidence = Confidence.B,
                             category = Finding.Category.ATTESTATION_SPOOF,
                             framework = null,
@@ -86,7 +86,7 @@ class AttestationService(
                     val findings = anomalies.map {
                         Finding(
                             ruleId = "attest.cross.${it.kind}",
-                            collector = CollectorId.C1_PATH,
+                            collector = CollectorId.C13_ATTESTATION,
                             confidence = Confidence.A,
                             category = Finding.Category.ATTESTATION_SPOOF,
                             framework = "trickystore",
@@ -110,7 +110,7 @@ class AttestationService(
 
     private fun infoFinding(id: String, detail: String) = Finding(
         ruleId = id,
-        collector = CollectorId.C1_PATH,
+        collector = CollectorId.C13_ATTESTATION,
         confidence = Confidence.C,
         category = Finding.Category.ATTESTATION_SPOOF,
         framework = null,

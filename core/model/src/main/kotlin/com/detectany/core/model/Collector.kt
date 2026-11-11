@@ -41,6 +41,9 @@ enum class CollectorId {
     C11_BEHAVIORAL,
     /** C12: 屏幕共享/远程控制（scrcpy、ADB、overlay、输入注入） */
     C12_SCREEN_SHARE,
+
+    /** P2-1（2026-11-11）：硬件证明域（L3 档专用，Keymaster 异步 + 超时治理） */
+    C13_ATTESTATION,
 }
 
 /** 扫描输入：环境快照 + 档位。 */
