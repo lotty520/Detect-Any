@@ -37,6 +37,10 @@ bool parse_dynsym(int fd, const std::string &want, SymbolHit *out) {
 
     for (const Shdr &sh : shdrs) {
         if (sh.sh_type != SHT_DYNSYM) continue;
+        // 2026-11-10 审计修复：sh_link 为磁盘字段，恶意/损坏 ELF 可任意置值——
+        // maps 被 hook 时 C7 解析的是攻击者可控文件，越界下标 = UB/崩溃
+        // （用崩溃规避检测的攻击面）。负值/超界一律跳过。
+        if (sh.sh_link >= shdrs.size()) continue;
         const Shdr &strsec = shdrs[sh.sh_link];
 
         std::vector<char> strtab(strsec.sh_size);
@@ -172,6 +176,8 @@ int relocs_common(int fd, std::vector<std::string> *out) {
         }
     }
     if (dynsym_idx == 0) return 0;
+    // 同 parse_dynsym：sh_link 磁盘字段不可信（2026-11-10 审计修复）
+    if (dynstr_idx >= shdrs.size()) return -1;
     const Shdr &symsec = shdrs[dynsym_idx];
     const Shdr &strsec = shdrs[dynstr_idx];
     std::vector<char> strtab(strsec.sh_size);

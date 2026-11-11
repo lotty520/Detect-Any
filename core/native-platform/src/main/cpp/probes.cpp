@@ -336,11 +336,16 @@ int da_solist(std::vector<std::string> *out) {
 // ---- RWX 自探针（对抗 maps 读取被 hook 抹除）----
 // mmap 匿名页 → mprotect 加可执行 → 检查 maps 是否能看到该地址区间。
 // 返回：1 = 可见（maps 读取可信）；0 = 不可见（maps 被篡改，强证据）；-1 = 分配失败。
+// 2026-11-10 审计修复：原硬编码 4096——真 16KB 页设备上 mprotect 长度非页倍数
+// 返回 EINVAL → 探针静默失效（C6 的 A 级信号在 16KB 设备上变盲）。改为运行时页大小。
 int da_rwx_self_probe() {
-    void *page = mmap(nullptr, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    const long pg = sysconf(_SC_PAGESIZE);
+    if (pg <= 0) return -1;
+    const size_t psz = static_cast<size_t>(pg);
+    void *page = mmap(nullptr, psz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (page == MAP_FAILED) return -1;
-    if (mprotect(page, 4096, PROT_READ | PROT_EXEC) != 0) {
-        munmap(page, 4096);
+    if (mprotect(page, psz, PROT_READ | PROT_EXEC) != 0) {
+        munmap(page, psz);
         return -1;
     }
     const unsigned long start = reinterpret_cast<unsigned long>(page);
@@ -358,6 +363,6 @@ int da_rwx_self_probe() {
         }
         fclose(f);
     }
-    munmap(page, 4096);
+    munmap(page, psz);
     return visible;
 }
