@@ -75,14 +75,14 @@ class ScanController(private val orchestrator: ScanOrchestrator) {
 
     /** 导出当前报告；返回结果消息。 */
     fun exportReport(context: Context): String {
-        val raw = rawReport ?: return "尚无报告可导出（先执行扫描）"
+        val raw = rawReport ?: return "No report to export yet (run a scan first)"
         return runCatching {
             val json = ReportExporter.export(raw, appVersion = com.detectany.app.BuildConfig.VERSION_NAME)
             val dir = context.getExternalFilesDir(null) ?: context.cacheDir
             val out = File(dir, "detectany_report_${System.currentTimeMillis()}.json")
             out.writeText(json)
             out.absolutePath
-        }.fold({ "已导出: $it" }, { "导出失败: ${it.message}" })
+        }.fold({ "Exported: $it" }, { "Export failed: ${it.message}" })
     }
 
     fun importSignature(jsonText: String) {
@@ -95,23 +95,23 @@ class ScanController(private val orchestrator: ScanOrchestrator) {
 /** 分类标签中文。 */
 val categoryLabel: (String) -> String = {
     when (it) {
-        "ROOT_KERNEL" -> "内核 Root"
-        "ROOT_USERSPACE" -> "用户态 Root"
-        "HOOK" -> "Hook 注入"
-        "ZYGISK" -> "Zygisk 注入"
-        "ATTESTATION_SPOOF" -> "证明伪造"
-        "REPACKAGED" -> "重打包"
-        "ANTI_DETECT_PRESENT" -> "隐藏栈"
-        "INSTRUMENTATION" -> "动态插桩"
-        "VIRTUAL_ENV" -> "虚拟环境"
-        "EMULATOR" -> "模拟器"
-        "NETWORK_MITM" -> "网络劫持"
-        "AUTOMATION" -> "自动化"
-        "SPEED_HACK" -> "速度篡改"
-        "GPS_SPOOF" -> "GPS伪造"
-        "SCREEN_SHARE" -> "屏幕共享"
-        "REMOTE_CONTROL" -> "远程控制"
-        "OVERLAY_INJECTION" -> "悬浮窗注入"
+        "ROOT_KERNEL" -> "Kernel Root"
+        "ROOT_USERSPACE" -> "Userspace Root"
+        "HOOK" -> "Hook Injection"
+        "ZYGISK" -> "Zygisk Injection"
+        "ATTESTATION_SPOOF" -> "Attestation Spoofing"
+        "REPACKAGED" -> "Repackaged"
+        "ANTI_DETECT_PRESENT" -> "Hiding Stack"
+        "INSTRUMENTATION" -> "Dynamic Instrumentation"
+        "VIRTUAL_ENV" -> "Virtual Environment"
+        "EMULATOR" -> "Emulator"
+        "NETWORK_MITM" -> "Network MITM"
+        "AUTOMATION" -> "Automation"
+        "SPEED_HACK" -> "Speed Hack"
+        "GPS_SPOOF" -> "GPS Spoofing"
+        "SCREEN_SHARE" -> "Screen Sharing"
+        "REMOTE_CONTROL" -> "Remote Control"
+        "OVERLAY_INJECTION" -> "Overlay Injection"
         else -> it
     }
 }

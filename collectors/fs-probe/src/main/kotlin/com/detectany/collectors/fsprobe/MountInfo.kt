@@ -81,7 +81,7 @@ class MountAnalyzer(
                     confidence = Confidence.B,
                     category = Finding.Category.ROOT_USERSPACE,
                     framework = inferFramework(e),
-                    detail = "overlay 挂载: mountPoint=${e.mountPoint} source=${e.source}",
+                    detail = "overlay mount: mountPoint=${e.mountPoint} source=${e.source}",
                     raw = mapOf("fstype" to e.fstype, "mountPoint" to e.mountPoint, "source" to e.source),
                 ),
             )
@@ -96,7 +96,7 @@ class MountAnalyzer(
                     confidence = Confidence.C,
                     category = Finding.Category.ROOT_USERSPACE,
                     framework = "magisk",
-                    detail = "挂载 source 含 magisk: ${e.source} -> ${e.mountPoint}",
+                    detail = "Mount source contains magisk: ${e.source} -> ${e.mountPoint}",
                     raw = mapOf("source" to e.source, "mountPoint" to e.mountPoint),
                 ),
             )
@@ -113,7 +113,7 @@ class MountAnalyzer(
                     confidence = Confidence.C,
                     category = Finding.Category.ROOT_USERSPACE,
                     framework = "magisk",
-                    detail = "/debug_ramdisk 挂载: ${e.mountPoint} (${e.fstype})",
+                    detail = "/debug_ramdisk mount: ${e.mountPoint} (${e.fstype})",
                     raw = mapOf("mountPoint" to e.mountPoint, "fstype" to e.fstype),
                 ),
             )
@@ -131,7 +131,7 @@ class MountAnalyzer(
                         confidence = Confidence.B,
                         category = Finding.Category.ANTI_DETECT_PRESENT,
                         framework = null,
-                        detail = "挂载条目数 ${entries.size} 显著低于同机型基线 $base（隐藏栈嫌疑）",
+                        detail = "Mount count ${entries.size} significantly below same-model baseline $base (hiding-stack suspicion)",
                         raw = mapOf("count" to entries.size.toString(), "baseline" to base.toString()),
                     ),
                 )
@@ -151,7 +151,7 @@ class MountAnalyzer(
                         confidence = Confidence.C,
                         category = Finding.Category.ROOT_USERSPACE,
                         framework = null,
-                        detail = "st_dev($path)=$actual 与基线 $expected 不符（启动期 tmpfs 设备号占用痕迹）",
+                        detail = "st_dev($path)=$actual deviates from baseline $expected (early-boot tmpfs device-number trace)",
                         raw = mapOf("path" to path, "actual" to actual.toString(), "expected" to expected.toString()),
                     ),
                 )

@@ -50,26 +50,26 @@ fun ScanScreen(controller: ScanController, onOpenEvidence: (String?) -> Unit) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("Root / Hook / 伪装框架检测", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Root / Hook / Spoofing Detection", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
         // 主操作区
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ScanButton(
-                "L2 完整扫描", Icons.Filled.Radar, primary = true, enabled = !controller.scanning,
-                subtitle = "全部 12 采集器（特征库 v12）", // 2026-11-10 审计：原「8+证明」双重失实——证明域未接线（见 COVERAGE 断链记录）
+                "L2 Full Scan", Icons.Filled.Radar, primary = true, enabled = !controller.scanning,
+                subtitle = "All 12 collectors · signature DB v15",
                 modifier = Modifier.weight(1.6f),
             ) { controller.runScan(ScanTier.L2) }
             ScanButton(
-                "L1 快扫", Icons.Filled.Bolt, primary = false, enabled = !controller.scanning,
-                subtitle = "快信号 · 毫秒级",
+                "L1 Quick Scan", Icons.Filled.Bolt, primary = false, enabled = !controller.scanning,
+                subtitle = "Fast signals · milliseconds",
                 modifier = Modifier.weight(1f),
             ) { controller.runScan(ScanTier.L1) }
         }
 
         // P2-1：L3 深度档（L2 + 硬件证明，C13 采集器 L3 专用注入）
         ScanButton(
-            "L3 深度扫描", Icons.Filled.Verified, primary = false, enabled = !controller.scanning,
-            subtitle = "L2 + 硬件密钥证明 · 数秒",
+            "L3 Deep Scan", Icons.Filled.Verified, primary = false, enabled = !controller.scanning,
+            subtitle = "L2 + hardware key attestation · seconds",
             modifier = Modifier.fillMaxWidth(),
         ) { controller.runScan(ScanTier.L3) }
 
@@ -77,7 +77,7 @@ fun ScanScreen(controller: ScanController, onOpenEvidence: (String?) -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Text(
-                    "采集中 · 挂载取证 / supercall 探针 / 指令完整性校验",
+                    "Scanning · mount forensics / supercall probes / instruction integrity",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -136,9 +136,9 @@ private fun EmptyHero() {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Icon(Icons.Filled.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(44.dp))
-            Text("执行首次扫描", style = MaterialTheme.typography.titleLarge)
+            Text("Run your first scan", style = MaterialTheme.typography.titleLarge)
             Text(
-                "7 个能力域 · 13 项目标框架",
+                "12 capability domains · 25+ target frameworks",
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -156,7 +156,7 @@ private fun EmptyHero() {
                 }
             }
             Text(
-                "输出风险分（0-100）+ 威胁明细 + 逐项证据回放",
+                "Weighted risk score (0-100) + threat breakdown + per-item evidence replay",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -177,7 +177,7 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
 
             if (m.antiDetectPresent) {
                 Text(
-                    "⚠ 检出隐藏栈（反检测模块在运行）",
+                    "⚠ Hiding stack detected (anti-detection module active)",
                     color = ScoreCritical,
                     style = MaterialTheme.typography.titleSmall,
                 )
@@ -189,7 +189,7 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
             }
 
             Text(
-                "${m.tier} · ${m.elapsedMs}ms · 采集器 ${m.degradedCollectors.size} 降级",
+                "${m.tier} · ${m.elapsedMs}ms · ${m.degradedCollectors.size} collector(s) degraded",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontFamily = FontFamily.Monospace,
@@ -197,7 +197,7 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
 
             if (m.frameworkScores.isNotEmpty()) {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SectionHeader("框架命中")
+                    SectionHeader("Framework Hits")
                     androidx.compose.foundation.layout.FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -224,10 +224,10 @@ private fun ResultHero(m: ReportModel, controller: ScanController, onOpenEvidenc
 
             if (m.findings.isNotEmpty()) {
                 Button(onClick = { onOpenEvidence(null) }, modifier = Modifier.fillMaxWidth()) {
-                    Text("查看 ${m.findings.size} 条证据")
+                    Text("View ${m.findings.size} findings")
                 }
             } else {
-                Text("✓ 干净：无命中观测", color = ScoreClean, style = MaterialTheme.typography.titleMedium)
+                Text("✓ Clean: no findings", color = ScoreClean, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
@@ -248,18 +248,18 @@ private fun DeltaCard(d: ScanController.ScanDelta) {
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                "$arrow 对比上次 ${if (d.scoreDiff != 0) "${if (d.scoreDiff > 0) "+" else ""}${d.scoreDiff}" else "持平"}",
+                "$arrow vs last ${if (d.scoreDiff != 0) "${if (d.scoreDiff > 0) "+" else ""}${d.scoreDiff}" else "no change"}",
                 color = scoreColor,
                 style = MaterialTheme.typography.titleSmall,
             )
             if (d.newThreats.isNotEmpty()) {
-                Text("新增: ${d.newThreats.joinToString("、")}", style = MaterialTheme.typography.bodySmall, color = ScoreCritical)
+                Text("New: ${d.newThreats.joinToString(", ")}", style = MaterialTheme.typography.bodySmall, color = ScoreCritical)
             }
             if (d.goneThreats.isNotEmpty()) {
-                Text("消失: ${d.goneThreats.joinToString("、")}", style = MaterialTheme.typography.bodySmall, color = ScoreClean)
+                Text("Gone: ${d.goneThreats.joinToString(", ")}", style = MaterialTheme.typography.bodySmall, color = ScoreClean)
             }
             if (d.newThreats.isEmpty() && d.goneThreats.isEmpty()) {
-                Text("环境未变化", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("No environment change", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

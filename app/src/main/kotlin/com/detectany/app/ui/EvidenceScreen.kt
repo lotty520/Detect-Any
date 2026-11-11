@@ -48,7 +48,7 @@ import com.detectany.feature.report.ReportModel
 fun EvidenceScreen(controller: ScanController, scrollToThreat: String? = null) {
     val m = controller.reportModel
     if (m == null) {
-        EmptyPage("尚无结果", "先在「扫描」页执行一次扫描")
+        EmptyPage("No results yet", "Run a scan from the Scan tab first")
         return
     }
     var filterConfidence by remember { mutableStateOf<String?>(null) }
@@ -65,30 +65,30 @@ fun EvidenceScreen(controller: ScanController, scrollToThreat: String? = null) {
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val strong = m.findings.count { it.confidenceLabel == "强" }
-            val medium = m.findings.count { it.confidenceLabel == "中" }
-            val weak = m.findings.count { it.confidenceLabel == "弱" }
+            val strong = m.findings.count { it.confidenceLabel == "STRONG" }
+            val medium = m.findings.count { it.confidenceLabel == "MED" }
+            val weak = m.findings.count { it.confidenceLabel == "WEAK" }
             FilterChip(
-                selected = filterConfidence == "强",
-                onClick = { filterConfidence = if (filterConfidence == "强") null else "强" },
-                label = { Text("强 $strong") },
+                selected = filterConfidence == "STRONG",
+                onClick = { filterConfidence = if (filterConfidence == "STRONG") null else "STRONG" },
+                label = { Text("STRONG $strong") },
                 leadingIcon = { Box(Modifier.size(8.dp).background(BadgeStrong, RoundedCornerShape(4.dp))) },
             )
             FilterChip(
-                selected = filterConfidence == "中",
-                onClick = { filterConfidence = if (filterConfidence == "中") null else "中" },
-                label = { Text("中 $medium") },
+                selected = filterConfidence == "MED",
+                onClick = { filterConfidence = if (filterConfidence == "MED") null else "MED" },
+                label = { Text("MED $medium") },
                 leadingIcon = { Box(Modifier.size(8.dp).background(BadgeMedium, RoundedCornerShape(4.dp))) },
             )
             FilterChip(
-                selected = filterConfidence == "弱",
-                onClick = { filterConfidence = if (filterConfidence == "弱") null else "弱" },
-                label = { Text("弱 $weak") },
+                selected = filterConfidence == "WEAK",
+                onClick = { filterConfidence = if (filterConfidence == "WEAK") null else "WEAK" },
+                label = { Text("WEAK $weak") },
                 leadingIcon = { Box(Modifier.size(8.dp).background(BadgeWeak, RoundedCornerShape(4.dp))) },
             )
             Spacer(Modifier.weight(1f))
             Text(
-                "${groups.size} 个威胁 · ${m.findings.size} 条证据",
+                "${groups.size} threats · ${m.findings.size} findings",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -108,7 +108,7 @@ fun EvidenceScreen(controller: ScanController, scrollToThreat: String? = null) {
 private fun ThreatCard(g: ThreatGroup) {
     var expanded by remember { mutableStateOf(false) }
     val catColor = categoryColor(g.category)
-    val worstLabel = when (g.worst) { Confidence.A -> "强"; Confidence.B -> "中"; else -> "弱" }
+    val worstLabel = when (g.worst) { Confidence.A -> "STRONG"; Confidence.B -> "MED"; else -> "WEAK" }
 
     Card(
         shape = RoundedCornerShape(14.dp),
@@ -161,12 +161,12 @@ fun FindingItem(idx: Int, f: ReportModel.FindingView) {
                 Text(f.detail, style = MaterialTheme.typography.bodySmall)
                 val src = runCatching { CollectorId.valueOf(f.collector).shortName }.getOrDefault(f.collector)
                 Text(
-                    "来源: $src · 规则 ${f.ruleId} · 分类 ${categoryLabel(f.category)}",
+                    "Source: $src · Rule ${f.ruleId} · Category ${categoryLabel(f.category)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (f.raw.isNotEmpty()) {
-                    Text("原始观测:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Raw observations:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     f.raw.forEach { (k, v) ->
                         Text("  $k = $v", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
                     }

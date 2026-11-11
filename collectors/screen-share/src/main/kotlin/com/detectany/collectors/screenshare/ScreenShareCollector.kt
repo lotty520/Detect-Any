@@ -85,7 +85,7 @@ class ScreenShareCollector(
                     confidence = Confidence.B, // 系统上报的物理状态，非启发式
                     category = Finding.Category.SCREEN_SHARE,
                     framework = null,
-                    detail = "系统录屏回调确认：本应用画面正在被录制（状态栏录屏指示器语义，API 34+）",
+                    detail = "Screen-recording callback confirms this app is being recorded (status-bar recording indicator semantics, API 34+)",
                     raw = mapOf(
                         "stateVisible" to "true",
                         "lastChangedAtMs" to ScreenRecordingMonitor.lastChangedAtMs.toString(),
@@ -107,7 +107,7 @@ class ScreenShareCollector(
                     confidence = Confidence.A,
                     category = Finding.Category.SCREEN_SHARE,
                     framework = "scrcpy",
-                    detail = "发现 scrcpy 抽象套接字（屏幕镜像正在运行）",
+                    detail = "scrcpy abstract socket found (screen mirroring active)",
                     raw = mapOf("socket" to "scrcpy_"),
                 ),
             )
@@ -132,7 +132,7 @@ class ScreenShareCollector(
                             confidence = Confidence.A,
                             category = Finding.Category.REMOTE_CONTROL,
                             framework = "scrcpy",
-                            detail = "发现 scrcpy HID 虚拟输入设备: $name",
+                            detail = "scrcpy HID virtual input device found: $name",
                             raw = mapOf("device" to name.hashCode().toString()),
                         ),
                     )
@@ -145,7 +145,7 @@ class ScreenShareCollector(
                             confidence = Confidence.B,
                             category = Finding.Category.AUTOMATION,
                             framework = null,
-                            detail = "虚拟输入设备（非物理硬件）: $name",
+                            detail = "Virtual input device (not physical hardware): $name",
                             raw = mapOf("device" to name.hashCode().toString()),
                         ),
                     )
@@ -188,7 +188,7 @@ class ScreenShareCollector(
                     confidence = Confidence.B,
                     category = Finding.Category.REMOTE_CONTROL,
                     framework = null,
-                    detail = "ADB + USB + 应用前台运行（scrcpy/Vysor 会话特征）",
+                    detail = "ADB + USB + app foreground (scrcpy/Vysor session signature)",
                     raw = mapOf("adb" to "1", "usb" to "1", "foreground" to "1"),
                 ),
             )
@@ -201,7 +201,7 @@ class ScreenShareCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.REMOTE_CONTROL,
                     framework = null,
-                    detail = "ADB 调试已开启（开发者常用，非独占作弊信号）",
+                    detail = "ADB debugging enabled (common for developers, not an exclusive cheating signal)",
                     raw = mapOf("adb" to "1", "usb" to usb.toString()),
                 ),
             )
@@ -268,7 +268,7 @@ class ScreenShareCollector(
                     confidence = Confidence.C, // C 级：过滤器/悬浮球合法（calibration #15）
                     category = Finding.Category.OVERLAY_INJECTION,
                     framework = null,
-                    detail = "有应用持有悬浮窗权限（可能为 GameGuardian/Mod Menu，也可能为合法过滤器）",
+                    detail = "An app holds overlay permission (possibly GameGuardian/Mod Menu, possibly a legitimate filter)",
                     raw = mapOf("canDrawOverlays" to "true"),
                 ),
             )

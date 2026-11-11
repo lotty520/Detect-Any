@@ -169,7 +169,7 @@ object IntegrityAnalyzer {
                         confidence = Confidence.A,
                         category = Finding.Category.HOOK,
                         framework = null,
-                        detail = "采集器入口 prologue 被改写: $sym（内存字节 != 磁盘字节）",
+                        detail = "Collector entry prologue rewritten: $sym (memory bytes != disk bytes)",
                         raw = mapOf(
                             "symbol" to sym,
                             "vaddr" to vaddr.toString(16),
@@ -206,7 +206,7 @@ object IntegrityAnalyzer {
                         confidence = Confidence.A,
                         category = Finding.Category.HOOK,
                         framework = null,
-                        detail = "GOT[$sym] 解析到匿名区 0x${resolved.toString(16)}（蹦床特征）",
+                        detail = "GOT[$sym] resolves into anonymous region 0x${resolved.toString(16)} (trampoline signature)",
                         raw = mapOf("symbol" to sym, "resolved" to resolved.toString(16)),
                     ),
                 )
@@ -222,7 +222,7 @@ object IntegrityAnalyzer {
                         confidence = Confidence.A,
                         category = Finding.Category.HOOK,
                         framework = null,
-                        detail = "GOT[$sym] 指向 0x${resolved.toString(16)}，与磁盘期望 0x${(targetBase + expected).toString(16)} 不符（目标 ${target.path}）",
+                        detail = "GOT[$sym] resolves to 0x${resolved.toString(16)}, expected 0x${(targetBase + expected).toString(16)} per disk (target ${target.path})",
                         raw = mapOf("symbol" to sym, "resolved" to resolved.toString(16), "expected" to (targetBase + expected).toString(16), "targetLib" to (target.path ?: "")),
                     ),
                 )

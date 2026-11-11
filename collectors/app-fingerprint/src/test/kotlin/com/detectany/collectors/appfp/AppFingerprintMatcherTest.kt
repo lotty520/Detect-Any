@@ -23,7 +23,7 @@ class AppFingerprintMatcherTest {
         )
         val f = AppFingerprintMatcher.match(entry, "aaaaaa.bbbbbb.cccccc", certSha256Hex = null, presentStrings = setOf("sukisu", "KernelSU", "其他字符串"))
         assertEquals(Confidence.B, f?.confidence)
-        assertTrue(f!!.detail.contains("双命中"))  // 2026-11-10 文案修正：包名+内容双命中
+        assertTrue(f!!.detail.contains("double hit"))  // 2026-11-11 i18n: package + content double hit
     }
 
     @Test

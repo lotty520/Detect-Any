@@ -54,7 +54,7 @@ class ReportTest {
         assertEquals(report.verdict.conclusive, model.conclusive)
         assertEquals(report.verdict.evidenceVector.size, model.findings.map { it.ruleId }.distinct().size)
         // 证据级别标签
-        assertTrue(model.findings.any { it.confidenceLabel == "中" && it.ruleId == "behavior.ksu_supercall" })
+        assertTrue(model.findings.any { it.confidenceLabel == "MED" && it.ruleId == "behavior.ksu_supercall" })
     }
 
     @Test

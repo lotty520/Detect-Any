@@ -99,7 +99,7 @@ object BehaviorProbes {
                         confidence = Confidence.B,
                         category = Finding.Category.ROOT_KERNEL,
                         framework = "ksu",
-                        detail = "reboot 双魔数探针获得 fd: $fd（KSU v2.0+ supercall 安装）",
+                        detail = "reboot dual-magic probe obtained fd: $fd (KSU v2.0+ supercall installed)",
                         raw = mapOf("fd" to fd, "ret" to (ret?.toString() ?: "?"), "errno" to (errno?.toString() ?: "?")),
                     ),
                 )
@@ -120,7 +120,7 @@ object BehaviorProbes {
                     confidence = Confidence.B,
                     category = Finding.Category.ROOT_KERNEL,
                     framework = "apatch",
-                    detail = "APatch supercall HELLO 返回 0x11581158",
+                    detail = "APatch supercall HELLO returned 0x11581158",
                     raw = mapOf("ret" to ret.toString(16)),
                 ),
             )
@@ -148,7 +148,7 @@ object BehaviorProbes {
                     confidence = Confidence.C,
                     category = Finding.Category.ROOT_KERNEL,
                     framework = "ksu",
-                    detail = "prctl(0xDEADBEEF) 返回 $ret errno=${r[1]}（原厂应为 -EINVAL；旧版 KSU 存量特征）",
+                    detail = "prctl(0xDEADBEEF) returned $ret errno=${r[1]} (stock kernels return -EINVAL; legacy KSU trace)",
                     raw = mapOf("ret" to ret.toString(), "errno" to r[1].toString()),
                 ),
             )
@@ -181,7 +181,7 @@ object BehaviorProbes {
                                 else -> Finding.Category.ROOT_KERNEL
                             },
                             framework = name,
-                            detail = "SELinux 域存在: $label（EPERM vs 对照 EINVAL）",
+                            detail = "SELinux domain exists: $label (EPERM vs control EINVAL)",
                             raw = mapOf("label" to label, "errno" to "1"),
                         ),
                     )
@@ -204,7 +204,7 @@ object BehaviorProbes {
                     confidence = Confidence.B,
                     category = Finding.Category.ZYGISK,
                     framework = null,
-                    detail = "NativeBridgeError()=true（曾尝试加载 NativeBridge，属性还原后仍暴露）",
+                    detail = "NativeBridgeError()=true (NativeBridge load attempted, exposed even after property restoration)",
                     raw = mapOf("hadError" to "true"),
                 ),
             )
@@ -228,7 +228,7 @@ object BehaviorProbes {
                         confidence = Confidence.A,
                         category = Finding.Category.ZYGISK,
                         framework = null,
-                        detail = "父进程(zygote=$ppid)存在注入残留 eventmsg（ZN/ReZygisk/NeoZygisk 形态）",
+                        detail = "Parent (zygote=$ppid) has injection-residue eventmsg (ZN/ReZygisk/NeoZygisk pattern)",
                         raw = mapOf("msg" to msg.toString(), "ppid" to ppid.toString()),
                     ),
                 )
@@ -246,7 +246,7 @@ object BehaviorProbes {
                             confidence = Confidence.A,
                             category = Finding.Category.HOOK,
                             framework = null,
-                            detail = "三路 diff 不一致 @ $path: ${m.kind} ${m.detail}",
+                            detail = "triple-path diff mismatch @ $path: ${m.kind} ${m.detail}",
                             raw = mapOf("path" to path, "kind" to m.kind.name),
                         ),
                     )
@@ -319,7 +319,7 @@ object BehaviorProbes {
                     confidence = Confidence.B,
                     category = Finding.Category.ROOT_KERNEL,
                     framework = "apatch",
-                    detail = "syscall 45 比 46 慢 ${overheadNs}ns（阈值 ${thresholdNs}ns）",
+                    detail = "syscall 45 slower than 46 by ${overheadNs}ns (threshold ${thresholdNs}ns)",
                     raw = mapOf(
                         "truncateNs" to truncateNs.toString(),
                         "ftruncateNs" to ftruncateNs.toString(),

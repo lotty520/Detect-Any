@@ -58,6 +58,10 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 
 | 设备 | 日期 | 结果 | 备注 |
 |---|---|---|---|
+| 华为 L3 真机首跑 | 2026-11-11 | **C13 在真 Keymaster 上运行：keygen 21ms 成功（TEEKeyMaster 日志实证 entry_count=4），但 service.run 整体超预算 → DEGRADED(timeout) C 级诚实降级**（L3=34 分 = L2 26 + attest info 8）。根因待查：keygen 成功后某环节在 app 进程挂起（cleanup deleteEntry 假说；测试进程同装配 167ms 完成无超时——平台差异）。加固：超时后 executor 重建（防卡死任务占用单线程导致后续永久超时）+ 完成时序日志。**当前行为正确**：不误报、不阻塞、C 级只标注 | |
+
+| 设备 | 日期 | 结果 | 备注 |
+|---|---|---|---|
 | 华为测试进程 580s 卡顿观察 | 2026-11-11 | **已结案（复现实验）**：深挖 dump 时 C2/C6/C7/C8 elapsedMs ~580s；次日新鲜进程同构实验首扫 717ms 全正常（C2=72/C6=521/C7=426/C8=65ms）——不复现。定性：EMUI 后台省电对测试进程限时节流（~10 分钟窗口特征）。处置：亮屏插电重试 | |
 | **华为 TAS-AL00（干净中端真机，Kirin 710F，Android 12/API 31，无 GMS）** | 2026-11-11 | **干净真机回归（久候的 P0 项）：修复前 58 分误定性（PIF build_pair×3 B 级假阳性——华为出厂 bootimage=dev-keys/generic_a15 vs 主指纹 release-keys 的固有形态 + 华为拖拽无障碍未白名单）；修复后 26 分/未达定性 ✓（0 强 0 中 3 弱全合理：PIF C·OEM 形态 / SIM 双槽缺席 C / ADB C）。21/21 设备测试通过。**中端时延数据点：L1=0-1ms（预算 10ms 余量 10 倍）、L2=722-887ms（中端预算 1500ms 达标）——修订后时延契约首次在中端验证。deviceBaselines 首批真机点入库（v13：TAS-AL00 mountCountMin=120，实测 156） | 干净真机协议再次抓到真 FP（AGENTS 教训表第 5 例：OEM 出厂属性形态）；无 GMS 环境验证 TLS 回退路径无崩溃 |
 

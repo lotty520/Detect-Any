@@ -19,6 +19,13 @@ class ReportUiSmokeTest {
 
     @Test
     fun activityLaunchesAndScreenshotCaptured() {
+        // 2026-11-11：华为真机锁屏/暗屏时截图仅 ~7KB（黑屏）——唤醒并解锁后再截
+        runCatching {
+            val inst0 = InstrumentationRegistry.getInstrumentation()
+            val d0 = UiDevice.getInstance(inst0)
+            d0.wakeUp()
+            Thread.sleep(500)
+        }
         val scenario = ActivityScenario.launch(MainActivity::class.java)
         Thread.sleep(1500) // 首帧稳定
 

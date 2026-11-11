@@ -133,7 +133,7 @@ object AppFingerprintMatcher {
                     confidence = Confidence.B,
                     category = entry.category,
                     framework = entry.framework,
-                    detail = "管理器包命中(证书钉住): $packageName",
+                    detail = "Manager package hit (cert-pinned): $packageName",
                     raw = mapOf("package" to packageName, "pinned" to "true"),
                 )
             }
@@ -152,7 +152,7 @@ object AppFingerprintMatcher {
                     confidence = Confidence.B,
                     category = entry.category,
                     framework = entry.framework,
-                    detail = "包名+内容指纹双命中: $packageName（探针任一存在: ${entry.dexStrings.joinToString("+")}）",
+                    detail = "Package + content fingerprint double hit: $packageName (any probe present: ${entry.dexStrings.joinToString("+")})",
                     raw = mapOf("package" to packageName, "probes" to entry.dexStrings.joinToString(",")),
                 )
             }
@@ -162,7 +162,7 @@ object AppFingerprintMatcher {
                 confidence = Confidence.C,
                 category = entry.category,
                 framework = entry.framework,
-                detail = "包名精确命中但内容探针未命中: $packageName（APK 全压缩或仿冒包名——C 级不参与定性）",
+                detail = "Exact package hit but content probes missed: $packageName (fully-compressed APK or impersonating name — C-grade, not conclusive)",
                 raw = mapOf("package" to packageName, "contentVerified" to "false"),
             )
         }
@@ -173,7 +173,7 @@ object AppFingerprintMatcher {
             confidence = Confidence.C,
             category = entry.category,
             framework = entry.framework,
-            detail = "包名命中: $packageName",
+            detail = "Package name hit: $packageName",
             raw = mapOf("package" to packageName),
         )
     }

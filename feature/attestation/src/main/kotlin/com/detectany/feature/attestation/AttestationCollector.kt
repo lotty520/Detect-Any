@@ -23,21 +23,31 @@ import java.util.concurrent.TimeoutException
  */
 class AttestationCollector(
     private val service: AttestationService,
-    private val timeoutMs: Long = 3000L,
+    private val timeoutMs: Long = 5000L,
 ) : Collector {
 
     override val id: CollectorId = CollectorId.C13_ATTESTATION
 
-    private val executor = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "DetectAny-Attest").apply { isDaemon = true }
-    }
+    // 2026-11-11 华为真机实证：单线程池被一次超时的卡死任务占用后，后续扫描必然
+    // 排队饿死 → 永久 timeout。改为 volatile 引用 + 超时后 shutdownNow 重建。
+    @Volatile
+    private var executor: java.util.concurrent.ExecutorService = newExecutor()
+
+    private fun newExecutor(): java.util.concurrent.ExecutorService =
+        Executors.newSingleThreadExecutor { r ->
+            Thread(r, "DetectAny-Attest").apply { isDaemon = true }
+        }
 
     override fun collect(input: ScanInput): CollectorResult = try {
         val future = executor.submit { runCatching { service.run() }.getOrNull() }
         val outcome = try {
             future.get(timeoutMs, TimeUnit.MILLISECONDS)
         } catch (_: TimeoutException) {
-            future.cancel(true) // KeyPairGenerator 不可中断时线程驻留至进程退出（daemon）
+            android.util.Log.w("C13", "attestation timeout after ${timeoutMs}ms; recycling executor")
+            future.cancel(true)
+            // 卡死任务可能不响应中断继续占用线程——丢弃整个池重建，后续扫描不再饿死
+            runCatching { executor.shutdownNow() }
+            executor = newExecutor()
             null
         }
 
@@ -82,7 +92,7 @@ class AttestationCollector(
         confidence = Confidence.C,
         category = Finding.Category.ATTESTATION_SPOOF,
         framework = null,
-        detail = "硬件证明 ${timeoutMs}ms 内未返回（Keymaster 慢/无响应）——只采集不采信",
+        detail = "Hardware attestation exceeded ${timeoutMs}ms budget (Keymaster cold start / throttling) — collect, do not trust",
         raw = mapOf("budgetMs" to timeoutMs.toString()),
     )
 }

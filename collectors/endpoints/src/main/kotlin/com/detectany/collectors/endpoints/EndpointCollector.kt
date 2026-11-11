@@ -70,7 +70,7 @@ class EndpointCollector(
         confidence = confidence,
         category = category,
         framework = framework,
-        detail = "socket 命中: $name",
+        detail = "socket hit: $name",
         raw = mapOf("name" to name),
     )
 }
@@ -102,7 +102,7 @@ object EndpointAnalyzer {
                             confidence = entry.confidence,
                             category = entry.category,
                             framework = entry.framework,
-                            detail = "/proc/net/unix 命中: $hit",
+                            detail = "/proc/net/unix hit: $hit",
                             raw = mapOf("hit" to hit),
                         ),
                     )

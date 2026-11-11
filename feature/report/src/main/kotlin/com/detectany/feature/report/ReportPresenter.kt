@@ -53,9 +53,9 @@ object ReportPresenter {
         ruleId = ruleId,
         collector = collector.name,
         confidenceLabel = when (confidence) {
-            Confidence.A -> "强"
-            Confidence.B -> "中"
-            Confidence.C -> "弱"
+            Confidence.A -> "STRONG"
+            Confidence.B -> "MED"
+            Confidence.C -> "WEAK"
         },
         category = category.name,
         framework = framework,

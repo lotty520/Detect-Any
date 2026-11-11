@@ -111,7 +111,7 @@ fun ScoreGauge(score: Int, conclusive: Boolean, modifier: Modifier = Modifier, d
                     fontSize = 40.sp,
                     color = color,
                 )
-                Text("风险分", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Risk Score", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         VerdictBadge(conclusive)
@@ -121,7 +121,7 @@ fun ScoreGauge(score: Int, conclusive: Boolean, modifier: Modifier = Modifier, d
 /** 判定徽标（大号、重点突出）。 */
 @Composable
 fun VerdictBadge(conclusive: Boolean, modifier: Modifier = Modifier) {
-    val (bg, text) = if (conclusive) ScoreCritical to "检出 · 判定性证据成立" else ScoreClean to "未达定性 · 未见充分证据"
+    val (bg, text) = if (conclusive) ScoreCritical to "Detected · conclusive evidence" else ScoreClean to "Inconclusive · insufficient evidence"
     Text(
         text,
         color = Color.White,
@@ -137,8 +137,8 @@ fun VerdictBadge(conclusive: Boolean, modifier: Modifier = Modifier) {
 @Composable
 fun ConfidenceBadge(label: String, modifier: Modifier = Modifier) {
     val color = when (label) {
-        "强" -> BadgeStrong
-        "中" -> BadgeMedium
+        "STRONG" -> BadgeStrong
+        "MED" -> BadgeMedium
         else -> BadgeWeak
     }
     Text(
@@ -155,9 +155,9 @@ fun ConfidenceBadge(label: String, modifier: Modifier = Modifier) {
 @Composable
 fun StatusChip(status: String, modifier: Modifier = Modifier) {
     val (color, label) = when (status) {
-        "OK" -> StatusOk to "正常"
-        "DEGRADED" -> StatusDegraded to "降级"
-        else -> StatusBlocked to "阻塞"
+        "OK" -> StatusOk to "OK"
+        "DEGRADED" -> StatusDegraded to "Degraded"
+        else -> StatusBlocked to "Blocked"
     }
     Text(
         label,

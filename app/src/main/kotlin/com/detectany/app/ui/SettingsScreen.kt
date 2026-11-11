@@ -34,14 +34,14 @@ fun SettingsScreen(controller: ScanController) {
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) {
-            feedback = "已取消导入"
+            feedback = "Import cancelled"
         } else {
             runCatching {
                 context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             }.getOrNull()?.let { text ->
                 controller.importSignature(text)
                 feedback = controller.statusLine
-            } ?: run { feedback = "导入失败：无法读取文件" }
+            } ?: run { feedback = "Import failed: cannot read file" }
         }
     }
 
@@ -49,37 +49,37 @@ fun SettingsScreen(controller: ScanController) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        SettingsCard("数据") {
+        SettingsCard("Data") {
             OutlinedButton(onClick = { feedback = controller.exportReport(context) }, modifier = Modifier.fillMaxWidth()) {
-                Text("导出结构化报告（脱敏 JSON）")
+                Text("Export structured report (redacted JSON)")
             }
             OutlinedButton(
                 onClick = {
-                    feedback = "选择特征文件…"
+                    feedback = "Select signature file…"
                     importLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("导入特征更新（ed25519 签名，即时生效）")
+                Text("Import signature update (ed25519-signed, instant)")
             }
         }
 
-        SettingsCard("能力边界（对外承诺口径）") {
-            BoundaryRow("KPM 内核补丁模块", "用户态不可检——不做检出承诺，硬件证明兜底")
-            BoundaryRow("susfs 完整配置", "部分静态痕迹不承诺，按对抗组合捕获率验收")
-            BoundaryRow("检测概率性", "结论锚定证据组合（强/中/弱共振），非单点绝对判定")
-            BoundaryRow("Android 7 证明", "硬件链不保证时只采集不采信，本地信号兜底")
+        SettingsCard("Capability Boundaries (public commitments)") {
+            BoundaryRow("KPM (Kernel Patch Module)", "Not detectable from userspace — no detection promise, hardware attestation as backstop")
+            BoundaryRow("Full susfs configuration", "Some static traces not promised; accepted via adversarial-combo capture rate")
+            BoundaryRow("Probabilistic detection", "Verdicts anchor to evidence combinations (STRONG/MED/WEAK resonance), not single-point absolutes")
+            BoundaryRow("Android 7 attestation", "Collect-but-dont-trust when hardware chain unassured; local signals as backstop")
         }
 
-        SettingsCard("关于") {
+        SettingsCard("About") {
             Text("Detect-Any 0.1.0", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium)
             Text(
-                "特征库 v${com.detectany.data.signature.BundledSignatureDb.db.version} · 规则库 v${com.detectany.core.rules.BundledRuleSet.ruleSet.version} · 更新通道未装配",
+                "Signature DB v${com.detectany.data.signature.BundledSignatureDb.db.version} · Rules v${com.detectany.core.rules.BundledRuleSet.ruleSet.version} · online channel pending",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "覆盖 13 项目标：Magisk / KernelSU 系 / APatch / ZN / ReZygisk / LSPosed / LSPatch / TrickyStore / susfs / Shamiko / PIF 系",
+                "25+ targets: Magisk / KernelSU family / APatch / ZN / ReZygisk / LSPosed / LSPatch / TrickyStore / susfs / Shamiko / PIF / Frida / emulators / spoofing tools",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

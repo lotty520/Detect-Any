@@ -98,7 +98,7 @@ class BehaviorCheckCollector(
                     confidence = Confidence.C, // C 级：企业/隐私 VPN 合法常态
                     category = Finding.Category.NETWORK_MITM,
                     framework = null,
-                    detail = "VPN 传输层活跃（可能为 HTTP Toolkit/Packet Capture/PCAPdroid，也可能为企业 VPN）",
+                    detail = "VPN transport active (possibly HTTP Toolkit/Packet Capture/PCAPdroid, possibly corporate VPN)",
                     raw = mapOf("vpn" to "true"),
                 ),
             )
@@ -117,7 +117,7 @@ class BehaviorCheckCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.NETWORK_MITM,
                     framework = null,
-                    detail = "HTTP 代理已配置: $host（可能为 Charles/Burp，也可能为企业代理）",
+                    detail = "HTTP proxy configured: $host (possibly Charles/Burp, possibly corporate proxy)",
                     raw = mapOf("hostHash" to host.hashCode().toString()),
                 ),
             )
@@ -139,7 +139,7 @@ class BehaviorCheckCollector(
                 confidence = Confidence.C, // 合法场景：企业策略/家长控制
                 category = Finding.Category.NETWORK_MITM,
                 framework = null,
-                detail = "系统全局 HTTP 代理已配置: $gp（全设备流量劫持面，MITM 工具特征之一）",
+                detail = "System-wide HTTP proxy configured: $gp (device-wide interception surface, MITM tool signature)",
                 raw = mapOf("proxyHash" to gp.hashCode().toString()),
             ),
         )
@@ -202,7 +202,7 @@ class BehaviorCheckCollector(
                 confidence = Confidence.C, // always-on VPN 合法（企业）；归属包名供风控归因
                 category = Finding.Category.NETWORK_MITM,
                 framework = null,
-                detail = "always-on VPN 归属应用: $owner（常开 VPN = 全流量隧道面；可能为企业 VPN 也可能是抓包/分流工具）",
+                detail = "Always-on VPN owner app: $owner (full-traffic tunnel; possibly corporate VPN or a capture/split tool)",
                 raw = mapOf("pkgHash" to owner.hashCode().toString()),
             ),
         )
@@ -250,7 +250,7 @@ class BehaviorCheckCollector(
                         confidence = Confidence.C,
                         category = Finding.Category.SIM_ANOMALY,
                         framework = null,
-                        detail = "SIM 状态为 LOADED 但运营商/国家码全部为空——状态矛盾（软件伪造 SIM 形态或虚拟基带）",
+                        detail = "SIM state LOADED but operator/country all blank — contradictory (software-faked SIM or virtual modem)",
                         raw = mapOf("modems" to modemCount.toString(), "states" to lastSimStates.joinToString(",")),
                     ),
                 )
@@ -263,7 +263,7 @@ class BehaviorCheckCollector(
                         confidence = Confidence.C,
                         category = Finding.Category.SIM_ANOMALY,
                         framework = null,
-                        detail = "SIM 国家码($simIso)与注册网络国家码($netIso)不一致（漫游合法；与 GPS/时区交叉可判改机）",
+                        detail = "SIM country ($simIso) differs from registered network country ($netIso) (legal while roaming; cross with GPS/timezone to indicate spoofing)",
                         raw = mapOf("simIso" to simIso, "netIso" to netIso),
                     ),
                 )
@@ -280,7 +280,7 @@ class BehaviorCheckCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.SIM_ANOMALY,
                     framework = null,
-                    detail = "设备具备蜂窝能力但全 SIM 槽 ABSENT（云手机/群控常见；备机/平板合法——C 级不参与定性）",
+                    detail = "Device has cellular capability but all SIM slots ABSENT (common on cloud phones/device farms; backup devices legal — C-grade, not conclusive)",
                     raw = mapOf("modems" to modemCount.toString()),
                 ),
             )
@@ -314,7 +314,7 @@ class BehaviorCheckCollector(
                     confidence = Confidence.C, // 跨国旅行/双卡合法；与 GPS/网络交叉可判改机
                     category = Finding.Category.SIM_ANOMALY,
                     framework = null,
-                    detail = "地理三方不自洽：时区区域($tzRegion)与 locale($localeCountry)均与 SIM 国码($simIso)不一致（时区=$tzId）——改机/GPS 伪造拼凑特征",
+                    detail = "Geo tripartite inconsistency: timezone region ($tzRegion) and locale ($localeCountry) both differ from SIM country ($simIso) (tz=$tzId) — device/GPS spoofing signature",
                     raw = mapOf("tzRegion" to tzRegion, "simIso" to simIso, "locale" to localeCountry, "tz" to tzId),
                 ),
             )
@@ -365,7 +365,7 @@ class BehaviorCheckCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.VIRTUAL_ENV,
                     framework = null,
-                    detail = "电池电量 $level% 但电压为 0mV——有电量无电压物理矛盾（虚拟电池形态；少数内核不上报电压为合法缺失）",
+                    detail = "Battery level $level% but voltage 0mV — charge-without-voltage physical contradiction (virtual battery; some kernels legitimately omit voltage)",
                     raw = mapOf("level" to level.toString(), "voltage" to voltage.toString()),
                 ),
             )
@@ -380,7 +380,7 @@ class BehaviorCheckCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.VIRTUAL_ENV,
                     framework = null,
-                    detail = "电池温度 0.0°C（冰点以下运行环境物理上不可能持久——虚拟电池默认值特征）",
+                    detail = "Battery temperature 0.0°C (sub-freezing sustained operation physically implausible — virtual-battery default)",
                     raw = mapOf("temp" to "0"),
                 ),
             )
@@ -399,7 +399,7 @@ class BehaviorCheckCollector(
                         confidence = Confidence.C,
                         category = Finding.Category.VIRTUAL_ENV,
                         framework = null,
-                        detail = "框架层报告电池（level=$level%）但 /sys/class/power_supply 为空——内核无任何供电设备（云手机/容器跨层矛盾）",
+                        detail = "Framework reports battery (level=$level%) but /sys/class/power_supply empty — no kernel power supplies (cloud-phone/container cross-layer contradiction)",
                         raw = mapOf("level" to level.toString(), "powerSupplies" to "0"),
                     ),
                 )
@@ -439,7 +439,7 @@ class BehaviorCheckCollector(
                     confidence = Confidence.B,
                     category = Finding.Category.SPEED_HACK,
                     framework = null,
-                    detail = "时钟源不一致: BOOTTIME 漂移 ${lastClockDriftMs}ms（>100ms 阈值）—— 速度篡改特征",
+                    detail = "Clock-source inconsistency: BOOTTIME drift ${lastClockDriftMs}ms (>100ms threshold) — speed-hack signature",
                     raw = mapOf(
                         "boottimeMs" to (boottimeElapsed / 1_000_000).toString(),
                         "monotonicMs" to (monotonicElapsed / 1_000_000).toString(),

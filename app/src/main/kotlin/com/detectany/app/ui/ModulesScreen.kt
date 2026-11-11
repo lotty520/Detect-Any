@@ -41,7 +41,7 @@ import com.detectany.core.model.CollectorResult
 fun ModulesScreen(controller: ScanController) {
     val report = controller.rawReport
     if (report == null) {
-        EmptyPage("尚无能力数据", "先在「扫描」页执行一次扫描")
+        EmptyPage("No capability data yet", "Run a scan from the Scan tab first")
         return
     }
     val results = report.collectorResults
@@ -53,14 +53,14 @@ fun ModulesScreen(controller: ScanController) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "${CapabilityDomain.entries.size} 个能力域 · ${results.count { it.status == CollectorResult.Status.OK }} 正常 · " +
-                    "${results.count { it.status == CollectorResult.Status.DEGRADED }} 降级 · " +
-                    "${results.count { it.status == CollectorResult.Status.BLOCKED }} 阻塞",
+                "${CapabilityDomain.entries.size} domains · ${results.count { it.status == CollectorResult.Status.OK }} OK · " +
+                    "${results.count { it.status == CollectorResult.Status.DEGRADED }} degraded · " +
+                    "${results.count { it.status == CollectorResult.Status.BLOCKED }} blocked",
                 style = MaterialTheme.typography.labelLarge,
             )
             Spacer(Modifier.weight(1f))
             Text(
-                "总耗时 ${report.elapsedMs}ms",
+                "Total ${report.elapsedMs}ms",
                 fontFamily = FontFamily.Monospace,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -137,7 +137,7 @@ private fun DomainCard(domain: CapabilityDomain, results: List<CollectorResult>)
                             )
                         }
                         Text(
-                            if (r.findings.isEmpty()) "无命中" else "${r.findings.size}",
+                            if (r.findings.isEmpty()) "none" else "${r.findings.size}",
                             style = MaterialTheme.typography.labelMedium,
                             color = if (r.findings.isEmpty()) ScoreClean else BadgeStrong,
                         )
@@ -145,20 +145,20 @@ private fun DomainCard(domain: CapabilityDomain, results: List<CollectorResult>)
                     }
                     r.meta.filterKeys { it !in setOf("elapsedMs", "error") }.entries.take(3).forEach { (k, v) ->
                         val humanKey = when (k) {
-                            "unixGate" -> "套接字通道"
-                            "probed" -> "已探测路径数"
-                            "count" -> "属性总数"
-                            "mounts" -> "挂载条目"
-                            "tmpfs" -> "tmpfs 挂载"
-                            "mappings" -> "内存映射"
-                            "execAnon" -> "匿名可执行段"
-                            "stdev" -> "设备号采样"
+                            "unixGate" -> "socket gate"
+                            "probed" -> "paths probed"
+                            "count" -> "properties"
+                            "mounts" -> "mount entries"
+                            "tmpfs" -> "tmpfs mounts"
+                            "mappings" -> "memory mappings"
+                            "execAnon" -> "anon exec segments"
+                            "stdev" -> "st_dev samples"
                             "ksuRet" -> "KSU supercall"
                             "apatchRet" -> "APatch supercall"
-                            "apatchNs" -> "APatch 耗时(ns)"
+                            "apatchNs" -> "APatch latency(ns)"
                             "nativebridgeError" -> "NativeBridge"
-                            "ptraceMsg" -> "ptrace 残留"
-                            "ppid" -> "父进程PID"
+                            "ptraceMsg" -> "ptrace residue"
+                            "ppid" -> "parent PID"
                             else -> k
                         }
                         Text(
@@ -169,7 +169,7 @@ private fun DomainCard(domain: CapabilityDomain, results: List<CollectorResult>)
                         )
                     }
                     r.meta["error"]?.let {
-                        Text("  错误: $it", style = MaterialTheme.typography.bodySmall, color = StatusBlocked)
+                        Text("  Error: $it", style = MaterialTheme.typography.bodySmall, color = StatusBlocked)
                     }
                 }
             }

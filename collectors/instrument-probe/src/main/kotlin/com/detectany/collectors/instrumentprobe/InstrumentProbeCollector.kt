@@ -67,7 +67,7 @@ class InstrumentProbeCollector : Collector {
                     confidence = Confidence.B,
                     category = if (framework == "modmenu") Finding.Category.OVERLAY_INJECTION else Finding.Category.INSTRUMENTATION,
                     framework = framework,
-                    detail = "maps 中发现 $keyword 映射",
+                    detail = "maps contains $keyword mapping",
                     raw = mapOf("keyword" to keyword),
                 )
             } else null
@@ -96,7 +96,7 @@ class InstrumentProbeCollector : Collector {
                     confidence = Confidence.B,
                     category = Finding.Category.INSTRUMENTATION,
                     framework = framework,
-                    detail = "线程列表中发现 Frida 线程: $name",
+                    detail = "Frida thread found in thread list: $name",
                     raw = mapOf("thread" to name),
                 )
             } else null
@@ -132,7 +132,7 @@ class InstrumentProbeCollector : Collector {
                     confidence = Confidence.B, // B 级；与 maps 字符串共振才 A
                     category = Finding.Category.INSTRUMENTATION,
                     framework = null,
-                    detail = "发现 $consecutiveRwx 连续 RWX 页（${totalRwxSize / 1024}KB）—— Frida agent 注入特征",
+                    detail = "$consecutiveRwx consecutive RWX pages (${totalRwxSize / 1024}KB) — Frida agent injection signature",
                     raw = mapOf("consecutive" to consecutiveRwx.toString(), "totalKb" to (totalRwxSize / 1024).toString()),
                 ),
             )
@@ -154,7 +154,7 @@ class InstrumentProbeCollector : Collector {
                     confidence = Confidence.B,
                     category = Finding.Category.INSTRUMENTATION,
                     framework = "frida",
-                    detail = "端口 $port 响应 Frida D-Bus 协议握手",
+                    detail = "Port $port responded to Frida D-Bus protocol handshake",
                     raw = mapOf("port" to port.toString()),
                 )
                 break // 找到一个即可

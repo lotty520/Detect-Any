@@ -132,7 +132,7 @@ object PropertyAnalyzer {
                             confidence = entry.confidence,
                             category = entry.category,
                             framework = entry.framework,
-                            detail = "残留属性存在: ${entry.keyPrefix}=$exact（root 框架残留痕迹）",
+                            detail = "Residual property present: ${entry.keyPrefix}=$exact (root-framework residue)",
                             raw = mapOf("key" to entry.keyPrefix.hashCode().toString()),
                         ),
                     )
@@ -147,7 +147,7 @@ object PropertyAnalyzer {
                         confidence = entry.confidence,
                         category = entry.category,
                         framework = entry.framework,
-                        detail = "属性命中 ${hit.key}=${hit.value}",
+                        detail = "Property hit ${hit.key}=${hit.value}",
                         raw = mapOf("key" to hit.key, "valueHash" to hit.value.hashCode().toString()),
                     ),
                 )
@@ -171,7 +171,7 @@ object PropertyAnalyzer {
                         confidence = if (id in PIF_PAIRS_C_GRADE) Confidence.C else Confidence.B,
                         category = Finding.Category.ATTESTATION_SPOOF,
                         framework = "pif",
-                        detail = "成对属性不一致: $mainKey != $mirrorKey（Build 伪装痕迹）",
+                        detail = "Paired property mismatch: $mainKey != $mirrorKey (Build spoofing trace)",
                         raw = mapOf("mainHash" to main.hashCode().toString(), "mirrorHash" to mirror.hashCode().toString()),
                     ),
                 )
@@ -192,7 +192,7 @@ object PropertyAnalyzer {
                         confidence = Confidence.A, // 物理矛盾：verified boot green + root 残留 = 属性被伪造
                         category = Finding.Category.ANTI_DETECT_PRESENT,
                         framework = null,
-                        detail = "verified boot 声称 green 但存在 root 框架残留属性——属性被伪造（深度隐藏特征）",
+                        detail = "Verified boot claims green but root-framework residual properties exist — properties forged (deep-hiding signature)",
                         raw = mapOf("vbs" to vbs.hashCode().toString()),
                     ),
                 )
@@ -208,7 +208,7 @@ object PropertyAnalyzer {
                     confidence = Confidence.C,
                     category = Finding.Category.ROOT_USERSPACE,
                     framework = null,
-                    detail = "ro.debuggable=1（工程构建/调试 ROM 特征）",
+                    detail = "ro.debuggable=1 (engineering/debug build signature)",
                     raw = mapOf("key" to "ro.debuggable", "valueHash" to "1".hashCode().toString()),
                 ),
             )
@@ -221,7 +221,7 @@ object PropertyAnalyzer {
                     confidence = Confidence.C,
                     category = Finding.Category.ROOT_USERSPACE,
                     framework = null,
-                    detail = "ro.build.tags 含 test-keys（自编构建特征）",
+                    detail = "ro.build.tags contains test-keys (self-built ROM signature)",
                     raw = mapOf("key" to "ro.build.tags", "valueHash" to (map["ro.build.tags"] ?: "").hashCode().toString()),
                 ),
             )
@@ -242,7 +242,7 @@ object PropertyAnalyzer {
                     confidence = Confidence.B,
                     category = Finding.Category.ANTI_DETECT_PRESENT,
                     framework = null,
-                    detail = "属性区文件异常: ${f.name} readable=${f.readable} size=${f.size}（resetprop 痕迹形态）",
+                    detail = "Property-area file anomaly: ${f.name} readable=${f.readable} size=${f.size} (resetprop trace pattern)",
                     raw = mapOf("name" to f.name, "readable" to f.readable.toString(), "size" to f.size.toString()),
                 ),
             )

@@ -79,7 +79,7 @@ class VirtualEnvCollector(
                         confidence = Confidence.B,
                         category = Finding.Category.EMULATOR,
                         framework = name,
-                        detail = "Build 属性含模拟器特征: $pattern",
+                        detail = "Build property matches emulator pattern: $pattern",
                         raw = mapOf("pattern" to pattern),
                     ),
                 )
@@ -100,7 +100,7 @@ class VirtualEnvCollector(
                     confidence = Confidence.A,
                     category = Finding.Category.EMULATOR,
                     framework = "qemu",
-                    detail = "ro.kernel.qemu=1（不可伪装的模拟器标志）",
+                    detail = "ro.kernel.qemu=1 (non-spoofable emulator flag)",
                     raw = mapOf("qemu" to qemu),
                 ),
             )
@@ -127,7 +127,7 @@ class VirtualEnvCollector(
                         confidence = Confidence.A, // 硬件设备节点不可软件伪造
                         category = Finding.Category.EMULATOR,
                         framework = name,
-                        detail = "模拟器硬件痕迹: $path",
+                        detail = "Emulator hardware artifact: $path",
                         raw = mapOf("path" to path),
                     ),
                 )
@@ -153,7 +153,7 @@ class VirtualEnvCollector(
                     confidence = Confidence.A,
                     category = Finding.Category.EMULATOR,
                     framework = null,
-                    detail = "CPU 架构不一致: Build.CPU_ABI=$declaredAbi 但 /proc/cpuinfo 显示 x86",
+                    detail = "CPU ABI mismatch: Build.CPU_ABI=$declaredAbi but /proc/cpuinfo shows x86",
                     raw = mapOf("declaredAbi" to declaredAbi, "cpuX86" to "true"),
                 ),
             )
@@ -181,7 +181,7 @@ class VirtualEnvCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.EMULATOR,
                     framework = null,
-                    detail = "加速度计和陀螺仪均缺失（低端设备合法；需与其他模拟器信号共振）",
+                    detail = "Both accelerometer and gyroscope absent (legal on low-end devices; requires emulator-signal resonance)",
                     raw = mapOf("accel" to "absent", "gyro" to "absent"),
                 ),
             )
@@ -200,7 +200,7 @@ class VirtualEnvCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.EMULATOR,
                     framework = null,
-                    detail = "无电话硬件（WiFi-only 平板合法；需共振）",
+                    detail = "No telephony hardware (legal on Wi-Fi-only tablets; requires resonance)",
                     raw = mapOf("telephony" to "absent"),
                 ),
             )
@@ -261,7 +261,7 @@ class VirtualEnvCollector(
                         confidence = Confidence.B,
                         category = Finding.Category.EMULATOR,
                         framework = null,
-                        detail = "加速度计 ${samples.size} 样本/${spanMs}ms 内逐值完全恒定——真实 MEMS 热噪声下物理不可能（虚拟传感器：云手机/模拟器特征）",
+                        detail = "Accelerometer byte-identical across ${samples.size} samples/${spanMs}ms — physically impossible with real MEMS thermal noise (virtual sensor: cloud-phone/emulator)",
                         raw = mapOf(
                             "samples" to samples.size.toString(),
                             "spanMs" to spanMs.toString(),
@@ -293,7 +293,7 @@ class VirtualEnvCollector(
                     confidence = Confidence.B,
                     category = Finding.Category.VIRTUAL_ENV,
                     framework = null,
-                    detail = "数据目录路径异常: 期望 $expectedPath 实际 $actualPath（容器特征）",
+                    detail = "Data-dir path anomaly: expected $expectedPath actual $actualPath (container signature)",
                     raw = mapOf("expected" to expectedPath.hashCode().toString(), "actual" to actualPath.hashCode().toString()),
                 ),
             )
@@ -358,7 +358,7 @@ class VirtualEnvCollector(
                         confidence = Confidence.B,
                         category = Finding.Category.EMULATOR,
                         framework = name,
-                        detail = "GL 渲染器含模拟器特征: $pattern",
+                        detail = "GL renderer matches emulator pattern: $pattern",
                         raw = mapOf("rendererHash" to renderer.hashCode().toString()),
                     ),
                 )
@@ -374,7 +374,7 @@ class VirtualEnvCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.EMULATOR,
                     framework = "swiftshader",
-                    detail = "GL 渲染器为 SwiftShader 软件渲染（低端设备合法；需共振）",
+                    detail = "GL renderer is SwiftShader software rendering (legal on low-end devices; requires resonance)",
                     raw = mapOf("rendererHash" to renderer.hashCode().toString()),
                 ),
             )

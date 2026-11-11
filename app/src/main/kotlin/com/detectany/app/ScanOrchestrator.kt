@@ -71,9 +71,9 @@ class ScanOrchestrator(context: Context) {
         val r = com.detectany.feature.report.SignatureImport(signatureStore).import(jsonText)
         if (r is com.detectany.feature.report.SignatureImport.Result.Applied) {
             engine = DetectionEngine(collectors = buildCollectors(), rules = RulesEngine(BundledRuleSet.ruleSet), attestationCollector = attestationCollector)
-            return "特征已更新至 v${r.version}（即时生效）"
+            return "Signatures updated to v${r.version} (effective immediately)"
         }
-        return "导入被拒: ${(r as com.detectany.feature.report.SignatureImport.Result.Rejected).reason}"
+        return "Import rejected: ${(r as com.detectany.feature.report.SignatureImport.Result.Rejected).reason}"
     }
 
     private fun buildCollectors(): List<Collector> = listOf(

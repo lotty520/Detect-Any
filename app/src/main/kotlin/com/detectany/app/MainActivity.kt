@@ -75,10 +75,10 @@ class MainActivity : ComponentActivity() {
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
 private val TABS = listOf(
-    Tab("scan", "扫描", Icons.Filled.Radar),
-    Tab("evidence", "威胁", Icons.Filled.BugReport),
-    Tab("modules", "能力", Icons.Filled.ViewModule),
-    Tab("settings", "设置", Icons.Filled.Settings),
+    Tab("scan", "Scan", Icons.Filled.Radar),
+    Tab("evidence", "Threats", Icons.Filled.BugReport),
+    Tab("modules", "Capabilities", Icons.Filled.ViewModule),
+    Tab("settings", "Settings", Icons.Filled.Settings),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

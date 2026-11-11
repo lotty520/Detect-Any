@@ -43,7 +43,7 @@ class PathProbeCollector(
                             confidence = Confidence.A,
                             category = Finding.Category.HOOK,
                             framework = null,
-                            detail = "路径 ${entry.path} 的 libc 与 svc 结果不一致（${m.kind}: ${m.detail}）",
+                            detail = "libc vs svc result mismatch for ${entry.path} (${m.kind}: ${m.detail})",
                             raw = mapOf("path" to entry.path, "kind" to m.kind.name, "detail" to m.detail),
                         ),
                     )
@@ -56,7 +56,7 @@ class PathProbeCollector(
                             confidence = Confidence.B,
                             category = Finding.Category.HOOK,
                             framework = null,
-                            detail = "路径 ${entry.path} 的 Java API 与 native 结果不一致（${m.kind}）",
+                            detail = "Java API vs native result mismatch for ${entry.path} (${m.kind})",
                             raw = mapOf("path" to entry.path, "kind" to m.kind.name),
                         ),
                     )
@@ -71,7 +71,7 @@ class PathProbeCollector(
                             confidence = entry.confidence,
                             category = entry.category,
                             framework = entry.framework,
-                            detail = "特征路径存在: ${entry.path}",
+                            detail = "Signature path exists: ${entry.path}",
                             raw = mapOf("path" to entry.path),
                         ),
                     )
@@ -137,7 +137,7 @@ class MountCollector(
                         confidence = Confidence.B, // A3 降权：susfs v2.x 用户态 umount 一致化
                         category = Finding.Category.ROOT_KERNEL,
                         framework = null,
-                        detail = "statfs 交叉不一致: ${e.mountPoint} mountinfo=${e.fstype} 但 statfs f_type=0x${r[2].toString(16)}",
+                        detail = "statfs cross-mismatch: ${e.mountPoint} mountinfo=${e.fstype} but statfs f_type=0x${r[2].toString(16)}",
                         raw = mapOf("mountPoint" to e.mountPoint, "claimed" to e.fstype, "f_type" to r[2].toString()),
                     ),
                 )
@@ -173,7 +173,7 @@ class MountCollector(
                 confidence = entry.confidence,
                 category = entry.category,
                 framework = entry.framework,
-                detail = "内核注册文件系统类型存在: ${entry.fsName}（/proc/filesystems）",
+                detail = "Kernel-registered filesystem type present: ${entry.fsName} (/proc/filesystems)",
                 raw = mapOf("fsName" to entry.fsName),
             )
         }

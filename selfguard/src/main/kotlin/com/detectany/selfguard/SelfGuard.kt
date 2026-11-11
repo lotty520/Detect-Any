@@ -62,7 +62,7 @@ class SelfGuardService(
                         confidence = Confidence.A,
                         category = Finding.Category.REPACKAGED,
                         framework = null,
-                        detail = "APK 签名摘要与预期不符（重打包）",
+                        detail = "APK signature digest mismatch (repackaged)",
                         raw = emptyMap(),
                     ),
                 )
@@ -81,7 +81,7 @@ class SelfGuardService(
                         confidence = Confidence.B,
                         category = Finding.Category.REPACKAGED,
                         framework = null,
-                        detail = "classes.dex CRC32 与预期不符（代码篡改/注入）",
+                        detail = "classes.dex CRC32 mismatch (code tampering/injection)",
                         raw = emptyMap(),
                     ),
                 )
@@ -98,7 +98,7 @@ class SelfGuardService(
                     confidence = Confidence.B,
                     category = Finding.Category.HOOK,
                     framework = null,
-                    detail = "TracerPid=$tp（进程被跟踪）",
+                    detail = "TracerPid=$tp (process is being traced)",
                     raw = mapOf("tracerPid" to tp.toString()),
                 ),
             )
@@ -119,7 +119,7 @@ class SelfGuardService(
                     confidence = Confidence.B,
                     category = Finding.Category.HOOK,
                     framework = null,
-                    detail = "子进程 PTRACE_ATTACH 父进程返回 EPERM（调试器已附加）",
+                    detail = "Child PTRACE_ATTACH to parent returned EPERM (debugger attached)",
                     raw = emptyMap(),
                 ),
             )

@@ -104,7 +104,7 @@ object MemoryMapAnalyzer {
                     confidence = Confidence.B,
                     category = Finding.Category.ZYGISK,
                     framework = if (m.path!!.contains("lsposed")) "lsposed" else "zygisknext",
-                    detail = "memfd 映射: ${m.path}",
+                    detail = "memfd mapping: ${m.path}",
                     raw = mapOf("path" to m.path!!),
                 ),
             )
@@ -122,7 +122,7 @@ object MemoryMapAnalyzer {
                     confidence = Confidence.C,
                     category = Finding.Category.HOOK,
                     framework = if (m.path!!.contains("lspd", true)) "lsposed" else null,
-                    detail = "可疑映射路径: ${m.path}",
+                    detail = "Suspicious mapping path: ${m.path}",
                     raw = mapOf("path" to m.path!!),
                 ),
             )
@@ -139,7 +139,7 @@ object MemoryMapAnalyzer {
                         confidence = Confidence.B,
                         category = Finding.Category.ZYGISK,
                         framework = null,
-                        detail = "libart 可执行段存在 ${kb}KB Private_Dirty COW 脏页（运行时 patch 痕迹）",
+                        detail = "libart exec segment has ${kb}KB Private_Dirty COW pages (runtime patching trace)",
                         raw = mapOf("start" to start.toString(), "kb" to kb.toString()),
                     ),
                 )
@@ -155,7 +155,7 @@ object MemoryMapAnalyzer {
                     confidence = Confidence.B,
                     category = Finding.Category.HOOK,
                     framework = null,
-                    detail = "fd 指向 /data/adb: $fd",
+                    detail = "fd points into /data/adb: $fd",
                     raw = mapOf("fd" to fd.hashCode().toString(), "prefix" to "/data/adb"),
                 ),
             )
@@ -175,7 +175,7 @@ object MemoryMapAnalyzer {
                         confidence = Confidence.B,
                         category = Finding.Category.ZYGISK,
                         framework = null,
-                        detail = "linker 列表中存在但 maps 不可见: $name @0x${bias.toString(16)}（maps 抹除痕迹）",
+                        detail = "In linker list but invisible in maps: $name @0x${bias.toString(16)} (maps erasure trace)",
                         raw = mapOf("name" to name, "bias" to bias.toString()),
                     ),
                 )
@@ -191,7 +191,7 @@ object MemoryMapAnalyzer {
                     confidence = Confidence.A,
                     category = Finding.Category.HOOK,
                     framework = null,
-                    detail = "RWX 自探针映射在 maps 中不可见 —— maps 读取被 hook/篡改",
+                    detail = "RWX self-probe mapping invisible in maps — maps reading is hooked/tampered",
                     raw = mapOf("rwxProbe" to "0"),
                 ),
             )
