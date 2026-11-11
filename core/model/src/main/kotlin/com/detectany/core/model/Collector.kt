@@ -102,6 +102,12 @@ data class Finding(
         SPEED_HACK,
         /** GPS 伪造 */
         GPS_SPOOF,
+        /** 摄像头伪造（虚拟摄像头 / 换脸注入） */
+        CAMERA_SPOOF,
+        /** 设备身份伪造（IMEI/Android ID/序列号伪造工具） */
+        DEVICE_SPOOF,
+        /** SIM 卡状态异常（矛盾态/缺失态） */
+        SIM_ANOMALY,
         /** 屏幕共享 / 投屏 */
         SCREEN_SHARE,
         /** 远程控制 */

@@ -28,6 +28,21 @@ class ScoreModel(
     private val conclusiveThreshold: Int = 50,
 ) {
 
+    /**
+     * 云手机合围信号集（2026-11-10 第四批）：单条全为 C 级（各自存在合法场景），
+     * 但真实硬件同时满足 ≥3 项近乎不可能——容器/云手机在 SIM/电池/传感器三个
+     * 独立子系统上同时呈现虚拟形态才能凑齐。
+     * 注意：no_telephony 与 sim.all_absent 已在采集器侧用 FEATURE_TELEPHONY 门控，
+     * WiFi 平板场景（无电话+无传感器）最多凑 2 项，不触发。
+     */
+    internal val cloudPhoneSignals = setOf(
+        "sim.all_absent",
+        "battery.framework_only",
+        "battery.zero_temperature",
+        "battery.level_without_voltage",
+        "emulator.sensors_absent",
+    )
+
     fun score(findings: List<Finding>, hits: List<RuleHit>): ScanVerdict {
         val aFindings = findings.filter { it.confidence == Confidence.A }
         val bByDomain = findings.filter { it.confidence == Confidence.B }.groupBy { it.framework ?: it.category.name }
@@ -65,6 +80,8 @@ class ScoreModel(
             bByDomain.forEach { (domain, bs) ->
                 if (bs.size == 1 && (cByDomain[domain]?.size ?: 0) >= 1) return@run true
             }
+            // C 级合围共振（云手机形态）：三个独立子系统的虚拟形态同时出现
+            if (findings.count { it.ruleId in cloudPhoneSignals } >= 3) return@run true
             false
         }
 

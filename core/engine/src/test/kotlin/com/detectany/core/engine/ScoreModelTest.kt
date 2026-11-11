@@ -103,4 +103,30 @@ class ScoreModelTest {
         assertTrue(anti.antiDetectPresent)
         assertFalse(plain.antiDetectPresent)
     }
+
+    @Test
+    fun cloudPhoneTripleCResonanceIsConclusive() {
+        // 云手机形态：SIM 缺席 + 内核零供电 + 冰点温度（三个独立子系统 C 级合围）
+        val findings = listOf(
+            f("sim.all_absent", Confidence.C, cat = Finding.Category.SIM_ANOMALY),
+            f("battery.framework_only", Confidence.C, cat = Finding.Category.VIRTUAL_ENV),
+            f("battery.zero_temperature", Confidence.C, cat = Finding.Category.VIRTUAL_ENV),
+        )
+        val v = ScoreModel().score(findings, emptyList())
+        assertTrue(v.conclusive, "三子系统 C 合围应定性")
+        assertTrue(v.riskScore >= 50)
+    }
+
+    @Test
+    fun twoCloudSignalsNotConclusive() {
+        // 廉价平板场景：无传感器 + 电压缺失 = 最多 2 项，不得定性
+        val findings = listOf(
+            f("emulator.sensors_absent", Confidence.C, cat = Finding.Category.EMULATOR),
+            f("battery.level_without_voltage", Confidence.C, cat = Finding.Category.VIRTUAL_ENV),
+            f("emulator.no_telephony", Confidence.C, cat = Finding.Category.EMULATOR), // 不在集合内
+        )
+        val v = ScoreModel().score(findings, emptyList())
+        assertFalse(v.conclusive, "2 项集合内信号不得定性")
+    }
+
 }
