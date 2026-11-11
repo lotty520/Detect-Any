@@ -48,7 +48,7 @@
 | **SELinux 语义** | magisk / ksu_file / lsposed 域存在性探测 | C8 | ✅ |
 | **Frida 运行时** | maps 字符串 / 线程名 / RWX 页 / D-Bus 协议 | C9 | hluda 字符串全部改名时仅剩 RWX + D-Bus |
 | **scrcpy 运行时** | unix socket `scrcpy_` / HID 设备名 / ADB 会话 | C12 | `--new-display` 虚拟显示器不可见 |
-| **挂载伪装** | overlay 检测 / fstype 交叉（too-clean 与 st_dev 偏离因无机型基线未接线，2026-11-10 审计） | C2 | susfs v2.x 用户态 umount 一致化（降权）|
+| **挂载伪装** | overlay 检测 / fstype 交叉 / too-clean + st_dev（P2-2 已接线，机型基线渐进生效——现有 TAS-AL00/Pixel 8 两点） | C2 | susfs v2.x 用户态 umount 一致化（降权）|
 | **内存注入** | maps 注入 memfd / known_path / hidden_mapping / RWX 自探针 | C6 | NyaZygisk 双隐藏（maps + solist）|
 | **无障碍自动化** | 已知自动化包 B 级 / 未知 C 级（白名单制） | C11 | 未知服务不参与定性（TalkBack 白名单）|
 | **VPN/代理** | TRANSPORT_VPN / proxyHost | C11 | ✅（均 C 级）|
@@ -104,7 +104,7 @@
 | **KernelSU** | supercall + 包名 + ksud + /proc/modules + 基线 | ✅ **多路** | — |
 | **KSU-Next/SukiSU** | 包名 + spoofed 内容指纹 | ✅ | — |
 | **APatch** | supercall + 包名 + /data/adb/ap | ✅ | — |
-| **隐藏栈 susfs** | fstype 交叉 + fs.susfs + 三路 diff（too-clean 未接线） | ⬜ **降权** | v2.x 用户态 umount 一致化 |
+| **隐藏栈 susfs** | fstype 交叉 + fs.susfs + 三路 diff + too-clean（机型命中时） | ⬜ **降权** | v2.x 用户态 umount 一致化 |
 | **Shamiko** | too-clean + anti_detect | ⬜ **间接** | 无直接特征 |
 | **KPM** | — | ⛔ | **物理不可检测**（内核态，唯一边界）|
 
@@ -160,12 +160,12 @@
 
 ## ⓪ 能力断链记录（2026-11-10 审计发现）
 
-**attestation 域已建成未接线**：feature/attestation 模块完整（双根校验/CRL/交叉检查/
-分级降级），设备冒烟测试通过（AttestationDeviceSmokeTest），specs 契约声明「为 L3 档
-提供硬件信任锚」——但 ScanOrchestrator 从未调用，L3 引擎实现仅为 L2 同款 collectors。
-**影响**：深度隐藏场景的"最终判定路径"（REAL_DEVICE_COMPARISON 结论 5）实际不可达。
-**接线待办**：challenge 生命周期 + Keymaster 异步密钥生成超时治理 + L3 档位真实化
-（feature 级工作，独立排期）。
+**attestation 域已接线（P2-1，2026-11-11）**：C13 采集器接入 L3 档（3000→5000ms 预算
++ executor 超时重建加固），challenge 每调用新生（echo 回显证明链为本调用现铸）。已验证：
+模拟器 L3=76（空锚诚实降级路径）；华为真 Keymaster 首跑 keygen 21ms 成功但 service.run
+超预算（app 进程特有挂起，cleanup deleteEntry 假说，见 REGRESSION）——按设计降级不误报。
+**残余待办**：① Google 双根证书装配（当前空锚 → 一切 Rejected）；② 华为 KeyStore
+挂起根因深查。
 
 ---
 
