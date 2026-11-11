@@ -40,20 +40,31 @@ class BehaviorCheckCollector(
     /** 无障碍白名单（系统/OEM/密码管理器/辅助工具，calibration #3） */
     private val accessibilityWhitelist = setOf(
         "com.google.android.marvin", // TalkBack
-        "com.google.android.accessibility", // Select to Speak
+        "com.google.android.accessibility", // Select to Speak / Switch Access / Sound Amplifier
         "com.android.accessibilityservice",
         "com.android.settings", // 系统设置
+        "com.android.systemui", // 无障碍菜单（AccessibilityMenuService，无图标系统服务）
         "com.lastpass.lpandroid", "com.agilebits.onepassword",
         "com.bitwarden", "com.dashlane",
         "com.samsung.android.accessibility",
+        "com.miui.accessibility", "com.vivo.accessibility", // OEM 无障碍服务（无图标系统服务）
+        "com.oplus.accessibility", "com.huawei.accessibility",
+        // 2026-11-11 华为真机实证：分布式剪贴板拖拽服务（EMUI 系统功能）误入未知名单
+        "com.huawei.distributedpasteboard", "com.huawei.screenreader",
+        "com.coloros.accessibility", "com.heytap.accessibility",
     )
 
     override fun collect(input: ScanInput): CollectorResult = try {
         val findings = mutableListOf<Finding>()
         findings += checkVpn()
+        findings += checkVpnOwner()
         findings += checkProxy()
+        findings += checkGlobalProxy()
         findings += checkAccessibility()
         findings += checkClockConsistency()
+        findings += checkSimStatus()
+        findings += checkBatteryIntegrity()
+        findings += checkGeoConsistency()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -62,6 +73,8 @@ class BehaviorCheckCollector(
                 "vpn" to isVpnActive().toString(),
                 "proxyHost" to (System.getProperty("http.proxyHost") ?: "null"),
                 "clockDriftMs" to lastClockDriftMs.toString(),
+                "simState" to (lastSimStates.joinToString(",")).ifEmpty { "n/a" },
+                "battery" to (lastBatterySummary ?: "n/a"),
             ),
         )
     } catch (e: Throwable) {
@@ -111,7 +124,33 @@ class BehaviorCheckCollector(
         } else emptyList()
     }
 
+    // ---- 全局代理（系统级 HTTP 代理，独立于 JVM 属性——改机工具常漏改此处形成矛盾面） ----
+
+    private fun checkGlobalProxy(): List<Finding> {
+        // 值形态："host:port"（或带 ~ 排除列表）；未设置时为 null 或 "none"
+        val gp = runCatching {
+            Settings.Global.getString(context.contentResolver, Settings.Global.HTTP_PROXY)
+        }.getOrNull()?.trim().orEmpty()
+        if (gp.isEmpty() || gp == "none" || gp == ":0") return emptyList()
+        return listOf(
+            Finding(
+                ruleId = "network.global_proxy_set",
+                collector = id,
+                confidence = Confidence.C, // 合法场景：企业策略/家长控制
+                category = Finding.Category.NETWORK_MITM,
+                framework = null,
+                detail = "系统全局 HTTP 代理已配置: $gp（全设备流量劫持面，MITM 工具特征之一）",
+                raw = mapOf("proxyHash" to gp.hashCode().toString()),
+            ),
+        )
+    }
+
     // ---- 无障碍服务枚举（白名单制，calibration #3） ----
+    // RAT 形态探测（无障碍+隐藏图标+非系统三特征，BTMOB 类）已论证不可行：
+    // 已启用的无障碍服务包对未声明 queries 的应用并不可见（2026-11-10 模拟器
+    // 实证——服务真绑定后 getPackageInfo 仍 NameNotFoundException；TalkBack 可见
+    // 属特例不可泛化），图标状态无从查询；破局需 QUERY_ALL_PACKAGES，与 specs
+    // 「不申报全量枚举」冲突 → 列为已知边界（见 COVERAGE_ANALYSIS）。
 
     private fun checkAccessibility(): List<Finding> = buildList {
         val enabledServices = runCatching {
@@ -148,6 +187,227 @@ class BehaviorCheckCollector(
         }
     }
 
+    // ---- VPN owner 识别（always-on VPN 的归属包名，best-effort 非公开键） ----
+
+    private fun checkVpnOwner(): List<Finding> {
+        // Settings.Secure 非公开键；部分版本可读出 always-on VPN 的包名（读取本身无需权限）
+        val owner = runCatching {
+            Settings.Secure.getString(context.contentResolver, "always_on_vpn_app")
+        }.getOrNull()?.trim().orEmpty()
+        if (owner.isEmpty() || owner == context.packageName) return emptyList()
+        return listOf(
+            Finding(
+                ruleId = "network.vpn_owner",
+                collector = id,
+                confidence = Confidence.C, // always-on VPN 合法（企业）；归属包名供风控归因
+                category = Finding.Category.NETWORK_MITM,
+                framework = null,
+                detail = "always-on VPN 归属应用: $owner（常开 VPN = 全流量隧道面；可能为企业 VPN 也可能是抓包/分流工具）",
+                raw = mapOf("pkgHash" to owner.hashCode().toString()),
+            ),
+        )
+    }
+
+    // ---- SIM 卡状态感知（全部 C 级：只报矛盾态，不报常态——无 SIM 存在大量合法场景） ----
+    // 无权限信号集（API 权威确认免 READ_PHONE_STATE）：
+    // getSimState(slot) / getSimCountryIso / getNetworkCountryIso / getSimOperator / getActiveModemCount
+
+    private var lastSimStates: List<String> = emptyList()
+
+    /** SIM_STATE_LOADED（API 26+）不在公开常量表——用数值常量（框架内部一致）。 */
+    private val SIM_STATE_LOADED_VAL = 10
+
+    private fun checkSimStatus(): List<Finding> = buildList {
+        val tm = runCatching { context.getSystemService(android.telephony.TelephonyManager::class.java) }.getOrNull()
+            ?: return@buildList
+        // 无电话能力的设备（WiFi-only 平板）跳过——SIM 缺失不是异常
+        val hasTelephony = runCatching {
+            context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TELEPHONY)
+        }.getOrDefault(false)
+        if (!hasTelephony) return@buildList
+
+        val modemCount = runCatching {
+            if (android.os.Build.VERSION.SDK_INT >= 30) tm.activeModemCount else @Suppress("DEPRECATION") tm.phoneCount
+        }.getOrDefault(0)
+        if (modemCount <= 0) return@buildList
+
+        val states = (0 until modemCount).map { slot ->
+            runCatching { tm.getSimState(slot) }.getOrDefault(android.telephony.TelephonyManager.SIM_STATE_UNKNOWN)
+        }
+        lastSimStates = states.map { simStateName(it) }
+
+        // 矛盾 1：SIM 声称 LOADED 但运营商/国家码全空（软件伪造 SIM 状态特征）
+        val loaded = states.any { it == SIM_STATE_LOADED_VAL }
+        if (loaded) {
+            val simIso = runCatching { tm.simCountryIso }.getOrNull().orEmpty()
+            val simOp = runCatching { tm.simOperator }.getOrNull().orEmpty()
+            val netIso = runCatching { tm.networkCountryIso }.getOrNull().orEmpty()
+            if (simIso.isBlank() && simOp.isBlank() && netIso.isBlank()) {
+                add(
+                    Finding(
+                        ruleId = "sim.loaded_but_blank",
+                        collector = id,
+                        confidence = Confidence.C,
+                        category = Finding.Category.SIM_ANOMALY,
+                        framework = null,
+                        detail = "SIM 状态为 LOADED 但运营商/国家码全部为空——状态矛盾（软件伪造 SIM 形态或虚拟基带）",
+                        raw = mapOf("modems" to modemCount.toString(), "states" to lastSimStates.joinToString(",")),
+                    ),
+                )
+            } else if (simIso.isNotBlank() && netIso.isNotBlank() && simIso != netIso) {
+                // 线索（合法漫游常见，仅记录）
+                add(
+                    Finding(
+                        ruleId = "sim.iso_mismatch",
+                        collector = id,
+                        confidence = Confidence.C,
+                        category = Finding.Category.SIM_ANOMALY,
+                        framework = null,
+                        detail = "SIM 国家码($simIso)与注册网络国家码($netIso)不一致（漫游合法；与 GPS/时区交叉可判改机）",
+                        raw = mapOf("simIso" to simIso, "netIso" to netIso),
+                    ),
+                )
+            }
+        }
+
+        // 矛盾 2：有 modem 有电话能力但全槽 ABSENT（云手机/群控设备常见形态；备机/双卡空槽合法）→ 仅记录
+        val allAbsent = states.isNotEmpty() && states.all { it == android.telephony.TelephonyManager.SIM_STATE_ABSENT }
+        if (allAbsent) {
+            add(
+                Finding(
+                    ruleId = "sim.all_absent",
+                    collector = id,
+                    confidence = Confidence.C,
+                    category = Finding.Category.SIM_ANOMALY,
+                    framework = null,
+                    detail = "设备具备蜂窝能力但全 SIM 槽 ABSENT（云手机/群控常见；备机/平板合法——C 级不参与定性）",
+                    raw = mapOf("modems" to modemCount.toString()),
+                ),
+            )
+        }
+    }
+
+    // ---- 地理一致性（三方合议：时区区域 + locale 国别 vs SIM 国码；ICU API 24+ 免权限） ----
+    // 单看时区 vs SIM 的不一致在国际旅行场景大量合法（2026-11-10 模拟器实证：
+    // 宿主时区 CN + 虚拟 SIM US 即触发）。收紧为三方合议：时区与 SIM 不一致
+    // 且 locale 国别也与 SIM 不一致才产出——旅行者（locale 通常随原属地）不触发；
+    // 改机/GPS 伪造常出现三方拼凑不自洽。
+
+    private fun checkGeoConsistency(): List<Finding> {
+        val tm = runCatching { context.getSystemService(android.telephony.TelephonyManager::class.java) }.getOrNull()
+            ?: return emptyList()
+        val simIso = runCatching { tm.simCountryIso }.getOrNull()?.uppercase().orEmpty()
+        if (simIso.isBlank()) return emptyList()
+
+        val tzId = java.util.TimeZone.getDefault().id
+        val tzRegion = runCatching { android.icu.util.TimeZone.getRegion(tzId) }.getOrNull()?.uppercase().orEmpty()
+        if (tzRegion.isBlank() || tzRegion == "001") return emptyList() // 001=无区域时区（UTC/GMT）
+        if (tzRegion == simIso) return emptyList() // 时区与 SIM 一致 → 无信号
+
+        // 三方合议第二票：locale 国别（用户可改，但旅行者通常保留原属地）
+        val localeCountry = java.util.Locale.getDefault().country.uppercase()
+        return if (localeCountry.isNotEmpty() && localeCountry != simIso) {
+            listOf(
+                Finding(
+                    ruleId = "geo.tz_sim_mismatch",
+                    collector = id,
+                    confidence = Confidence.C, // 跨国旅行/双卡合法；与 GPS/网络交叉可判改机
+                    category = Finding.Category.SIM_ANOMALY,
+                    framework = null,
+                    detail = "地理三方不自洽：时区区域($tzRegion)与 locale($localeCountry)均与 SIM 国码($simIso)不一致（时区=$tzId）——改机/GPS 伪造拼凑特征",
+                    raw = mapOf("tzRegion" to tzRegion, "simIso" to simIso, "locale" to localeCountry, "tz" to tzId),
+                ),
+            )
+        } else emptyList()
+    }
+
+    private fun simStateName(s: Int): String = when (s) {
+        android.telephony.TelephonyManager.SIM_STATE_ABSENT -> "ABSENT"
+        android.telephony.TelephonyManager.SIM_STATE_PIN_REQUIRED -> "PIN"
+        android.telephony.TelephonyManager.SIM_STATE_PUK_REQUIRED -> "PUK"
+        android.telephony.TelephonyManager.SIM_STATE_NETWORK_LOCKED -> "NET_LOCK"
+        android.telephony.TelephonyManager.SIM_STATE_READY -> "READY"
+        android.telephony.TelephonyManager.SIM_STATE_NOT_READY -> "NOT_READY"
+        android.telephony.TelephonyManager.SIM_STATE_PERM_DISABLED -> "PERM_DIS"
+        android.telephony.TelephonyManager.SIM_STATE_CARD_IO_ERROR -> "IO_ERR"
+        android.telephony.TelephonyManager.SIM_STATE_CARD_RESTRICTED -> "RESTRICTED"
+        SIM_STATE_LOADED_VAL -> "LOADED"
+        else -> "UNKNOWN"
+    }
+
+    // ---- 电池完整性（云手机假电池：跨层矛盾 + 物理矛盾，全部 C 级——OEM 兼容性差异大） ----
+    // 层 1：Java 框架（ACTION_BATTERY_CHANGED 粘性广播）
+    // 层 2：内核（/sys/class/power_supply/<name>/ 存在性）
+    // 云手机/容器在框架层伪造电池，内核层往往无真实 power_supply 节点 → 跨层矛盾
+
+    private var lastBatterySummary: String? = null
+
+    private fun checkBatteryIntegrity(): List<Finding> = buildList {
+        val intent = runCatching {
+            context.registerReceiver(null, android.content.IntentFilter(android.content.Intent.ACTION_BATTERY_CHANGED))
+        }.getOrNull() ?: return@buildList
+
+        val present = runCatching { intent.getBooleanExtra(android.os.BatteryManager.EXTRA_PRESENT, true) }.getOrDefault(true)
+        val level = runCatching { intent.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1) }.getOrDefault(-1)
+        val voltage = runCatching { intent.getIntExtra(android.os.BatteryManager.EXTRA_VOLTAGE, -1) }.getOrDefault(-1) // mV
+        val temp = runCatching { intent.getIntExtra(android.os.BatteryManager.EXTRA_TEMPERATURE, -1) }.getOrDefault(-1) // 0.1°C
+        val status = runCatching { intent.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1) }.getOrDefault(-1)
+        lastBatterySummary = "present=$present level=$level v=$voltage t=$temp status=$status"
+
+        if (!present) return@buildList
+
+        // 矛盾 1：声称有电池 + 有电量，但电压为 0（真实电池有电压才有电量——物理矛盾）
+        if (level > 5 && voltage == 0) {
+            add(
+                Finding(
+                    ruleId = "battery.level_without_voltage",
+                    collector = id,
+                    confidence = Confidence.C,
+                    category = Finding.Category.VIRTUAL_ENV,
+                    framework = null,
+                    detail = "电池电量 $level% 但电压为 0mV——有电量无电压物理矛盾（虚拟电池形态；少数内核不上报电压为合法缺失）",
+                    raw = mapOf("level" to level.toString(), "voltage" to voltage.toString()),
+                ),
+            )
+        }
+
+        // 矛盾 2：声称有电池 + 电量 >5%，但温度为 0.0°C（273K 以下真机极罕见；热敏电阻缺失/虚拟电池默认值）
+        if (level > 5 && temp == 0) {
+            add(
+                Finding(
+                    ruleId = "battery.zero_temperature",
+                    collector = id,
+                    confidence = Confidence.C,
+                    category = Finding.Category.VIRTUAL_ENV,
+                    framework = null,
+                    detail = "电池温度 0.0°C（冰点以下运行环境物理上不可能持久——虚拟电池默认值特征）",
+                    raw = mapOf("temp" to "0"),
+                ),
+            )
+        }
+
+        // 矛盾 3（跨层）：框架层有电池，但内核无任何标准 power_supply 节点
+        // OEM 命名不统一（battery/bms/maxfg/…），此处用目录枚举：/sys/class/power_supply/ 空 = 内核零电池
+        val psDir = java.io.File("/sys/class/power_supply")
+        if (psDir.isDirectory) {
+            val supplies = runCatching { psDir.list()?.toList() }.getOrNull()
+            if (supplies != null && supplies.isEmpty()) {
+                add(
+                    Finding(
+                        ruleId = "battery.framework_only",
+                        collector = id,
+                        confidence = Confidence.C,
+                        category = Finding.Category.VIRTUAL_ENV,
+                        framework = null,
+                        detail = "框架层报告电池（level=$level%）但 /sys/class/power_supply 为空——内核无任何供电设备（云手机/容器跨层矛盾）",
+                        raw = mapOf("level" to level.toString(), "powerSupplies" to "0"),
+                    ),
+                )
+            }
+        }
+        // 目录不可读（SELinux 常态）→ 静默跳过，不作为信号
+    }
+    // 比较 CLOCK_BOOTTIME (elapsedRealtimeNanos) vs CLOCK_MONOTONIC (nanoTime)
     // ---- G1: 多时钟一致性检测（speed hack, calibration #8） ----
     // 比较 CLOCK_BOOTTIME (elapsedRealtimeNanos) vs CLOCK_MONOTONIC (nanoTime)
     // 速度篡改 hook 只能改一个时钟源；差值 >100ms = B 级

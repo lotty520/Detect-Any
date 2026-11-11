@@ -128,6 +128,55 @@ class FsProbeTest {
         )
         assertEquals(0, MountAnalyzer().analyze(MountInfoParser.parse(lines)).size)
     }
+
+    // ---- /proc/filesystems 内核注册类型比对（特征库 v7） ----
+
+    private val cleanFsLines = listOf(
+        "nodev\tsysfs",
+        "nodev\trootfs",
+        "nodev\ttmpfs",
+        "\text4",
+        "nodev\tfunctionfs",
+    )
+
+    // 用非采样挂载点（/data 等会触发 statfsSvc native 调用，主机测试不可用）
+    private val plainMount = listOf("104 30 253:7 / /mnt/test rw - ext4 /dev/block/... rw")
+
+    @Test
+    fun c2_susfsRegisteredYieldsFinding() {
+        val collector = MountCollector(
+            mountInfoReader = { plainMount },
+            filesystemsReader = { cleanFsLines + "nodev\tsusfs" },
+            statSampler = { null },
+        )
+        val result = collector.collect(input)
+        val f = result.findings.first { it.ruleId == "fs.susfs" }
+        assertEquals(Confidence.B, f.confidence)
+        assertEquals("susfs", f.framework)
+        assertEquals(FindingCategory.ROOT_KERNEL, f.category)
+    }
+
+    @Test
+    fun c2_cleanProcFilesystemsNoSusfsFinding() {
+        val collector = MountCollector(
+            mountInfoReader = { plainMount },
+            filesystemsReader = { cleanFsLines },
+            statSampler = { null },
+        )
+        val result = collector.collect(input)
+        assertTrue(result.findings.none { it.ruleId.startsWith("fs.") })
+    }
+
+    @Test
+    fun c2_procFilesystemsUnreadableDegradesGracefully() {
+        val collector = MountCollector(
+            mountInfoReader = { plainMount },
+            filesystemsReader = { throw java.io.FileNotFoundException("/proc/filesystems") },
+            statSampler = { null },
+        )
+        val result = collector.collect(input)
+        assertTrue(result.findings.none { it.ruleId.startsWith("fs.") })
+    }
 }
 
 private typealias FindingCategory = com.detectany.core.model.Finding.Category

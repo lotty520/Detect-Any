@@ -165,7 +165,7 @@ class VirtualEnvCollector(
         }
     }
 
-    // ---- 传感器检测（C 级，需共振） ----
+    // ---- 传感器检测（C 级，需共振）+ 传感器节律（恒定值 = 虚拟传感器物理特征） ----
 
     private fun checkSensors(): List<Finding> = buildList {
         val sm = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return@buildList
@@ -185,6 +185,9 @@ class VirtualEnvCollector(
                     raw = mapOf("accel" to "absent", "gyro" to "absent"),
                 ),
             )
+        } else {
+            // 节律检测：真实 MEMS 有热噪声，长时间完全恒定 = 虚拟传感器（云手机/部分模拟器）
+            addAll(checkSensorRhythm(sm))
         }
 
         // 基带检测（C 级）
@@ -201,6 +204,74 @@ class VirtualEnvCollector(
                     raw = mapOf("telephony" to "absent"),
                 ),
             )
+        }
+    }
+
+    /**
+     * 传感器节律（恒定值检测）：真实加速度计静止时仍有 LSB 级热噪声抖动；
+     * 足量样本内逐字节完全恒定 = 物理不可能 → 虚拟传感器（B 级）。
+     * 判定门槛保守：≥16 样本 + 跨度 ≥100ms 全等才产出，规避低端量化噪声极端情形。
+     * 采样窗口 ~150ms，不主导扫描时延。
+     */
+    private fun checkSensorRhythm(sm: SensorManager): List<Finding> {
+        val accel = sm.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER) ?: return emptyList()
+        val samples = java.util.concurrent.ConcurrentLinkedQueue<FloatArray>()
+        val latch = java.util.concurrent.CountDownLatch(1)
+        var startTime = 0L
+
+        // registerListener 需要带 Looper 的线程；用一次性 HandlerThread
+        val thread = android.os.HandlerThread("sensor-rhythm").apply { start() }
+        var collected = false
+        try {
+            val listener = object : android.hardware.SensorEventListener {
+                override fun onSensorChanged(e: android.hardware.SensorEvent) {
+                    if (startTime == 0L) startTime = android.os.SystemClock.elapsedRealtime()
+                    samples.add(floatArrayOf(e.values[0], e.values[1], e.values[2]))
+                    // 跨度 >120ms 且样本够即收工
+                    if (samples.size >= 24 ||
+                        (samples.size >= 16 && android.os.SystemClock.elapsedRealtime() - startTime >= 120)
+                    ) {
+                        collected = true
+                        latch.countDown()
+                    }
+                }
+
+                override fun onAccuracyChanged(s: android.hardware.Sensor?, a: Int) {}
+            }
+            val handler = android.os.Handler(thread.looper)
+            val registered = runCatching {
+                sm.registerListener(listener, accel, android.hardware.SensorManager.SENSOR_DELAY_FASTEST, handler)
+            }.isSuccess
+            if (!registered) return emptyList()
+
+            latch.await(300, java.util.concurrent.TimeUnit.MILLISECONDS)
+            runCatching { sm.unregisterListener(listener) }
+
+            if (!collected || samples.size < 16 || startTime == 0L) return emptyList()
+            val spanMs = android.os.SystemClock.elapsedRealtime() - startTime
+            if (spanMs < 100) return emptyList()
+
+            val first = samples.first()
+            val allConstant = samples.all { it[0] == first[0] && it[1] == first[1] && it[2] == first[2] }
+            return if (allConstant) {
+                listOf(
+                    Finding(
+                        ruleId = "emulator.sensor_constant",
+                        collector = id,
+                        confidence = Confidence.B,
+                        category = Finding.Category.EMULATOR,
+                        framework = null,
+                        detail = "加速度计 ${samples.size} 样本/${spanMs}ms 内逐值完全恒定——真实 MEMS 热噪声下物理不可能（虚拟传感器：云手机/模拟器特征）",
+                        raw = mapOf(
+                            "samples" to samples.size.toString(),
+                            "spanMs" to spanMs.toString(),
+                            "value" to "${first[0]},${first[1]},${first[2]}",
+                        ),
+                    ),
+                )
+            } else emptyList()
+        } finally {
+            thread.quitSafely()
         }
     }
 

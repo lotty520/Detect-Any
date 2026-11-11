@@ -183,3 +183,9 @@ internal fun defaultPathEntries(): List<SignatureEntries.PathEntry> = listOf(
     SignatureEntries.PathEntry("path.su.system_xbin", "/system/xbin/su", null, Confidence.C, Finding.Category.ROOT_USERSPACE),
     SignatureEntries.PathEntry("path.su.sbin", "/sbin/su", null, Confidence.C, Finding.Category.ROOT_USERSPACE),
 )
+
+/** /proc/filesystems 特征类型表（内置基线；特征库 v7 数据化）。 */
+internal fun defaultFsEntries(): List<SignatureEntries.FilesystemEntry> = listOf(
+    // susfs：register_filesystem("susfs")，非隐藏配置下必现；深隐藏（hide log/mounts 全开）时漏检可接受
+    SignatureEntries.FilesystemEntry("fs.susfs", "susfs", "susfs", Confidence.B, Finding.Category.ROOT_KERNEL),
+)

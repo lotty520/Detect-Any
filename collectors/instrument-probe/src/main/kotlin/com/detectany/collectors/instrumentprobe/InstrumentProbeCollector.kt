@@ -165,7 +165,10 @@ class InstrumentProbeCollector : Collector {
 
     private fun parseListenPorts(): List<Int> {
         val ports = mutableListOf<Int>()
-        // 仅取 /proc/net/tcp 中 LISTEN (0A) 状态的端口
+        // 仅取 /proc/net/tcp 中 LISTEN (0A) 状态的端口。
+        // 平台边界（2026-11-10 审计实证）：API 28+ 未特权进程读 /proc/net/tcp 为
+        // EACCES → runCatching 吞掉后端口列表为空，探测收敛为 27042 兜底。
+        // 改端口 Frida 由 maps/线程名/RWX 三防线兜底（spec 已注明门控）。
         runCatching {
             File("/proc/net/tcp").readLines().drop(1).forEach { line ->
                 val fields = line.trim().split(Regex("\\s+"))

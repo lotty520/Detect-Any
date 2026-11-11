@@ -24,9 +24,14 @@ class PathProbeCollector(
     override val id: CollectorId = CollectorId.C1_PATH
 
     override fun collect(input: ScanInput): CollectorResult {
+        // L1 子集化（2026-11-10 时延修复）：仅探测 A/B 级路径——C 级路径
+        // （/data/adb 族，对 app 永远 EACCES）在快扫里是纯浪费的 3×syscall
+        val effective = if (input.tier == com.detectany.core.model.ScanTier.L1) {
+            paths.filter { it.confidence != com.detectany.core.model.Confidence.C }
+        } else paths
         val findings = mutableListOf<Finding>()
         var degraded = 0
-        for (entry in paths) {
+        for (entry in effective) {
             try {
                 val diff = executor.probe(entry.path)
                 // 三路 diff：svc vs libc 层间不一致即 hook 证据（A 级物理不变量）
@@ -77,19 +82,25 @@ class PathProbeCollector(
         }
         return CollectorResult(
             collector = id,
-            status = if (degraded == paths.size) CollectorResult.Status.BLOCKED else if (degraded > 0) CollectorResult.Status.DEGRADED else CollectorResult.Status.OK,
+            status = if (degraded == effective.size) CollectorResult.Status.BLOCKED else if (degraded > 0) CollectorResult.Status.DEGRADED else CollectorResult.Status.OK,
             findings = findings,
-            meta = mapOf("probed" to paths.size.toString(), "degraded" to degraded.toString()),
+            meta = mapOf("probed" to effective.size.toString(), "degraded" to degraded.toString()),
         )
     }
 }
 
 /**
  * C2 挂载/设备号（任务 3.2）：mountinfo 解析 + st_dev 四路采样 + 基线偏离。
- * statfs f_type 交叉记录进 meta（overlay/tmpfs 判别由 analyzer 消费）。
+ * statfs f_type 交叉记录进 meta（overlay/tmpfs 判别由 analyzer 消费）；
+ * /proc/filesystems 内核注册文件系统类型比对（susfs 非隐藏场景残留，特征库 v7）。
  */
 class MountCollector(
     private val mountInfoReader: () -> List<String> = { java.io.File("/proc/self/mountinfo").readLines() },
+    private val filesystemsReader: () -> List<String> = { java.io.File("/proc/filesystems").readLines() },
+    private val fsEntries: List<SignatureEntries.FilesystemEntry> = defaultFsEntries(),
+    // ⚠️ 2026-11-10 审计发现：默认 MountAnalyzer() 的 baselineMountCount=null →
+    // mount.too_clean 与 st_dev 偏离两个 B 级信号在生产从未执行（无机型基线数据，
+    // 不拍脑袋启用——G7 待办子症状；启用需 deviceBaselines 数据接线 + 多机型实测）
     private val analyzer: MountAnalyzer = MountAnalyzer(),
     private val stDevPaths: List<String> = listOf("/dev", "/proc", "/sys", "/dev/pts"),
     private val statSampler: (String) -> Long? = { path ->
@@ -126,6 +137,10 @@ class MountCollector(
                 )
             }
         }
+
+        // /proc/filesystems 内核注册类型比对（v7）：susfs 等以 register_filesystem 注册的
+        // 挂载名在非隐藏场景残留；名字由内核持有，无法被用户态改名（深隐藏配置会藏掉 → 漏检可接受）
+        findings += checkRegisteredFilesystems()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -138,6 +153,24 @@ class MountCollector(
         )
     } catch (e: Throwable) {
         CollectorResult(collector = id, status = CollectorResult.Status.BLOCKED, meta = mapOf("error" to (e.message ?: e.javaClass.simpleName)))
+    }
+
+    /** /proc/filesystems 行格式：`nodev\tname` 或 `name`；比对特征名（精确匹配）。 */
+    private fun checkRegisteredFilesystems(): List<Finding> {
+        if (fsEntries.isEmpty()) return emptyList()
+        val lines = runCatching { filesystemsReader() }.getOrNull() ?: return emptyList()
+        val registered = lines.mapNotNull { it.substringAfterLast('\t').trim().ifEmpty { null } }.toSet()
+        return fsEntries.filter { it.fsName in registered }.map { entry ->
+            Finding(
+                ruleId = entry.id,
+                collector = id,
+                confidence = entry.confidence,
+                category = entry.category,
+                framework = entry.framework,
+                detail = "内核注册文件系统类型存在: ${entry.fsName}（/proc/filesystems）",
+                raw = mapOf("fsName" to entry.fsName),
+            )
+        }
     }
 }
 

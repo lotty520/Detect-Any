@@ -23,7 +23,7 @@ class AppFingerprintMatcherTest {
         )
         val f = AppFingerprintMatcher.match(entry, "aaaaaa.bbbbbb.cccccc", certSha256Hex = null, presentStrings = setOf("sukisu", "KernelSU", "其他字符串"))
         assertEquals(Confidence.B, f?.confidence)
-        assertTrue(f!!.detail.contains("spoofed"))
+        assertTrue(f!!.detail.contains("双命中"))  // 2026-11-10 文案修正：包名+内容双命中
     }
 
     @Test
@@ -35,8 +35,10 @@ class AppFingerprintMatcherTest {
         )
         val hit = AppFingerprintMatcher.match(entry, "p", null, setOf("a"))
         assertEquals(Confidence.B, hit?.confidence)
-        // 完全无命中仍然 null
-        assertNull(AppFingerprintMatcher.match(entry, "p", null, emptySet()))
+        // 2026-11-10 准确性双向修正：内容未命中不再整条漏检（FN 洞），降级 C
+        val miss = AppFingerprintMatcher.match(entry, "p", null, emptySet())
+        assertEquals(Confidence.C, miss?.confidence)
+        assertEquals("false", miss?.raw?.get("contentVerified"))
     }
 
     @Test
