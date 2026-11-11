@@ -120,8 +120,10 @@ class MountAnalyzer(
         }
 
         // 4) 「过度干净」（anti_detect_present 独立证据类型）
+        // P2-2（2026-11-11）：基线数据化后 threshold 直用 mountCountMin（同机型实测下限），
+        // 原×0.6 缓冲是拍脑袋基线时代的余量，真数据不需要
         baselineMountCount?.let { base ->
-            if (entries.size < base * 6 / 10) {
+            if (entries.size < base) {
                 add(
                     Finding(
                         ruleId = "mount.too_clean",
@@ -144,7 +146,9 @@ class MountAnalyzer(
                     Finding(
                         ruleId = "mount.stdev_deviation.$path",
                         collector = com.detectany.core.model.CollectorId.C2_MOUNT,
-                        confidence = Confidence.A,
+                        // P2-2（2026-11-11）：降 C——tmpfs 设备号按挂载顺序分配，跨重启
+                        // 稳定性未验证（同机型 3 次重启采样一致后才可升 B）
+                        confidence = Confidence.C,
                         category = Finding.Category.ROOT_USERSPACE,
                         framework = null,
                         detail = "st_dev($path)=$actual 与基线 $expected 不符（启动期 tmpfs 设备号占用痕迹）",

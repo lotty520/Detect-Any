@@ -28,6 +28,7 @@ object BundledSignatureDb {
             SignatureEntries.AppEntry(it.id, it.packageNames, it.certPins, it.dexStrings, it.framework, confidence(it.confidence), category(it.category))
         },
         filesystems = db.filesystems.map { SignatureEntries.FilesystemEntry(it.id, it.fsName, it.framework, confidence(it.confidence), category(it.category)) },
+        deviceBaselines = db.deviceBaselines.map { SignatureEntries.DeviceBaselineEntry(it.model, it.mountCountMin ?: 0, it.stDev) },
     )
 
     /** supercall 规格 → 采集器视图（hex 字符串转 Long）。 */
@@ -53,7 +54,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 14,
+      "version": 15,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "until": "v26.x"},
         {"id": "path.magisk.device_socket", "path": "/debug_ramdisk/.magisk/device/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "since": "v27"},
@@ -134,7 +135,7 @@ object BundledSignatureDb {
        "keyboxBlacklist": [],
       "deviceBaselines": [
         {"model": "TAS-AL00", "mountCountMin": 120, "stDev": {"/dev": 16, "/proc": 18, "/sys": 19}},
-        {"model": "Pixel 8", "mountCountMin": 260, "stDev": {}}
+        {"model": "Pixel 8", "mountCountMin": 260, "stDev": {"/dev": 18, "/proc": 20, "/sys": 21}}
       ]
     }
     """.trimIndent()

@@ -98,10 +98,12 @@ class MountCollector(
     private val mountInfoReader: () -> List<String> = { java.io.File("/proc/self/mountinfo").readLines() },
     private val filesystemsReader: () -> List<String> = { java.io.File("/proc/filesystems").readLines() },
     private val fsEntries: List<SignatureEntries.FilesystemEntry> = defaultFsEntries(),
-    // ⚠️ 2026-11-10 审计发现：默认 MountAnalyzer() 的 baselineMountCount=null →
-    // mount.too_clean 与 st_dev 偏离两个 B 级信号在生产从未执行（无机型基线数据，
-    // 不拍脑袋启用——G7 待办子症状；启用需 deviceBaselines 数据接线 + 多机型实测）
+    // P2-2（2026-11-11）接线：baselineLookup 命中机型（deviceBaselines 数据）时
+    // 以真数据构造分析器——too_clean（B）与 st_dev 偏离（C）激活；
+    // 未命中机型维持不判（无基线数据不拍脑袋）。默认无 lookup = 原行为。
+    private val baselineLookup: (String) -> SignatureEntries.DeviceBaselineEntry? = { null },
     private val analyzer: MountAnalyzer = MountAnalyzer(),
+    private val deviceModel: () -> String = { android.os.Build.MODEL ?: "" }, // host 单测 Build.MODEL 返回 null（非异常）——elvis 兜底
     private val stDevPaths: List<String> = listOf("/dev", "/proc", "/sys", "/dev/pts"),
     private val statSampler: (String) -> Long? = { path ->
         runCatching { parseStatArray(SyscallJni.statSvc(path)) as? com.detectany.core.nativeplatform.StatOutcome.Ok }
@@ -114,7 +116,11 @@ class MountCollector(
     override fun collect(input: ScanInput): CollectorResult = try {
         val entries = MountInfoParser.parse(mountInfoReader())
         val stDevs = stDevPaths.mapNotNull { p -> statSampler(p)?.let { p to it } }.toMap()
-        val findings = analyzer.analyze(entries, stDevs).toMutableList()
+        val baseline = baselineLookup(deviceModel())
+        val effectiveAnalyzer = baseline?.let {
+            MountAnalyzer(baselineMountCount = it.mountCountMin, expectedStDev = it.stDev)
+        } ?: analyzer
+        val findings = effectiveAnalyzer.analyze(entries, stDevs).toMutableList()
 
         // statfs f_type 交叉（任务 3.2）：mountinfo 声称的 fstype 与 statfs 实测 f_type 魔数
         // 不一致 = susfs 类挂载伪造形态（overlay 冒充 tmpfs 会被 0x01021997 拆穿）

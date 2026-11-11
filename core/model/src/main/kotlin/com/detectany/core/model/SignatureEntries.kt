@@ -10,6 +10,7 @@ data class SignatureEntries(
     val properties: List<PropertyEntry> = emptyList(),
     val apps: List<AppEntry> = emptyList(),
     val filesystems: List<FilesystemEntry> = emptyList(),
+    val deviceBaselines: List<DeviceBaselineEntry> = emptyList(),
 ) {
     data class PathEntry(
         val id: String,
@@ -37,6 +38,15 @@ data class SignatureEntries(
         val category: Finding.Category,
         /** 值条件：非 null 时值必须包含该子串才命中（如 native.bridge 必须含 loader 名，排除全机型默认值 "0"） */
         val valueContains: String? = null,
+    )
+
+    /** 机型挂载基线（P2-2：too_clean/st_dev 消费侧接线，2026-11-11） */
+    data class DeviceBaselineEntry(
+        val model: String,
+        /** 挂载数下限观测（同机型实测最小值；低于此 = too_clean 门槛） */
+        val mountCountMin: Int,
+        /** 关键路径 st_dev 期望（tmpfs 设备号；跨重启稳定性未验证 → 消费侧 C 级） */
+        val stDev: Map<String, Long> = emptyMap(),
     )
 
     data class FilesystemEntry(

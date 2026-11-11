@@ -11,6 +11,9 @@ import kotlin.test.assertTrue
 /** 任务 4.1/4.2 验证：schema 装载 + ed25519 验签 + 增量合并 + 拒绝路径。 */
 class SignatureStoreTest {
 
+    /** 动态基线（2026-11-11 根治：测试版本常量相对内置库计算，DB 升版零同步成本） */
+    private val base: Long get() = BundledSignatureDb.db.version
+
     private fun keyPair(): Pair<String, java.security.PrivateKey> {
         val kp = KeyPairGenerator.getInstance("Ed25519").genKeyPair()
         val pubB64 = Base64.getEncoder().encodeToString(kp.public.encoded)
@@ -27,7 +30,7 @@ class SignatureStoreTest {
     @Test
     fun bundledBaselineLoadsAndParses() {
         val db = BundledSignatureDb.db
-        assertEquals(14L, db.version)
+        assertEquals(base, db.version)
         assertTrue(db.paths.size >= 10)
         assertTrue(db.apps.any { it.id == "app.sukisu" && it.dexStrings.isNotEmpty() })
         assertTrue(db.supercalls.any { it.family == "ksu_reboot" && it.magic1Hex == "deadbeef" })
@@ -62,10 +65,10 @@ class SignatureStoreTest {
         val (pub, priv) = keyPair()
         val store = SignatureStore(verifier = SignatureVerifier(pub))
         val newDb = store.current().copy(version = 5)
-        val update = SignedUpdate(version = 15, payload = newDb, signatureBase64 = sign(priv, newDb))
+        val update = SignedUpdate(version = base + 1, payload = newDb, signatureBase64 = sign(priv, newDb))
         val r = store.apply(update)
         assertTrue(r is ApplyResult.Applied)
-        assertEquals(15L, store.current().version) // 装载即生效
+        assertEquals(base + 1, store.current().version) // 装载即生效
     }
 
     @Test
@@ -74,10 +77,10 @@ class SignatureStoreTest {
         val (_, otherPriv) = keyPair()
         val store = SignatureStore(verifier = SignatureVerifier(pub))
         val newDb = store.current().copy(version = 5)
-        val forged = SignedUpdate(version = 15, payload = newDb, signatureBase64 = sign(otherPriv, newDb))
+        val forged = SignedUpdate(version = base + 1, payload = newDb, signatureBase64 = sign(otherPriv, newDb))
         val r = store.apply(forged)
         assertTrue(r is ApplyResult.Rejected && r.reason.contains("signature"))
-        assertEquals(14L, store.current().version) // 旧版保留
+        assertEquals(base, store.current().version) // 旧版保留
     }
 
     @Test
@@ -95,10 +98,10 @@ class SignatureStoreTest {
         val (pub, priv) = keyPair()
         val store = SignatureStore(verifier = SignatureVerifier(pub))
         val delta = SignatureDb(
-            version = 15,
+            version = base + 1,
             paths = listOf(SignatureDb.PathEntry("path.new_marker2", "/data/adb/x2", null, "C", "ROOT_KERNEL")),
         )
-        val update = SignedUpdate(version = 15, baseVersion = 14, payload = delta, signatureBase64 = sign(priv, delta))
+        val update = SignedUpdate(version = base + 1, baseVersion = base, payload = delta, signatureBase64 = sign(priv, delta))
         val r = store.apply(update)
         assertTrue(r is ApplyResult.Applied, r.toString())
         val db = store.current()
@@ -110,11 +113,11 @@ class SignatureStoreTest {
         val (pub, priv) = keyPair()
         val store = SignatureStore(verifier = SignatureVerifier(pub))
         val delta = SignatureDb(
-            version = 17,
+            version = base + 1,
             paths = listOf(SignatureDb.PathEntry("path.new_marker", "/data/adb/newthing", "sukisu", "C", "ROOT_KERNEL")),
             keyboxBlacklist = listOf(SignatureDb.KeyboxEntry("aabbcc", "leaked")),
         )
-        val update = SignedUpdate(version = 15, baseVersion = 14, payload = delta, signatureBase64 = sign(priv, delta))
+        val update = SignedUpdate(version = base + 1, baseVersion = base, payload = delta, signatureBase64 = sign(priv, delta))
         val r = store.apply(update)
         assertTrue(r is ApplyResult.Applied, r.toString())
         val db = store.current()
@@ -127,8 +130,8 @@ class SignatureStoreTest {
     fun deltaBaseMismatchRejected() {
         val (pub, priv) = keyPair()
         val store = SignatureStore(verifier = SignatureVerifier(pub))
-        val delta = SignatureDb(version = 17)
-        val update = SignedUpdate(version = 17, baseVersion = 16, payload = delta, signatureBase64 = sign(priv, delta))
+        val delta = SignatureDb(version = base + 2)
+        val update = SignedUpdate(version = base + 2, baseVersion = base + 1, payload = delta, signatureBase64 = sign(priv, delta))
         val r = store.apply(update)
         assertTrue(r is ApplyResult.Rejected && r.reason.contains("base mismatch"))
     }
@@ -140,7 +143,7 @@ class SignatureStoreTest {
         val big = store.current().let { db ->
             db.copy(paths = (0 until 64).map { SignatureDb.PathEntry("p$it", "/x/$it", null, "C", "ROOT_USERSPACE") })
         }
-        val update = SignedUpdate(version = 15, payload = big, signatureBase64 = sign(priv, big))
+        val update = SignedUpdate(version = base + 1, payload = big, signatureBase64 = sign(priv, big))
         val r = store.apply(update)
         assertTrue(r is ApplyResult.Rejected && r.reason.contains("exceeds"))
     }
