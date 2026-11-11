@@ -91,6 +91,7 @@ class CodeIntegrityCollector(
             return if (verifyMem != null && verifyMem.contentEquals(verifyDisk)) {
                 OwnLibPath(disk, solistBase) // 字节匹配 = base 正确
             } else {
+                android.util.Log.w("C7", "locateOwnLib 符号验证失败 disk=$disk solistBase=$solistBase memNull=${verifyMem == null}")
                 null // 不匹配 = solist 有误或被 hook → 宁可不检出也不假阳性
             }
         }
@@ -114,10 +115,12 @@ class CodeIntegrityCollector(
             val ai = context.applicationInfo
             val existing = java.io.File(ai.nativeLibraryDir, LIB_NAME)
             if (existing.isFile) return existing.absolutePath
+            // 缓存副本必须与 APK 内条目尺寸一致——install -r 跨构建保留 cache，
+            // 旧字节会让 solist 符号验证静默失败（2026-11-10 回归发现的陈旧缓存类故障）
             val out = java.io.File(context.cacheDir, LIB_NAME)
-            if (!out.isFile) {
-                ZipFile(ai.sourceDir).use { zip ->
-                    val entry = zip.entries().asSequence().firstOrNull { it.name.endsWith(LIB_NAME) } ?: return null
+            ZipFile(ai.sourceDir).use { zip ->
+                val entry = zip.entries().asSequence().firstOrNull { it.name.endsWith(LIB_NAME) } ?: return null
+                if (!out.isFile || out.length() != entry.size) {
                     zip.getInputStream(entry).use { input ->
                         java.io.FileOutputStream(out).use { input.copyTo(it) }
                     }

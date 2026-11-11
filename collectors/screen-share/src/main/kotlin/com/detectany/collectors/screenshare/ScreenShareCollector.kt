@@ -56,6 +56,7 @@ class ScreenShareCollector(
         findings += checkAdbSession()
         findings += checkRemoteDesktop()
         findings += checkOverlay()
+        findings += checkScreenRecordingState()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -64,10 +65,34 @@ class ScreenShareCollector(
                 "scrcpySockets" to findings.count { it.ruleId.startsWith("screenshare.scrcpy") }.toString(),
                 "adbEnabled" to isAdbEnabled().toString(),
                 "remoteDesktopApps" to findRemoteDesktopApps().size.toString(),
+                "screenRecording" to (ScreenRecordingMonitor.stateVisible?.toString() ?: "unknown"),
             ),
         )
     } catch (e: Throwable) {
         CollectorResult(collector = id, status = CollectorResult.Status.BLOCKED, meta = mapOf("error" to (e.message ?: e.javaClass.simpleName)))
+    }
+
+    // ---- 系统级录制状态（G5，API 34+；状态由 ScreenRecordingMonitor 持有） ----
+
+    private fun checkScreenRecordingState(): List<Finding> {
+        // null=未知（未注册/能力缺失）→ 不产出；true=系统确认本应用画面正被录制
+        val visible = ScreenRecordingMonitor.stateVisible ?: return emptyList()
+        return if (visible) {
+            listOf(
+                Finding(
+                    ruleId = "screenshare.recording_active",
+                    collector = id,
+                    confidence = Confidence.B, // 系统上报的物理状态，非启发式
+                    category = Finding.Category.SCREEN_SHARE,
+                    framework = null,
+                    detail = "系统录屏回调确认：本应用画面正在被录制（状态栏录屏指示器语义，API 34+）",
+                    raw = mapOf(
+                        "stateVisible" to "true",
+                        "lastChangedAtMs" to ScreenRecordingMonitor.lastChangedAtMs.toString(),
+                    ),
+                ),
+            )
+        } else emptyList()
     }
 
     // ---- scrcpy unix socket 检测（A 级） ----

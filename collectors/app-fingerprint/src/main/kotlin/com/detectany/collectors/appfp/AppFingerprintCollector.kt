@@ -17,7 +17,7 @@ import java.security.MessageDigest
  */
 class AppFingerprintCollector(
     private val packageQuery: (String) -> PackageHit? = { null },
-    private val apkStringProbe: (String) -> Set<String> = { emptySet() },
+    private val apkStringProbe: (String, List<String>) -> Set<String> = { _, _ -> emptySet() },
     private val entries: List<SignatureEntries.AppEntry> = defaultAppEntries(),
 ) : Collector {
 
@@ -33,14 +33,16 @@ class AppFingerprintCollector(
             val hit = entry.packageNames.asSequence()
                 .mapNotNull { name -> packageQuery(name)?.takeIf { it.installed }?.let { name to it } }
                 .firstOrNull() ?: continue
-            // 有 certPins 时优先签名比对（快）；否则才走 APK 内容扫描（慢）
-            if (entry.certPins.isNotEmpty()) {
-                AppFingerprintMatcher.match(entry, hit.first, hit.second.certSha256Hex, emptySet())
-                    ?.let { findings.add(it) }
+            // 分层：pins→签名比对（快）；dexStrings→内容扫描（仅该条目探针 + 命中即停）；
+            // 都无→包名 C 级（零扫描）。2026-11-10 性能修复：探针按条目下推，
+            // 双 manager 场景 3.2s → 亚秒（原全框架超集扫描纯属浪费）
+            val present = if (entry.certPins.isEmpty() && entry.dexStrings.isNotEmpty()) {
+                apkStringProbe(hit.second.baseApkPath ?: "", entry.dexStrings)
             } else {
-                AppFingerprintMatcher.match(entry, hit.first, hit.second.certSha256Hex, apkStringProbe(hit.second.baseApkPath ?: ""))
-                    ?.let { findings.add(it) }
+                emptySet()
             }
+            AppFingerprintMatcher.match(entry, hit.first, hit.second.certSha256Hex, present)
+                ?.let { findings.add(it) }
         }
         CollectorResult(collector = id, status = CollectorResult.Status.OK, findings = findings)
     } catch (e: Throwable) {
@@ -56,8 +58,15 @@ class AppFingerprintCollector(
             val pm = context.packageManager
             val query: (String) -> PackageHit? = { name ->
                 runCatching {
-                    val info = pm.getPackageInfo(name, PackageManager.GET_SIGNATURES)
-                    val cert = info.signatures?.firstOrNull()
+                    // API 28+：GET_SIGNING_CERTIFICATES（签名轮替/密钥升级场景下
+                    // 废弃路径可能返回旧签名）；低版本回退 GET_SIGNATURES
+                    val info = if (android.os.Build.VERSION.SDK_INT >= 28) {
+                        pm.getPackageInfo(name, PackageManager.GET_SIGNING_CERTIFICATES)
+                    } else {
+                        @Suppress("DEPRECATION") pm.getPackageInfo(name, PackageManager.GET_SIGNATURES)
+                    }
+                    val cert = info.signingInfo?.apkContentsSigners?.firstOrNull()
+                        ?: @Suppress("DEPRECATION") info.signatures?.firstOrNull()
                     PackageHit(
                         installed = true,
                         certSha256Hex = cert?.let { sig ->
@@ -67,10 +76,12 @@ class AppFingerprintCollector(
                     )
                 }.getOrNull()
             }
-            val probe: (String) -> Set<String> = { apkPath ->
+            val probe: (String, List<String>) -> Set<String> = { apkPath, probes ->
                 // 流式分块扫描（64KB 块 + 跨块 overlap）：大 APK（Magisk 30MB+）不整读，
-                // 内存 O(块) 且提前全命中即停——C5 时延/内存双修（2026-11-06）
-                scanApkStrings(apkPath, DEFAULT_PROBE_STRINGS)
+                // 内存 O(块) 且全部探针命中即停——C5 时延/内存双修（2026-11-06）；
+                // 探针由调用方按条目传入（2026-11-10：早退实际生效——条目自身
+                // 探针在其 APK 内真实存在，不再被无关框架探针拖完全量）
+                scanApkStrings(apkPath, probes)
             }
             return AppFingerprintCollector(query, probe, entries)
         }
@@ -101,14 +112,6 @@ class AppFingerprintCollector(
             }
             found
         }.getOrDefault(emptySet())
-        val DEFAULT_PROBE_STRINGS = listOf(
-            "KernelSU", "ksu_driver", "ksud",
-            "APatch", "superkey", "KernelPatch",
-            "libmagisk", "magiskinit", "magiskpolicy",
-            "lspd", "XposedBridge", "edxp",
-            "zygisk", "rifsxd", "sukisu",
-            "TrustMeAlready", "trustmealready", "ZygiskDetect",
-        )
     }
 }
 
@@ -136,9 +139,11 @@ object AppFingerprintMatcher {
             }
             return null
         }
-        // 内容指纹：高特异探针词任一命中 → B（spoofed 包名兜底路径）
-        // 2026-11-06 真机实证：包名字符串不进自身 dex 池（me.bmax.apatch 在其 APK 中 0 次），
-        // containsAll 全命中语义导致整条漏检；any + 特异词（superkey/KernelPatch 级）误报可控
+        // 内容指纹 = 包名命中的二次验证（Luckin Coffee 教训：防同名无关 app 假阳性）。
+        // 2026-11-06 语义修正：any 命中（containsAll 曾致整条漏检）。
+        // 2026-11-10 准确性双向修正：内容未命中不再 return null（官方 manager 全压缩
+        // 构建时整条漏检 = FN 洞），降级 C——精确域名式包名的撞名风险极低
+        // （撞名者本身即仿冒），接受为 C 级 weight-only；内容命中保持 B。
         if (entry.dexStrings.isNotEmpty()) {
             if (entry.dexStrings.any { it in presentStrings }) {
                 return Finding(
@@ -147,11 +152,19 @@ object AppFingerprintMatcher {
                     confidence = Confidence.B,
                     category = entry.category,
                     framework = entry.framework,
-                    detail = "内容指纹命中(spoofed 变体): 探针 ${entry.dexStrings.joinToString("+")} 全部存在",
-                    raw = mapOf("probes" to entry.dexStrings.joinToString(",")),
+                    detail = "包名+内容指纹双命中: $packageName（探针任一存在: ${entry.dexStrings.joinToString("+")}）",
+                    raw = mapOf("package" to packageName, "probes" to entry.dexStrings.joinToString(",")),
                 )
             }
-            return null
+            return Finding(
+                ruleId = entry.id,
+                collector = CollectorId.C5_APP_FINGERPRINT,
+                confidence = Confidence.C,
+                category = entry.category,
+                framework = entry.framework,
+                detail = "包名精确命中但内容探针未命中: $packageName（APK 全压缩或仿冒包名——C 级不参与定性）",
+                raw = mapOf("package" to packageName, "contentVerified" to "false"),
+            )
         }
         // 无 pins 无探针 → 仅包名（弱）
         return Finding(
