@@ -184,10 +184,17 @@ extern "C" JNIEXPORT jobjectArray JNICALL DA_PKG(ProbeJni_ksuProbe)(JNIEnv *env,
     long ret = 0;
     int err = 0;
     std::vector<std::string> new_fds;
-    da_ksu_probe(m1, m2, m3, arg4, &ret, &err, &new_fds);
+    // 2026-11-10 审计修复：原实现丢弃 -2（seccomp SIGSYS 不可判定）状态——
+    // da_ksu_probe 清零 ret/err 返回 -2，JNI 输出 "ret=0;errno=0" 假装完成，
+    // 掩盖了「探针在 API 28+ 从未真正执行」的事实（模拟器/P8 实测均此态）。
+    const int pr = da_ksu_probe(m1, m2, m3, arg4, &ret, &err, &new_fds);
     std::vector<std::string> out;
     char head[96];
-    snprintf(head, sizeof(head), "ret=%ld;errno=%d", ret, err);
+    if (pr == -2) {
+        snprintf(head, sizeof(head), "undetermined=seccomp;ret=%ld;errno=%d", ret, err);
+    } else {
+        snprintf(head, sizeof(head), "ret=%ld;errno=%d", ret, err);
+    }
     out.emplace_back(head);
     for (const auto &f : new_fds) out.push_back(f);
     return to_string_array(env, out);
