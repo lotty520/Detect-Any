@@ -58,6 +58,7 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 
 | 设备 | 日期 | 结果 | 备注 |
 |---|---|---|---|
+| 真锚装配后 L3 | 2026-11-11 | **Google 双根入 assets（android.googleapis.com/attestation/root 拉取，RSA f92009e853b6b045 + ECDSA P-384 双证书，算法 OID 自动判别）**。模拟器（软件 keymaster）：roots=2 加载、57ms 完成、`chain rejected: Path does not chain with any of the trust anchors`——**软件链不链 Google 根 = 正确判定**（attest.rejected C）。华为（真 TEE）：app 进程仍 timeout（测试进程 167ms 全绿的进程差异问题，KeyStore 挂起边界在案）；TEE keygen 本身 21ms 成功 | |
 | 华为 L3 真机首跑 | 2026-11-11 | **C13 在真 Keymaster 上运行：keygen 21ms 成功（TEEKeyMaster 日志实证 entry_count=4），但 service.run 整体超预算 → DEGRADED(timeout) C 级诚实降级**（L3=34 分 = L2 26 + attest info 8）。根因待查：keygen 成功后某环节在 app 进程挂起（cleanup deleteEntry 假说；测试进程同装配 167ms 完成无超时——平台差异）。加固：超时后 executor 重建（防卡死任务占用单线程导致后续永久超时）+ 完成时序日志。**当前行为正确**：不误报、不阻塞、C 级只标注 | |
 
 | 设备 | 日期 | 结果 | 备注 |
