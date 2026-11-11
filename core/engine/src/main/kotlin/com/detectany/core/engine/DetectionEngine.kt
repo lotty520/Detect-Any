@@ -21,6 +21,8 @@ class DetectionEngine(
     private val collectors: List<Collector>,
     private val rules: RulesEngine,
     private val scoreModel: ScoreModel = ScoreModel(),
+    /** P2-1：L3 档专属采集器（硬件证明）；null = L3 退化为 L2 同集 */
+    private val attestationCollector: Collector? = null,
     /** L1 快集合 */
     private val fastCollectorIds: Set<CollectorId> = setOf(CollectorId.C1_PATH, CollectorId.C3_PROPERTY),
     /** 并行线程池（daemon：不阻塞 JVM 退出；IO 型采集器为主，核数即够） */
@@ -45,7 +47,8 @@ class DetectionEngine(
         val start = System.nanoTime()
         val selected = when (tier) {
             ScanTier.L1 -> collectors.filter { it.id in fastCollectorIds }
-            ScanTier.L2, ScanTier.L3 -> collectors
+            ScanTier.L2 -> collectors
+            ScanTier.L3 -> collectors + listOfNotNull(attestationCollector)
         }
 
         // 并行执行全部选中采集器（单项失败不中断整体，specs：降级透明）

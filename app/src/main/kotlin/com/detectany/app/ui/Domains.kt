@@ -125,6 +125,7 @@ enum class CapabilityDomain(val title: String, val desc: String, val members: Li
     APPS("应用与包指纹", "声明式枚举、签名钉住、DEX 内容指纹（spoofed 兜底）", listOf(CollectorId.C5_APP_FINGERPRINT)),
     MEMORY("内存与注入痕迹", "maps/smaps/soinfo 链表交叉、RWX 自探针、fd 关联", listOf(CollectorId.C6_MEMORY_MAP)),
     INTEGRITY("完整性与自保护", "prologue/GOT 校验、签名摘要、反调试", listOf(CollectorId.C7_CODE_INTEGRITY)),
+    ATTEST("硬件证明（L3）", "Keymaster 密钥证明链、CRL、字段交叉", listOf(CollectorId.C13_ATTESTATION)),
     KERNEL("内核接口行为", "supercall 探针、SELinux errno 语义、三路 diff", listOf(CollectorId.C8_BEHAVIOR)),
     INSTRUMENTATION("动态插桩检测", "Frida 三层防线：字符串/D-Bus 协议/RWX 页特征", listOf(CollectorId.C9_INSTRUMENTATION)),
     VIRTUAL_ENV("虚拟环境检测", "模拟器属性/硬件/传感器/容器/GL 渲染器四维交叉", listOf(CollectorId.C10_VIRTUAL_ENV)),
@@ -147,4 +148,5 @@ val CollectorId.shortName: String
         CollectorId.C10_VIRTUAL_ENV -> "虚拟环境"
         CollectorId.C11_BEHAVIORAL -> "行为检测"
         CollectorId.C12_SCREEN_SHARE -> "屏幕共享"
+        CollectorId.C13_ATTESTATION -> "硬件证明"
     }

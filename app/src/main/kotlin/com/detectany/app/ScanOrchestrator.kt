@@ -42,17 +42,35 @@ class ScanOrchestrator(context: Context) {
 
     private val entries get() = BundledSignatureDb.toEntries(signatureStore.current())
 
+    /** P2-1（2026-11-11）：C13 硬件证明采集器（L3 专用）。
+     *  锚点：真机双根未装配前 AttestationVerifier 空锚 → Rejected 降级路径（不误报，
+     *  AttestationDeviceSmokeTest 契约）；CRL 离线快照兜底；first_api_level 走 PropJni。 */
+    private val attestationCollector = com.detectany.feature.attestation.AttestationCollector(
+        service = com.detectany.feature.attestation.AttestationService(
+            verifier = com.detectany.feature.attestation.AttestationVerifier(emptyList()),
+            crl = com.detectany.feature.attestation.CrlStore(fetcher = { error("online channel pending P2-3") }),
+            firstApiLevel = {
+                runCatching {
+                    com.detectany.core.nativeplatform.PropJni.propGet("ro.product.first_api_level")?.toIntOrNull()
+                }.getOrNull()
+            },
+            ownPackageName = appContext.packageName,
+            crossInput = com.detectany.feature.attestation.AttestationVerifier.CrossInput(claimedModel = android.os.Build.MODEL),
+        ),
+    )
+
     @Volatile
     private var engine: DetectionEngine = DetectionEngine(
         collectors = buildCollectors(),
         rules = RulesEngine(BundledRuleSet.ruleSet),
+        attestationCollector = attestationCollector,
     )
 
     /** 特征文件导入（specs：装载即生效——导入后原位重建引擎与采集器）。 */
     fun importSignatureUpdate(jsonText: String): String {
         val r = com.detectany.feature.report.SignatureImport(signatureStore).import(jsonText)
         if (r is com.detectany.feature.report.SignatureImport.Result.Applied) {
-            engine = DetectionEngine(collectors = buildCollectors(), rules = RulesEngine(BundledRuleSet.ruleSet))
+            engine = DetectionEngine(collectors = buildCollectors(), rules = RulesEngine(BundledRuleSet.ruleSet), attestationCollector = attestationCollector)
             return "特征已更新至 v${r.version}（即时生效）"
         }
         return "导入被拒: ${(r as com.detectany.feature.report.SignatureImport.Result.Rejected).reason}"

@@ -106,6 +106,9 @@ object BundledRuleSet {
             // ---- LSPatch / 任意重打包（自保护签名钉住 + DEX CRC 是 LSPatch 对目标 app 的主判定） ----
             RuleSet.RuleDef("rule.repackaged", category = "REPACKAGED", matchRuleIdPrefixes = listOf("selfguard.repackaged_signature", "selfguard.dex_crc", "mem.known_path", "app.lspatch"), weight = 18),
 
+            // ---- 证明域 info 级（P2-1：降级/超时标注归并；异常证据仍归 rule.trickystore） ----
+            RuleSet.RuleDef("rule.attestation_info", category = "ATTESTATION_SPOOF", matchRuleIdPrefixes = listOf("attest.degraded", "attest.rejected"), weight = 6),
+
             // ---- TrickyStore（证明链异常交叉：吊销/字段矛盾/软件链——设计 D9 中唯一全服务端兜底域） ----
             RuleSet.RuleDef("rule.trickystore", framework = "trickystore", matchRuleIdPrefixes = listOf("attest.keybox_revoked", "attest.cross.", "attest.software_backed", "path.trickystore"), weight = 18),
 

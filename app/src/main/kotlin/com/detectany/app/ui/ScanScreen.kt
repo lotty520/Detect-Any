@@ -16,6 +16,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -64,6 +65,13 @@ fun ScanScreen(controller: ScanController, onOpenEvidence: (String?) -> Unit) {
                 modifier = Modifier.weight(1f),
             ) { controller.runScan(ScanTier.L1) }
         }
+
+        // P2-1：L3 深度档（L2 + 硬件证明，C13 采集器 L3 专用注入）
+        ScanButton(
+            "L3 深度扫描", Icons.Filled.Verified, primary = false, enabled = !controller.scanning,
+            subtitle = "L2 + 硬件密钥证明 · 数秒",
+            modifier = Modifier.fillMaxWidth(),
+        ) { controller.runScan(ScanTier.L3) }
 
         if (controller.scanning) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
