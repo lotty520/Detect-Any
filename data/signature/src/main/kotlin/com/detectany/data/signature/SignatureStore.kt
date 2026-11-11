@@ -95,6 +95,10 @@ class SignatureStore(
         apps = mergeById(base.apps, delta.apps) { it.id },
         sockets = mergeById(base.sockets, delta.sockets) { it.id },
         properties = mergeById(base.properties, delta.properties) { it.id },
+        // 2026-11-10 审计修复：v7 新增 filesystems 段时遗漏此处——增量合并
+        // 会静默丢弃内置 fs.susfs 条目（data class 默认空列表），热更新通道
+        // 一启用即触发 susfs fstype 检测失效
+        filesystems = mergeById(base.filesystems, delta.filesystems) { it.id },
         supercalls = base.supercalls + delta.supercalls.filter { d -> base.supercalls.none { it.family == d.family } },
         keyboxBlacklist = base.keyboxBlacklist + delta.keyboxBlacklist.filterNot { d -> base.keyboxBlacklist.any { it.serialHex == d.serialHex } },
         deviceBaselines = base.deviceBaselines + delta.deviceBaselines.filterNot { d -> base.deviceBaselines.any { it.model == d.model } },
