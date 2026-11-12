@@ -44,6 +44,9 @@
         <package android:name="io.appium.uiautomator2.server.test" />
         <package android:name="io.appium.settings" />
         <package android:name="androidx.test.orchestrator" />
+        <!-- v17：HMA（应用列表隐藏）+ 旧版 LSPosed manager 装机存量 -->
+        <package android:name="com.tsng.hidemyapplist" />
+        <package android:name="org.lsposed.manager" />
     </queries>
 
     <application

@@ -10,6 +10,7 @@
 | **KPM（内核补丁模块）存在性** | KPM 为纯内核态 ELF，加载/控制全部经 supercall（需 superkey），无用户态进程与驻留文件。公开文献不存在用户态 KPM 检测器 | C9 硬件证明（TrickyStore 类伪造会被证明链交叉捕获）；KPM 本体不做任何检出承诺 |
 | **susfs 完整配置下的部分静态痕迹** | susfs 的 sus_path/sus_mount/sus_kstat 可对非 SU 进程隐藏挂载与统计字段 | 三路一致性残差（libc vs svc 的 stat/statfs 字段级发散 → `mount.fstype_cross`）、挂载数基线偏离（`mount.too_clean`）、证明交叉。验收按对抗组「组合风险分捕获 ≥85%」口径，非单信号 100% |
 | **Play Integrity / 服务端图谱联合判定（L3 完整形态）** | 属 Phase 2 服务端（keybox 复用图谱、Integrity 解码通道） | 当前 C9 离线校验（双根锚定 + CRL + 字段交叉）已可用；服务端装配后升级 |
+| **redroid 类自托管容器农场（GitHub 活跃）** | LXC 容器跑完整 Android 系统：属性/构建指纹为真实形态，直通宿主外设时传感器节律也真实——与高端云手机同一客户端边界 | 虚拟外设形态可由 C 级合围（sensor rhythm B + battery cross-layer + SIM absent）；真实直通需服务端。2026-11-12 GitHub 审计点名 |
 
 ## 检出的概率性本质
 

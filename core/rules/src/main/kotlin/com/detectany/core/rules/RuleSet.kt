@@ -90,14 +90,14 @@ object BundledRuleSet {
             // ---- APatch（syscall45 + 包名） ----
             RuleSet.RuleDef("rule.apatch", framework = "apatch", matchRuleIdPrefixes = listOf("behavior.apatch_supercall", "app.apatch", "path.apatch"), weight = 14),
             // ---- LSPosed ----
-            RuleSet.RuleDef("rule.lsposed", framework = "lsposed", matchRuleIdPrefixes = listOf("sock.lsposed", "mem.known_path", "behavior.selinux_label.lsposed", "path.riru", "prop.riru_bridge", "path.lsposed"), weight = 12),
+            RuleSet.RuleDef("rule.lsposed", framework = "lsposed", matchRuleIdPrefixes = listOf("sock.lsposed", "mem.known_path", "behavior.selinux_label.lsposed", "path.riru", "prop.riru_bridge", "path.lsposed", "app.lsposed_manager"), weight = 12),
             // ---- ZN/ReZygisk（NativeBridge + ptrace 残留 + socket 族） ----
             RuleSet.RuleDef("rule.zygisknext", framework = "zygisknext", matchRuleIdPrefixes = listOf("behavior.nativebridge_sticky", "behavior.ptrace_residue", "path.zygisk", "sock.zygiskd", "sock.fs.zygisk", "path.rezygisk", "mem.injected_memfd", "prop.zygisk_denylists"), weight = 12),
             RuleSet.RuleDef("rule.rezygisk", framework = "rezygisk", matchRuleIdPrefixes = listOf("path.rezygisk"), weight = 12),
             // ---- 通用 hook（三路 diff / 完整性 / maps 篡改：强信号不定框架） ----
             RuleSet.RuleDef("rule.hook", category = "HOOK", matchRuleIdPrefixes = listOf("triple.svc_libc", "triple.java_native", "behavior.triple_diff", "integrity.prologue", "integrity.got_", "mem.maps_tampered", "mem.hidden_mapping", "mem.fd_data_adb"), weight = 15),
             // ---- 隐藏栈本身（anti_detect_present） ----
-            RuleSet.RuleDef("rule.anti_detect", category = "ANTI_DETECT_PRESENT", matchRuleIdPrefixes = listOf("mount.too_clean", "prop.area_anomaly", "mount.fstype_cross", "path.shamiko"), weight = 16),
+            RuleSet.RuleDef("rule.anti_detect", category = "ANTI_DETECT_PRESENT", matchRuleIdPrefixes = listOf("mount.too_clean", "prop.area_anomaly", "mount.fstype_cross", "path.shamiko", "app.hma", "path.hma."), weight = 16),
             // ---- su 存量 ----
             RuleSet.RuleDef("rule.su_binary", category = "ROOT_USERSPACE", matchRuleIdPrefixes = listOf("path.su."), weight = 8),
 

@@ -54,7 +54,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 16,
+      "version": 17,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "until": "v26.x"},
         {"id": "path.magisk.device_socket", "path": "/debug_ramdisk/.magisk/device/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "since": "v27"},
@@ -87,7 +87,8 @@ object BundledSignatureDb {
         {"id": "path.frida.server", "path": "/data/local/tmp/frida-server", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"},
         {"id": "path.frida.hkuda", "path": "/data/local/tmp/hluda-server", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"},
         {"id": "path.frida.florida", "path": "/data/local/tmp/florida-server", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"},
-        {"id": "path.frida.gadget", "path": "/data/local/tmp/frida-gadget.so", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"}
+        {"id": "path.frida.gadget", "path": "/data/local/tmp/frida-gadget.so", "framework": "frida", "confidence": "B", "category": "INSTRUMENTATION"},
+        {"id": "path.hma.datadir", "path": "/data/data/com.tsng.hidemyapplist", "framework": "hma", "confidence": "C", "category": "ANTI_DETECT_PRESENT"}
       ],
       "apps": [
         {"id": "app.magisk", "packageNames": ["com.topjohnwu.magisk"], "dexStrings": ["libmagisk", "magiskinit", "magiskpolicy"], "framework": "magisk", "confidence": "B", "category": "ROOT_USERSPACE"},
@@ -109,7 +110,9 @@ object BundledSignatureDb {
         {"id": "app.appenv", "packageNames": ["com.sollyu.xposed.hook.model", "com.variable.apkhook"], "dexStrings": [], "framework": "appenv", "confidence": "C", "category": "DEVICE_SPOOF"},
         {"id": "app.screenrecorder", "packageNames": ["com.hecorat.screenrecorder.free", "com.hecorat.screenrecorder.premium", "com.du.screenrecorder", "videoeditor.videorecorder.screenrecorder", "videoeditor.videorecorder.screenrecorder.lite"], "dexStrings": [], "framework": "screenrecorder", "confidence": "C", "category": "SCREEN_SHARE"},
         {"id": "app.appium", "packageNames": ["io.appium.uiautomator2.server", "io.appium.uiautomator2.server.test", "io.appium.settings"], "dexStrings": ["appium", "uiautomator2"], "framework": "appium", "confidence": "B", "category": "AUTOMATION"},
-        {"id": "app.test_orchestrator", "packageNames": ["androidx.test.orchestrator"], "dexStrings": [], "framework": "androidx_test", "confidence": "C", "category": "AUTOMATION"}
+        {"id": "app.test_orchestrator", "packageNames": ["androidx.test.orchestrator"], "dexStrings": [], "framework": "androidx_test", "confidence": "C", "category": "AUTOMATION"},
+        {"id": "app.hma", "packageNames": ["com.tsng.hidemyapplist"], "dexStrings": ["hidemyapplist"], "framework": "hma", "confidence": "B", "category": "ANTI_DETECT_PRESENT"},
+        {"id": "app.lsposed_manager", "packageNames": ["org.lsposed.manager"], "dexStrings": ["LSPosed"], "framework": "lsposed", "confidence": "C", "category": "HOOK"}
       ],
       "sockets": [
         {"id": "sock.ksud", "name": "ksud", "framework": "ksu", "confidence": "C", "category": "ROOT_KERNEL"},

@@ -56,7 +56,7 @@ fun ScanScreen(controller: ScanController, onOpenEvidence: (String?) -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
             ScanButton(
                 "L2 Full Scan", Icons.Filled.Radar, primary = true, enabled = !controller.scanning,
-                subtitle = "All 12 collectors · signature DB v16",
+                subtitle = "All 12 collectors · signature DB v17",
                 modifier = Modifier.weight(1.6f),
             ) { controller.runScan(ScanTier.L2) }
             ScanButton(

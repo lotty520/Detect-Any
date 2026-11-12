@@ -14,7 +14,7 @@
 | 特征库条目（可热更新） | 30 条 |
 | 代码内联检测项 | 40+ 条（SIM/电池/地理/传感器节律/云手机共振等 2026-11-10 扩展） |
 | 规则 | 20 条 |
-| **总计监测项** | **90+ 项**（特征库 v16 64 条 + 行为/完整性/自保护内联探测） |
+| **总计监测项** | **90+ 项**（特征库 v17 67 条 + 行为/完整性/自保护内联探测） |
 
 ---
 
@@ -120,6 +120,8 @@
 | **app.screenrecorder** ★v8 | AZ/DU/XRecorder 5 变体 | —（纯包名） | screenrecorder | C |
 | **app.appium** ★v16 | io.appium.uiautomator2.server(+.test) / io.appium.settings | appium, uiautomator2 | appium | B |
 | **app.test_orchestrator** ★v16 | androidx.test.orchestrator | —（纯包名） | androidx_test | C |
+| **app.hma** ★v17 | com.tsng.hidemyapplist | hidemyapplist | hma | B（ANTI_DETECT） |
+| **app.lsposed_manager** ★v17 | org.lsposed.manager | LSPosed | lsposed | C |
 
 ### 匹配逻辑
 
@@ -218,7 +220,7 @@
 | rule.neozygisk ★新 | neozygisk | app.neozygisk | 12 |
 | rule.nyazygisk ★新 | nyazygisk | app.nyazygisk | 12 |
 | rule.hook | HOOK（通用） | triple.svc_libc, triple.java_native, behavior.triple_diff, integrity.prologue, integrity.got_, mem.maps_tampered, mem.hidden_mapping, mem.fd_data_adb | 15 |
-| rule.anti_detect | ANTI_DETECT（隐藏栈） | mount.too_clean, prop.area_anomaly, mount.fstype_cross | 16 |
+| rule.anti_detect | ANTI_DETECT（隐藏栈） | mount.too_clean, prop.area_anomaly, mount.fstype_cross, app.hma, path.hma. | 16 |
 | rule.su_binary | ROOT_USERSPACE | path.su. | 8 |
 | rule.repackaged | REPACKAGED | selfguard.repackaged_signature, selfguard.dex_crc, mem.known_path, app.lspatch | 18 |
 | rule.trickystore | trickystore | attest.keybox_revoked, attest.cross., attest.software_backed, path.trickystore | 18 |

@@ -59,7 +59,7 @@
 
 | Tool | Status | Mechanism | Detection |
 |---|---|---|---|
-| **GameGuardian** v101.4 | **Active again** (2025 revival, Android 5-16, 16KB support) | /proc/pid/mem scanning; speed hack; Lua scripting; overlay UI | Package guardian.aurora; VIP builds rename; /proc access patterns; overlay detection |
+| **GameGuardian** v101.4 | **Active again** (2025 revival, Android 5-16, 16KB support) | /proc/pid/mem scanning; speed hack; Lua scripting; overlay UI | **随机包名重装是原生功能**（2026-11-12 复核：无固定包名可特征化，早前 "guardian.aurora" 无法核实应弃用）→ 包名路线结构性失效；靠行为面：/proc access patterns; overlay detection; speed hack→clock drift |
 | Cheat Engine (ceserver) v7.6 | Active | ceserver on device + PC client via adb:52736 | Rooted + port scan; ceserver process |
 | 八门神器 (免root 4.0.5) | Transformed to sandbox platform | Virtual space + value modification | Sandbox/VM detection |
 | 烧饼修改器 v20 | Legacy | Memory value search | Package name |
