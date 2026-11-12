@@ -115,6 +115,19 @@ Measured against the leading open-source detection libraries (Nov 2026):
 
 Notes: RootBeer remains the most widely adopted; Free-RASP's repository hosts a demo app only — the detection core ships as a closed-source binary from a private Maven repository. Detection-Any focuses on auditability: every claim is traceable to a test, device log, or source-audited constant.
 
+## Verified Against
+
+| Environment | Result |
+|---|---|
+| Clean emulator (API 35) | 70/7 baseline, zero FPs across 17 audit rounds |
+| Pixel 8 adversarial (APatch + susfs deep hiding) | 68 conclusive, 8/8 true positives |
+| Cloud-style rooted emulator TP matrix | Frida 3×B / scrcpy dual-A / 6 path families all hit |
+| Clean mid-range Huawei (Kirin 710F, API 31, no GMS) | 26 not-conclusive; one OEM prop FP caught & fixed by this very device |
+| Pixel 4 unlocked (real Google TEE) | L2 18 clean; **L3 hardware attestation Trusted** — first real-TEE trusted verdict via expired-2016-root policy path |
+| Redmi Note 9 (MIUI 12, automation tool installed) | All findings true positives incl. randomized-package automation tool; MIUI property landscape zero FP |
+
+ADB semantics note: `adb_session` is a **C-grade device-posture factor** (2026-11-12 revision) — ADB state alone never contributes to a remote-control verdict; direct session verdicts come from A-grade socket/HID probes.
+
 ## Requirements
 
 | | |
