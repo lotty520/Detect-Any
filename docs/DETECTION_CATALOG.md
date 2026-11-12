@@ -20,7 +20,7 @@
 
 ## 一、文件与挂载环境（C1 路径探测 + C2 挂载取证）
 
-### C1 特征路径（特征库 v3 · 12 条）
+### C1 特征路径（特征库 v17 · 33 条；下表为 v3 时期基线，后续增量见 git 历史）
 
 | ID | 路径 | 框架 | 置信 |
 |---|---|---|---|
@@ -59,12 +59,15 @@
 
 ## 二、系统属性一致性（C3 属性快照）
 
-### 特征库条目（2 条）
+### 特征库条目（5 条）
 
 | ID | 前缀 | 值条件 | 框架 | 置信 |
 |---|---|---|---|---|
 | prop.init_svc_magisk | init.svc.magisk | — | magisk | C |
 | prop.riru_bridge | ro.dalvik.vm.native.bridge | 含 libriruloader | — | C |
+| prop.zygisk_denylists | ro.zygisk.denylists | — | zygisknext | B |
+| prop.magisk_version | ro.magisk.version | — | magisk | B |
+| prop.kcmdline_loaded | kcmdline.loaded | — | — | C |
 
 ### 代码内联（3 类）
 
@@ -97,7 +100,7 @@
 
 ## 四、应用与包指纹（C5）
 
-### 特征库条目（11 条 · v3 新增 4）
+### 特征库条目（22 条 · v17）
 
 | ID | 候选包名 | DEX 探针（any 命中） | 框架 | 置信 |
 |---|---|---|---|---|
@@ -204,7 +207,7 @@
 
 ---
 
-## 九、规则层（20 条 · 权重表）
+## 九、规则层（31 条 · 权重表；2026-11-12 审计补齐 close-detection-gaps 起 11 条）
 
 | 规则 | 框架/类别 | 匹配前缀 | 权重 |
 |---|---|---|---|
@@ -228,6 +231,17 @@
 | rule.pif | pif | prop.build_pair., path.pif | 12 |
 | rule.trustmealready ★新 | trustmealready | app.trustmealready | 12 |
 | rule.zygiskdetect ★新 | zygiskdetect | app.zygiskdetect | 10 |
+| rule.attestation_info | ATTESTATION_SPOOF（降级标注） | attest.degraded, attest.rejected | 6 |
+| rule.frida | INSTRUMENTATION | frida., path.frida. | 16 |
+| rule.emulator | EMULATOR | emulator., battery. | 14 |
+| rule.virtual_env | VIRTUAL_ENV | virtual. | 14 |
+| rule.network_mitm | NETWORK_MITM | network.vpn, network.proxy, network.global_proxy | 8 |
+| rule.sim_anomaly | SIM_ANOMALY | sim., geo. | 8 |
+| rule.automation | AUTOMATION | automation., input., app.appium, app.test_orchestrator | 12 |
+| rule.screenshare | SCREEN_SHARE | screenshare., app.screenrecorder | 14 |
+| rule.fakegps | GPS_SPOOF | app.fakegps | 10 |
+| rule.fakecamera | CAMERA_SPOOF | app.fakecamera | 12 |
+| rule.deviceidchanger | DEVICE_SPOOF | app.deviceidchanger, app.virtualnet | 10 |
 
 ---
 

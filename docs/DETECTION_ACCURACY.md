@@ -41,7 +41,7 @@
 | mount.overlay.* / source_magisk / debug_ramdisk / fstype_cross | B/C | Magisk 挂载形态从未在真 Magisk 设备验证（P8 是 susfs 全隐藏） |
 | fs.susfs | B | P8 的 susfs 隐藏了 /proc/filesystems——非隐藏 susfs 设备未测 |
 | speedhack.clock_drift | B | 干净侧漂移 0ms 已证；加速外挂真机未测 |
-| attest.cross.* / keybox_revoked / software_backed | A/B | 断链未接线（见 COVERAGE ⓪） |
+| attest.cross.* / keybox_revoked / software_backed | A/B | ~~断链未接线~~ → **已接线（2026-11-12 审计修正：5ac1805 后 L3 实质判定，真机 TEE 已验）**；TP 侧对抗组（TrickyStore 实机）仍待补 |
 
 ## 三、不可达 / 未接线 / 策展
 
@@ -52,7 +52,6 @@
 | 不可达 | frida.dbus 多端口枚举 | API28+ /proc/net/tcp EACCES（spec 已注明，27042 恒探测） |
 | 不可达 | sock.* 全部 6 条（现代设备） | /proc/net/unix 门控 DEGRADED；API≤8 或宽松环境可达 |
 | 未接线 | mount.too_clean / stdev_deviation | 无机型基线（deviceBaselines 空） |
-| 未接线 | attest.* 三条 | ScanOrchestrator 未调用 |
 
 ## 四、FP 侧验证完备项（干净双环境零误报实证）
 

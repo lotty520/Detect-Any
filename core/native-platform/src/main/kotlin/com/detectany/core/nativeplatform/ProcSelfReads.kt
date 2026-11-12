@@ -29,7 +29,9 @@ object ProcSelfReads {
             ?: runCatching {
                 val f = java.io.File(path)
                 if (!f.isFile) return@runCatching null
-                f.readBytes().takeIf { it.size <= maxLen } ?: f.readBytes().copyOf(maxLen)
+                // 单次读取后截断：/proc 伪文件两次读取内容可能不同，禁止双读
+                val all = f.readBytes()
+                if (all.size <= maxLen) all else all.copyOf(maxLen)
             }.getOrNull()
 
     /** 读 /proc/self 下文件并按行拆分；失败返回空列表。 */

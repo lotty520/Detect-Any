@@ -25,7 +25,7 @@
 | 检测面 | 已覆盖 | 采集器 | 缺口 |
 |---|---|---|---|
 | **Root 管理器** | Magisk / KSU / KSU-Next / SukiSU / APatch 包名 | C5 | ✅ 完整 |
-| **作弊工具** | GameGuardian / Lucky Patcher / 烧饼 / 葫芦侠 / 八门 | C5 特征库 | EasyClick 自定义包名 / GG VIP 重命名 |
+| **作弊工具** | GameGuardian / Lucky Patcher / 烧饼 / 葫芦侠 / 八门 | **非特征库路线（2026-11-12 审计修正）**：GG 随机包名重装是原生功能，包名特征结构性失效；Lucky Patcher/烧饼等非 GitHub 分发、包名未实证不入库（防 Luckin-Coffee 式误报） | 行为面兜底：clock drift / TracerPid / overlay；EasyClick 自定义包名同为已知边界 |
 | **注入框架** | LSPosed / Vector / TrustMeAlready / NeoZygisk / NyaZygisk | C5 特征库 | ✅ Frida server 已入库（v4，B 级 4 条路径）|
 | **远程桌面** | AnyDesk / TeamViewer×3 / AirDroid×2 / Vysor / ChromeRemote | C12 包指纹 | ✅ 完整 |
 | **文件路径** | /system/bin/su / /data/adb/{ksu,ap,apd,kpm,ksud,rezygisk,lspd,tricky_store,pif.json} + 7 框架模块目录 | C1 特征库 v7 | ✅ v7 补齐（28 条）|
