@@ -58,6 +58,10 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 
 | 设备 | 日期 | 结果 | 备注 |
 |---|---|---|---|
+| **红米 Note 9 4G（lancelot, MIUI 12/A12, locked+green, 无 SIM, 装有自动化工具 BaiCai）** | 2026-11-12 | **L2 = sim.absent + adb_enabled + automation.unknown.processor.harmonizerx.assembler（C）——全真阳性** ✓ 用户确认 BaiCai 为自动化工具（随机包名 processor.harmonizerx.assembler + 无障碍服务已启用，检测期间其无障碍服务反复抢夺前台=活体佐证）。**MIUI FP 环境零假阳性**（MIUI prop 形态未触发任何 build_pair/OEM 信号）。ADB 语义降级（B→C 姿态因子）在本机验证生效。L3 待补：MIUI 拦截 androidTest APK 安装（INSTALL_FAILED_USER_RESTRICTED 需手动确认每次安装）+ 自动化工具抢前台致手动点击不可行；L2 面已充分 | |
+
+| 设备 | 日期 | 结果 | 备注 |
+|---|---|---|---|
 | **Pixel 4（flame, A13, bootloader 解锁 orange, 无 root 管理器, 无 SIM）** | 2026-11-12 | **L2=18 未定性 ✓ 零假阳性**（sim.all_absent + adb_enabled 全真）。**新边界发现：flame↔coral 跨设备指纹矛盾（bootimage 侧）在 API 33 上 app 不可读**——shell getprop 可见但 `__system_property_find` 返回 null（SELinux property_context 对 untrusted_app 隐藏 ro.bootimage.*），build_pair.fingerprint 结构性不可达。bootimage 直读兜底（第十六轮修复）在 API≤31 有效、33+ 被隐藏。诚实记录：该矛盾面在 33+ 仅 shell 可见 | |
 
 | 设备 | 日期 | 结果 | 备注 |

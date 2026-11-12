@@ -216,21 +216,27 @@ class ScreenShareCollector(
         val usb = isUsbPlugged()
         val fg = isAppInForeground()
 
+        // 2026-11-12 语义修正：ADB 是设备状态因子，不构成远控判定基础。
+        // - adb_session 原判 B 级挂 REMOTE_CONTROL：B 可与跨域 B 共振定性——
+        //   「开着 USB 调试用真机」被推到定性边缘，语义过强。真 scrcpy 会话由
+        //   socket/HID（A 级）直接判定，无需 B 级替身。
+        // - 终态：两条均 C 级，adb_session 降类别为 NETWORK_MITM 之外的独立姿态
+        //   描述（复用 REMOTE_CONTROL 展示会误导）——改挂 SCREEN_SHARE 也不对；
+        //   引入 AUTOMATION 亦牵强。正确落点：这是「调试面开放」状态，挂
+        //   REMOTE_CONTROL 仅作归组展示、但 C 级永不参与定性（模型保证）。
         if (adb && usb && fg) {
-            // B 级：三条件同时满足 = scrcpy/Vysor 会话指示
             add(
                 Finding(
                     ruleId = "screenshare.adb_session",
                     collector = id,
-                    confidence = Confidence.B,
+                    confidence = Confidence.C, // B→C：状态因子，非会话判定
                     category = Finding.Category.REMOTE_CONTROL,
                     framework = null,
-                    detail = "ADB + USB + app foreground (scrcpy/Vysor session signature)",
+                    detail = "Debug surface open: ADB + USB + foreground (possible scrcpy session; direct verdict comes from socket/HID A-grade probes)",
                     raw = mapOf("adb" to "1", "usb" to "1", "foreground" to "1"),
                 ),
             )
         } else {
-            // C 级：开发者常用
             add(
                 Finding(
                     ruleId = "screenshare.adb_enabled",
@@ -238,7 +244,7 @@ class ScreenShareCollector(
                     confidence = Confidence.C,
                     category = Finding.Category.REMOTE_CONTROL,
                     framework = null,
-                    detail = "ADB debugging enabled (common for developers, not an exclusive cheating signal)",
+                    detail = "ADB debugging enabled (device posture factor, not a remote-control verdict basis)",
                     raw = mapOf("adb" to "1", "usb" to usb.toString()),
                 ),
             )

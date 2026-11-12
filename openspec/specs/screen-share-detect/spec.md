@@ -7,7 +7,10 @@ Detect screen sharing, mirroring, remote control, and overlay injection — cove
 ## Requirements
 
 ### Requirement: ADB session indicator
-The system SHALL detect active ADB debugging sessions: (a) `Settings.Global.ADB_ENABLED` for USB debugging, (b) `Settings.Global.getInt("adb_wifi_enabled")` for wireless debugging (Android 11+), (c) `BatteryManager.BATTERY_PLUGGED_USB` combined with ADB enabled and no charging app in foreground. USB + ADB + game running is a B-grade scrcpy/Vysor session signal.
+The system SHALL detect active ADB debugging sessions: (a) `Settings.Global.ADB_ENABLED` for USB debugging, (b) `Settings.Global.getInt("adb_wifi_enabled")` for wireless debugging (Android 11+), (c) `BatteryManager.BATTERY_PLUGGED_USB` combined with ADB enabled and no charging app in foreground. USB + ADB + app foreground is a **C-grade posture factor** (2026-11-12 semantic revision:
+ADB is a device-state indicator, not a remote-control verdict basis — direct session
+verdicts come from the A-grade socket/HID probes; a B-grade here once pushed
+"debugging over USB" toward conclusiveness, which overstated the signal).
 
 #### Scenario: scrcpy over USB detected
 - **WHEN** USB is plugged AND ADB_ENABLED is 1 AND no charging app is foreground
