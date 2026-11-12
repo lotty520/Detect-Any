@@ -40,6 +40,20 @@ class ReportUiSmokeTest {
     }
 
     @Test
+    fun automationInstrumentedProbeFiresUnderTestHarness() {
+        // 构造性真阳性：本测试自身跑在 am instrument 下——automation.instrumented 必须命中。
+        // 同时打印实际证据向量（thread/argv0/class），供多环境实证校准。
+        val orchestrator = ScanOrchestrator(InstrumentationRegistry.getInstrumentation().targetContext)
+        val report = orchestrator.scan(ScanTier.L2)
+        val finding = report.collectorResults.flatMap { it.findings }.firstOrNull { it.ruleId == "automation.instrumented" }
+        org.junit.Assert.assertNotNull(
+            "instrumented 进程内 automation.instrumented 应命中（线程/argv0/反射三证据至少其一）",
+            finding,
+        )
+        println("INSTR-FINDING detail=${finding?.detail} raw=${finding?.raw}")
+    }
+
+    @Test
     fun orchestratorFullScanRunsCleanOnEmulator() {
         // UI 背后的同一编排器（7.2「逐项一致」的数据源）：全链路 L2 扫描可执行、干净环境零误报
         val orchestrator = ScanOrchestrator(InstrumentationRegistry.getInstrumentation().targetContext)
@@ -51,6 +65,7 @@ class ReportUiSmokeTest {
             val nonEmulatorFindings = report.collectorResults.flatMap { it.findings }
                 .filter { it.category != com.detectany.core.model.Finding.Category.EMULATOR }
                 .filter { it.ruleId != "screenshare.adb_enabled" } // 模拟器 ADB 恒开
+                .filter { it.ruleId != "automation.instrumented" } // 本测试自身跑在 instrumentation 下——该探针恒真阳性（构造使然）
             assertEquals(
                 "干净模拟器非模拟器域应零命中: ${nonEmulatorFindings.map { it.ruleId }}",
                 0, nonEmulatorFindings.size,

@@ -54,7 +54,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 15,
+      "version": 16,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "until": "v26.x"},
         {"id": "path.magisk.device_socket", "path": "/debug_ramdisk/.magisk/device/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "since": "v27"},
@@ -107,7 +107,9 @@ object BundledSignatureDb {
         {"id": "app.deviceidchanger", "packageNames": ["com.aksym.androiddeviceidchanger"], "dexStrings": [], "framework": "deviceidchanger", "confidence": "C", "category": "DEVICE_SPOOF"},
         {"id": "app.virtualnet", "packageNames": ["com.droidrooter.virtualnet"], "dexStrings": [], "framework": "virtualnet", "confidence": "C", "category": "DEVICE_SPOOF"},
         {"id": "app.appenv", "packageNames": ["com.sollyu.xposed.hook.model", "com.variable.apkhook"], "dexStrings": [], "framework": "appenv", "confidence": "C", "category": "DEVICE_SPOOF"},
-        {"id": "app.screenrecorder", "packageNames": ["com.hecorat.screenrecorder.free", "com.hecorat.screenrecorder.premium", "com.du.screenrecorder", "videoeditor.videorecorder.screenrecorder", "videoeditor.videorecorder.screenrecorder.lite"], "dexStrings": [], "framework": "screenrecorder", "confidence": "C", "category": "SCREEN_SHARE"}
+        {"id": "app.screenrecorder", "packageNames": ["com.hecorat.screenrecorder.free", "com.hecorat.screenrecorder.premium", "com.du.screenrecorder", "videoeditor.videorecorder.screenrecorder", "videoeditor.videorecorder.screenrecorder.lite"], "dexStrings": [], "framework": "screenrecorder", "confidence": "C", "category": "SCREEN_SHARE"},
+        {"id": "app.appium", "packageNames": ["io.appium.uiautomator2.server", "io.appium.uiautomator2.server.test", "io.appium.settings"], "dexStrings": ["appium", "uiautomator2"], "framework": "appium", "confidence": "B", "category": "AUTOMATION"},
+        {"id": "app.test_orchestrator", "packageNames": ["androidx.test.orchestrator"], "dexStrings": [], "framework": "androidx_test", "confidence": "C", "category": "AUTOMATION"}
       ],
       "sockets": [
         {"id": "sock.ksud", "name": "ksud", "framework": "ksu", "confidence": "C", "category": "ROOT_KERNEL"},

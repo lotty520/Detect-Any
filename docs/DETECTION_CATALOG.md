@@ -14,7 +14,7 @@
 | 特征库条目（可热更新） | 30 条 |
 | 代码内联检测项 | 40+ 条（SIM/电池/地理/传感器节律/云手机共振等 2026-11-10 扩展） |
 | 规则 | 20 条 |
-| **总计监测项** | **90+ 项**（特征库 v12 65 条 + 行为/完整性/自保护内联探测） |
+| **总计监测项** | **90+ 项**（特征库 v16 64 条 + 行为/完整性/自保护内联探测） |
 
 ---
 
@@ -118,6 +118,8 @@
 | **app.deviceidchanger** ★v9 | com.aksym.androiddeviceidchanger | —（纯包名） | deviceidchanger | C |
 | **app.virtualnet** ★v10 | com.droidrooter.virtualnet | —（纯包名） | virtualnet | C |
 | **app.screenrecorder** ★v8 | AZ/DU/XRecorder 5 变体 | —（纯包名） | screenrecorder | C |
+| **app.appium** ★v16 | io.appium.uiautomator2.server(+.test) / io.appium.settings | appium, uiautomator2 | appium | B |
+| **app.test_orchestrator** ★v16 | androidx.test.orchestrator | —（纯包名） | androidx_test | C |
 
 ### 匹配逻辑
 
@@ -247,3 +249,30 @@
 | frida.thread_names | /proc/self/task/*/comm 扫 gum-js-loop/gmain/pool-frida | B |
 | frida.rwx_pages | 连续 RWX 匿名页 + Frida 典型布局 | B |
 | frida.dbus_port* | D-Bus AUTH 握手协议指纹 ⚠️ 端口枚举 API28+ 受 EACCES 门控（默认 27042 恒探测；多端口仅 root/旧版可达，改端口兜底=其余三防线） | B |
+
+---
+
+## C10 虚拟环境/模拟器检测（四维交叉，2026-11-12 补录 + Google 测试栈扩展）
+
+| 检测项 | 说明 | 置信 |
+|---|---|---|
+| emulator.qemu | ro.kernel.qemu=1（host 注入，不可伪装） | **A** |
+| emulator.hw.qemu | /dev/qemu_pipe、/dev/goldfish_pipe（★v16 新内核 ranchu）、/dev/socket/qemud 设备节点 | **A** |
+| emulator.cpu_mismatch | Build ABI=arm 但 /proc/cpuinfo=x86（架构声明不一致） | **A** |
+| emulator.build.* | FINGERPRINT/MODEL/PRODUCT/HARDWARE 含 generic/sdk_gphone/ranchu/goldfish/vbox 等 9 模式 | B |
+| emulator.avd_name ★v16 | ro.boot.qemu.avd_name / ro.kernel.qemu.avd_name 存在（host 注入键，真机无此属性；cuttlefish 同样设置） | B |
+| emulator.sensor_goldfish ★v16 | 传感器 name/vendor 含 goldfish（模拟器虚拟 sensor HAL；真实 MEMS 无此命名） | B |
+| emulator.sensor_constant | 加速度计 ≥16 样本/≥100ms 逐字节恒定（虚拟传感器物理特征） | B |
+| emulator.sensors_absent | 加速度计+陀螺仪全缺失（低端设备合法缺失） | C |
+| emulator.no_telephony | 无基带（WiFi-only 平板合法） | C |
+| emulator.gl.swiftshader | SwiftShader 软渲染（Android Go 低端合法） | C |
+
+> 无头模拟器（AS `-no-window` / Gradle Managed Devices）guest 内不可区分：GMD 即标准 google_apis AVD 镜像，上述 qemu/ranchu/sdk_gphone 照常命中。已知边界：Cuttlefish（crosvm 架构）qemu 系向量全不命中（avd_name 可命中），待补 C 级模式。
+
+## C11 行为异常（自动化扩展，2026-11-12）
+
+| 检测项 | 说明 | 置信 |
+|---|---|---|
+| automation.instrumented ★v16 | 进程被 am instrument 驱动：线程 comm=`Instrumentation`（androidx.test 1.5+ "InstrumentationThread" 截断，2026-11-12 Pixel 4/API 33 实证）或 `Instr:` 前缀（AOSP 老路径）或 mInstrumentation 实例非基类（反射；实证 Android 13 下可用） | B |
+| automation.known.* | 已知自动化工具无障碍服务（AutoJS/Tasker/按键精灵等包名，或组件字符串含 uiautomator/appium——★v16 组件级匹配，任意测试包名下的 uiautomator2 服务可命中） | B |
+| automation.unknown.* | 非白名单无障碍服务（不参与定性） | C |

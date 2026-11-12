@@ -32,6 +32,13 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 - 正向验证新增（2026-11-10）：DRVCAM 官方 APK 装入模拟器 → 虚拟摄像头威胁
   全链路命中（queries→C5→rule→ThreatMeta），卸载回落基线
 
+### 2026-11-12 v16 Google 测试栈识别（Pixel 4 / Android 13 干净真机）
+
+- **FP**：正常启动 L2（618ms）与改动前基线一致——STRONG 0 / MED 0 / WEAK 2（仅 SIM 无卡 + ADB 姿态两条预存 C 级），零 AUTOMATION/EMULATOR 新增，判定 Inconclusive；新探针全部输入源 OS 层核验缺席（appium/orchestrator 包、无障碍串、qemu/avd 属性、goldfish 传感器、/dev 节点）
+- **TP（实证修正）**：androidx.test 1.6.2 下无 `Instr:` 前缀线程——真实形态为 comm=`Instrumentation`（"InstrumentationThread" 被 TASK_COMM_LEN=15 截断），argv0=包名；探针按三证据 OR（线程 comm / Instr: 老路径 / mInstrumentation 反射非基类）。instrumented 运行双证据同时命中（thread + `androidx.test.runner.AndroidJUnitRunner`，反射在 targetSdk 35/API 33 实测可用）
+- 设备测试 **22/22**（21 既有 + 新增构造性 TP `automationInstrumentedProbeFiresUnderTestHarness`）
+- ⚠️ 待办：模拟器侧 TP（goldfish_pipe 存在性 / avd_name / sensor_goldfish）——`scripts/verify_v16_google_test_stack.sh`，本机网络未执行；三个向量均为零误报形态（缺席即不产出），模拟器实证只影响召回不影响准确性
+
 ### 2026-11-10 回归发现与修复
 
 | 问题 | 根因 | 修复 |

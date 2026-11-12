@@ -39,6 +39,11 @@
         <package android:name="com.du.screenrecorder" />
         <package android:name="videoeditor.videorecorder.screenrecorder" />
         <package android:name="videoeditor.videorecorder.screenrecorder.lite" />
+        <!-- 自动化测试框架（Appium / Android Test Orchestrator） -->
+        <package android:name="io.appium.uiautomator2.server" />
+        <package android:name="io.appium.uiautomator2.server.test" />
+        <package android:name="io.appium.settings" />
+        <package android:name="androidx.test.orchestrator" />
     </queries>
 
     <application

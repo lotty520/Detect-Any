@@ -37,6 +37,16 @@ class BehaviorCheckCollector(
         "com.example.easyclick", "ieasyclick.app",
     )
 
+    /**
+     * 测试框架组件标记：匹配完整 component 字符串（pkg/class）。
+     * uiautomator2 的无障碍服务寄宿在任意测试包名下（class 才是稳定特征：
+     * androidx.test.uiautomator.* / Appium server 服务）——仅按包名匹配会漏检。
+     */
+    private val automationComponentMarkers = setOf(
+        "uiautomator", // androidx.test.uiautomator 服务类 + io.appium.uiautomator2.server
+        "appium",
+    )
+
     /** 无障碍白名单（系统/OEM/密码管理器/辅助工具，calibration #3） */
     private val accessibilityWhitelist = setOf(
         "com.google.android.marvin", // TalkBack
@@ -61,6 +71,7 @@ class BehaviorCheckCollector(
         findings += checkProxy()
         findings += checkGlobalProxy()
         findings += checkAccessibility()
+        findings += checkInstrumentationPosture()
         findings += checkClockConsistency()
         findings += checkSimStatus()
         findings += checkBatteryIntegrity()
@@ -162,13 +173,15 @@ class BehaviorCheckCollector(
         val services = enabledServices.split(":").filter { it.isNotBlank() }
 
         for (svc in services) {
+            val svcLower = svc.lowercase()
             val pkg = svc.substringBefore("/").lowercase()
 
             // 白名单检查：系统/密码管理器/辅助工具 → 不产出
             if (accessibilityWhitelist.any { pkg.startsWith(it.lowercase()) }) continue
 
-            // 已知自动化工具 → B 级
-            val isKnownAutomation = knownAutomationPackages.any { pkg.contains(it.lowercase()) }
+            // 已知自动化工具（包名）或测试框架组件标记（完整 component 匹配）→ B 级
+            val isKnownAutomation = knownAutomationPackages.any { pkg.contains(it.lowercase()) } ||
+                automationComponentMarkers.any { svcLower.contains(it) }
             add(
                 Finding(
                     ruleId = if (isKnownAutomation) "automation.known.$pkg" else "automation.unknown.$pkg",
@@ -186,6 +199,63 @@ class BehaviorCheckCollector(
             )
         }
     }
+
+    // ---- Instrumentation 运行姿态（am instrument 驱动：Espresso/AndroidJUnitRunner/Appium server 等） ----
+    // 证据 1（线程命名，2026-11-12 Pixel 4/API 33/androidx.test 1.6.2 实证）：
+    //   androidx.test 1.5+ 的 runner 创建 "InstrumentationThread"（comm 受 TASK_COMM_LEN=15
+    //   截断显示为 "Instrumentation"）；AOSP 老路径 InstrumentationThread 名为
+    //   "Instr: <class>"（前缀保留）。正常 app 无此二形态线程命名。
+    //   实证补充：现代 argv0/cmdline=包名（无 Instr: 前缀），进程命名向量仅老版本有效，保留兼容。
+    // 证据 2（反射 best-effort）：ActivityThread.mInstrumentation 实例类非基类
+    //   （runner 子类替换，如 androidx.test.runner.AndroidJUnitRunner）。
+    //   targetSdk 28+ hidden-API enforcement 拦截时 runCatching 静默降级，不单独作为依据。
+
+    private fun checkInstrumentationPosture(): List<Finding> = buildList {
+        val argv0 = readSelfArgv0()
+        val instrThread = readSelfThreadComms().firstOrNull {
+            it.startsWith("instr:", true) || it.equals("instrumentation", true)
+        }
+        val argvHit = argv0.startsWith("instr:", true)
+        val instrClass = readInstrumentationClass()
+
+        if (instrThread == null && !argvHit && instrClass == null) return@buildList
+        add(
+            Finding(
+                ruleId = "automation.instrumented",
+                collector = id,
+                confidence = Confidence.B,
+                category = Finding.Category.AUTOMATION,
+                framework = "instrumentation",
+                detail = "Process running under test instrumentation" +
+                    (instrThread?.let { " (thread comm: \"$it\")" } ?: "") +
+                    (if (argvHit) " (argv0: \"${argv0.take(40)}\")" else "") +
+                    (instrClass?.let { " (instrumentation class: $it)" } ?: ""),
+                raw = buildMap {
+                    instrThread?.let { put("thread", it) }
+                    if (argvHit) put("argv0", argv0.take(40))
+                    instrClass?.let { put("class", it) }
+                },
+            ),
+        )
+    }
+
+    private fun readSelfArgv0(): String = runCatching {
+        java.io.File("/proc/self/cmdline").readBytes().toString(Charsets.ISO_8859_1).substringBefore('\u0000')
+    }.getOrDefault("")
+
+    private fun readSelfThreadComms(): List<String> = runCatching {
+        java.io.File("/proc/self/task").listFiles()
+            ?.mapNotNull { dir -> runCatching { java.io.File(dir, "comm").readText().trim() }.getOrNull() }
+            ?: emptyList()
+    }.getOrDefault(emptyList())
+
+    private fun readInstrumentationClass(): String? = runCatching {
+        val at = Class.forName("android.app.ActivityThread").getMethod("currentActivityThread").invoke(null)
+            ?: return@runCatching null
+        val field = at.javaClass.getDeclaredField("mInstrumentation")
+        field.isAccessible = true
+        (field.get(at) as? android.app.Instrumentation)?.javaClass?.name
+    }.getOrNull()?.takeIf { it != "android.app.Instrumentation" } // 基类实例=正常冷启动，非信号
 
     // ---- VPN owner 识别（always-on VPN 的归属包名，best-effort 非公开键） ----
 

@@ -87,12 +87,7 @@ class VirtualEnvCollector(
         }
 
         // A 级：ro.kernel.qemu = 1（不可伪装）
-        val qemu = System.getProperty("ro.kernel.qemu") ?: runCatching {
-            val pi = Class.forName("android.os.SystemProperties")
-            val get = pi.getMethod("get", String::class.java)
-            get.invoke(null, "ro.kernel.qemu") as? String
-        }.getOrNull()
-        if (qemu == "1") {
+        if (sysprop("ro.kernel.qemu") == "1") {
             add(
                 Finding(
                     ruleId = "emulator.qemu",
@@ -101,17 +96,42 @@ class VirtualEnvCollector(
                     category = Finding.Category.EMULATOR,
                     framework = "qemu",
                     detail = "ro.kernel.qemu=1 (non-spoofable emulator flag)",
-                    raw = mapOf("qemu" to qemu),
+                    raw = mapOf("qemu" to "1"),
+                ),
+            )
+        }
+
+        // B 级：AVD 名属性（host 侧注入 ro 键；真机不存在。cuttlefish 同样设置——均为虚拟设备）
+        val avdName = sysprop("ro.boot.qemu.avd_name") ?: sysprop("ro.kernel.qemu.avd_name")
+        if (avdName != null) {
+            add(
+                Finding(
+                    ruleId = "emulator.avd_name",
+                    collector = id,
+                    confidence = Confidence.B,
+                    category = Finding.Category.EMULATOR,
+                    framework = "avd",
+                    detail = "AVD name property present (host-injected ro.boot.qemu.avd_name; never set on physical devices)",
+                    raw = mapOf("avdNameHash" to avdName.hashCode().toString()),
                 ),
             )
         }
     }
+
+    /** 系统属性读取：JVM 镜像层优先，反射 android.os.SystemProperties 兜底。 */
+    private fun sysprop(key: String): String? = (System.getProperty(key) as? String)
+        ?: runCatching {
+            val pi = Class.forName("android.os.SystemProperties")
+            val get = pi.getMethod("get", String::class.java)
+            get.invoke(null, key) as? String
+        }.getOrNull()?.takeIf { it.isNotBlank() }
 
     // ---- 硬件痕迹检测 ----
 
     private fun checkHardwareArtifacts(): List<Finding> = buildList {
         val paths = listOf(
             "/dev/qemu_pipe" to "qemu",
+            "/dev/goldfish_pipe" to "qemu", // 新内核 ranchu：pipe 驱动由 qemu_pipe 改名 goldfish_pipe
             "/dev/socket/qemud" to "qemu",
             "/dev/vboxguest" to "vbox",
             "/proc/irq/9/vboxguest" to "vbox",
@@ -169,6 +189,27 @@ class VirtualEnvCollector(
 
     private fun checkSensors(): List<Finding> = buildList {
         val sm = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager ?: return@buildList
+
+        // B 级：goldfish 虚拟传感器命名（模拟器 sensor HAL 特征；真实 MEMS 无此命名）
+        val goldfishSensor = runCatching {
+            sm.getSensorList(android.hardware.Sensor.TYPE_ALL).any {
+                it.name.contains("goldfish", true) || it.vendor.contains("goldfish", true)
+            }
+        }.getOrDefault(false)
+        if (goldfishSensor) {
+            add(
+                Finding(
+                    ruleId = "emulator.sensor_goldfish",
+                    collector = id,
+                    confidence = Confidence.B,
+                    category = Finding.Category.EMULATOR,
+                    framework = "goldfish",
+                    detail = "Sensor named/vendor 'goldfish' present (emulator virtual sensor HAL)",
+                    raw = emptyMap(),
+                ),
+            )
+        }
+
         val hasAccelerometer = sm.getDefaultSensor(android.hardware.Sensor.TYPE_ACCELEROMETER) != null
         val hasGyroscope = sm.getDefaultSensor(android.hardware.Sensor.TYPE_GYROSCOPE) != null
 
