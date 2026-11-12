@@ -106,9 +106,12 @@ class AttestationVerifier(
         }
 
         // 4) attestationApplicationId 绑定（Quarkslab：跨应用中继在此被拒）
-        if (expectedPackageName != null) {
-            val names = desc.attestationApplicationId?.packageNames ?: emptyList()
-            if (names.none { it == expectedPackageName }) {
+        // 2026-11-12 Pixel 4 实证修正：普通 app（无 SET_ATTESTATION_APPLICATION_ID
+        // 权限，Android 12+ 系统级）签发的链不含 appId——null/空 = 未设置 = 无法
+        // 判定中继，放行到后续关；仅当存在非空 appId 列表且不含本包名时才拒绝。
+        val appIdNames = desc.attestationApplicationId?.packageNames?.filter { it.isNotBlank() }
+        if (expectedPackageName != null && !appIdNames.isNullOrEmpty()) {
+            if (appIdNames.none { it == expectedPackageName }) {
                 return Verdict.Rejected("attestationApplicationId mismatch (relay suspected)")
             }
         }
@@ -204,17 +207,34 @@ class AttestationVerifier(
     }
 
     /** 官方过期豁免判定：链尾锚是（已载入的）过期 Google RSA 根。
-     *  匹配用 序列号+主题（华为链尾是我们根的独立编码副本，X509.equals 为 false——
-     *  2026-11-11 真机实证）。 */
+     *  匹配演进史（真机实证链）：
+     *  - X509.equals：对独立编码副本恒 false（2026-11-11 华为）
+     *  - serialNumber 相等：Google 下发的链尾是「同源不同实例」（serial e8fa…，
+     *    subject 携带根 SERIALNUMBER f92009e8…，与官方端点根 f1c172a6… 不同
+     *    serial——2026-11-12 Pixel 4 实证，华为同形）
+     *  - 终态：公钥相等 + subject 相等（公钥是根身份的密码学锚，serial 只是签发流水）
+     */
     private fun isExpiredRootPolicy(chain: List<X509Certificate>, e: Throwable): Boolean {
         val anchor = chain.lastOrNull() ?: return false
+        // 2026-11-12 Pixel 4 终局：设备链尾是 2016 版 RSA 根（自身 2026-05 过期），
+        // assets 根是同公钥的 2022 续期版（2042 有效）。官方过期政策按公钥身份
+        // 判定：链锚公钥+主题与我们任一 Google RSA 根匹配即豁免（锚自身有效期不计）。
         val isOurExpiredRoot = roots.any { root ->
-            root.serialNumber == anchor.serialNumber &&
-                root.subjectX500Principal == anchor.subjectX500Principal &&
-                RootAnchorStore.isExpiredRootTrusted(root)
+            root.publicKey.algorithm == "RSA" &&
+                root.publicKey == anchor.publicKey &&
+                root.subjectX500Principal == anchor.subjectX500Principal
         }
-        return isOurExpiredRoot && (e.message?.contains("timestamp", ignoreCase = true) == true ||
-            e.message?.contains("expired", ignoreCase = true) == true)
+        if (!isOurExpiredRoot) return false
+        // 2026-11-12 真机实证：getOrElse 侧异常的 message 可能为 null（ExpDiagTest
+        // 同代码非 null——线程/provider 差异），改查整条 cause 链的 CertificateExpiredException
+        var c: Throwable? = e
+        while (c != null) {
+            if (c is java.security.cert.CertificateExpiredException) return true
+            if (c.message?.contains("timestamp", ignoreCase = true) == true ||
+                c.message?.contains("expired", ignoreCase = true) == true) return true
+            c = c.cause
+        }
+        return false
     }
 
     /** 手动链验证：逐级签名自洽 + 非根证书在有效期内（根证书时间豁免）。 */
@@ -233,9 +253,9 @@ class AttestationVerifier(
                 return "non-root cert outside validity at level $i"
             }
         }
-        // 链尾必须匹配已载入信任锚（序列号+主题，同豁免路径口径）
+        // 链尾必须匹配已载入信任锚（公钥+主题——同豁免路径口径与理由）
         val last = chain.last()
-        if (roots.none { it.serialNumber == last.serialNumber && it.subjectX500Principal == last.subjectX500Principal }) {
+        if (roots.none { it.publicKey == last.publicKey && it.subjectX500Principal == last.subjectX500Principal }) {
             return "anchor not in trust store"
         }
         return null

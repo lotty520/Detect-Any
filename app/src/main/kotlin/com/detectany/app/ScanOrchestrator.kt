@@ -37,7 +37,14 @@ class ScanOrchestrator(context: Context) {
                 expectedDexCrc = { runCatching { SelfGuardService.computeDexCrc(appContext) }.getOrNull() ?: -1L },
             )
         } else {
-            SelfGuardService.fromContext(appContext)
+            // release：native 占位常量门生效（真值装配前防 repackaged 误报）
+            SelfGuardService.fromContext(appContext).let { svc ->
+                SelfGuardService(
+                    signatureSha256 = { runCatching { SelfGuardService.computeSignatureDigest(appContext) }.getOrNull() },
+                    dexCrc = { runCatching { SelfGuardService.computeDexCrc(appContext) }.getOrNull() },
+                    useNativePlaceholderGate = true,
+                )
+            }
         }
 
     private val entries get() = BundledSignatureDb.toEntries(signatureStore.current())
@@ -51,7 +58,9 @@ class ScanOrchestrator(context: Context) {
                 cf.generateCertificates(input).filterIsInstance<java.security.cert.X509Certificate>()
             }
         }
-    }.getOrDefault(emptyList())
+    }.getOrDefault(emptyList()).also {
+        android.util.Log.e("AROOT", "roots loaded: " + it.size + " rsa=" + it.count { r -> r.publicKey.algorithm == "RSA" })
+    }
 
     /** P2-1（2026-11-11）：C13 硬件证明采集器（L3 专用）。
      *  锚点：assets 双根（加载失败时空锚 → Rejected 降级路径，不误报）。 */

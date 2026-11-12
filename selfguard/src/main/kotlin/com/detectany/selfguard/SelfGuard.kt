@@ -24,8 +24,10 @@ class SelfGuardService(
     private val bytesEqual: (ByteArray, ByteArray) -> Boolean = { a, b -> GuardJni.constantTimeEquals(a, b) },
     /** 反调试探测周期（后台定时 fork；0 = 每次 inspect 同步 fork——主机测试/旧行为兼容） */
     private val probeIntervalMs: Long = 30_000L,
-    /** P3 占位门覆盖：null=native 探测（设备）；false=跳过占位门（host 测试注入桩时） */
+    /** P3 占位门覆盖：null=按 useNativePlaceholderGate；false=直通（host 测试桩） */
     private val signaturePlaceholderOverride: Boolean? = null,
+    /** release 装配语义（native 占位常量门生效）；debug（实测值注入路径）应传 false */
+    private val useNativePlaceholderGate: Boolean = false,
 ) {
     @Volatile internal var lastDebuggerProbe: Int = 0
 
@@ -55,8 +57,9 @@ class SelfGuardService(
         // 6.1 签名摘要（repackaged 强证据：重打包必换签名）
         // P3（2026-11-11）：native 常量仍是发布占位时跳过（release 未装配真值时
         // 用占位比对必然误报 repackaged(A)——占位检测属发布装配工序，见 RUNBOOK）
+        // 占位门仅在 release 装配语义下生效（P4 套件实证：debug 实测值路径被门误关）
         val placeholderSig = signaturePlaceholderOverride
-            ?: runCatching { GuardJni.signatureIsPlaceholder() }.getOrDefault(true)
+            ?: (useNativePlaceholderGate && runCatching { GuardJni.signatureIsPlaceholder() }.getOrDefault(true))
         val actualSig = if (placeholderSig) null else signatureSha256()
         if (actualSig != null) {
             val expected = expectedSignature()
@@ -77,7 +80,7 @@ class SelfGuardService(
 
         // 6.1 DEX CRC（关键代码被改的快信号）——同占位门
         val crcPlaceholder = signaturePlaceholderOverride
-            ?: runCatching { GuardJni.crcIsPlaceholder() }.getOrDefault(true)
+            ?: (useNativePlaceholderGate && runCatching { GuardJni.crcIsPlaceholder() }.getOrDefault(true))
         val actualCrc = if (crcPlaceholder) null else dexCrc()
         if (actualCrc != null) {
             val expected = expectedDexCrc()
