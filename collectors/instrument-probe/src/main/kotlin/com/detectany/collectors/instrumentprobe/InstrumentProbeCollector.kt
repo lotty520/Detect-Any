@@ -19,8 +19,14 @@ import java.net.Socket
  * - 线程名 gum-js-loop + pool-frida → B（gmain 单独不产出）
  * - RWX 连续页 + 大小过滤 → B（需与字符串共振才 A）
  * - D-Bus 协议探测 → B
+ *
+ * v16.1：maps/线程名读取下沉 native（ProcSelfReads——JVM 层 File hook 失效）；
+ * 读取源经构造参数注入（主机单测可注入桩，AppFingerprintCollector 惯例）。
  */
-class InstrumentProbeCollector : Collector {
+class InstrumentProbeCollector(
+    private val mapsLines: () -> List<String> = { com.detectany.core.nativeplatform.ProcSelfReads.readLines("/proc/self/maps") },
+    private val threadComms: () -> List<String> = { com.detectany.core.nativeplatform.ProcSelfReads.threadComms() },
+) : Collector {
 
     override val id: CollectorId = CollectorId.C9_INSTRUMENTATION
 
@@ -58,7 +64,7 @@ class InstrumentProbeCollector : Collector {
     )
 
     private fun scanMapsForStrings(): List<Finding> {
-        val maps = runCatching { File("/proc/self/maps").readLines() }.getOrDefault(emptyList())
+        val maps = runCatching { mapsLines() }.getOrDefault(emptyList())
         return MAPS_KEYWORDS.mapNotNull { (keyword, framework) ->
             if (maps.any { it.contains(keyword, ignoreCase = true) }) {
                 Finding(
@@ -83,10 +89,7 @@ class InstrumentProbeCollector : Collector {
     )
 
     private fun scanThreadNames(): List<Finding> {
-        val taskDir = File("/proc/self/task")
-        val threads = runCatching { taskDir.listFiles()?.mapNotNull { dir ->
-            runCatching { File(dir, "comm").readText().trim() }.getOrNull()
-        } ?: emptyList() }.getOrDefault(emptyList())
+        val threads = runCatching { threadComms() }.getOrDefault(emptyList())
 
         return THREAD_NAMES.mapNotNull { (name, framework) ->
             if (threads.contains(name)) {
@@ -106,7 +109,7 @@ class InstrumentProbeCollector : Collector {
     // ---- L3: RWX 页特征扫描（大小/对齐过滤，calibration #5） ----
 
     private fun scanRwxPages(): List<Finding> {
-        val maps = runCatching { File("/proc/self/maps").readLines() }.getOrDefault(emptyList())
+        val maps = runCatching { mapsLines() }.getOrDefault(emptyList())
         var consecutiveRwx = 0
         var totalRwxSize = 0L
 

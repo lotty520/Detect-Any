@@ -239,15 +239,12 @@ class BehaviorCheckCollector(
         )
     }
 
-    private fun readSelfArgv0(): String = runCatching {
-        java.io.File("/proc/self/cmdline").readBytes().toString(Charsets.ISO_8859_1).substringBefore('\u0000')
-    }.getOrDefault("")
+    // v16.1：读取下沉 native（ProcSelfReads——JVM 层 File hook 失效，native 库不可用时其内部降级）
+    private fun readSelfArgv0(): String =
+        com.detectany.core.nativeplatform.ProcSelfReads.argv0()
 
-    private fun readSelfThreadComms(): List<String> = runCatching {
-        java.io.File("/proc/self/task").listFiles()
-            ?.mapNotNull { dir -> runCatching { java.io.File(dir, "comm").readText().trim() }.getOrNull() }
-            ?: emptyList()
-    }.getOrDefault(emptyList())
+    private fun readSelfThreadComms(): List<String> =
+        com.detectany.core.nativeplatform.ProcSelfReads.threadComms()
 
     private fun readInstrumentationClass(): String? = runCatching {
         val at = Class.forName("android.app.ActivityThread").getMethod("currentActivityThread").invoke(null)

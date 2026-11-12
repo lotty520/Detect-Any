@@ -338,8 +338,7 @@ int da_solist(std::vector<std::string> *out) {
 // 返回：1 = 可见（maps 读取可信）；0 = 不可见（maps 被篡改，强证据）；-1 = 分配失败。
 // 2026-11-10 审计修复：原硬编码 4096——真 16KB 页设备上 mprotect 长度非页倍数
 // 返回 EINVAL → 探针静默失效（C6 的 A 级信号在 16KB 设备上变盲）。改为运行时页大小。
-int da_rwx_self_probe() {
-    const long pg = sysconf(_SC_PAGESIZE);
+int da_rwx_self_probe() {    const long pg = sysconf(_SC_PAGESIZE);
     if (pg <= 0) return -1;
     const size_t psz = static_cast<size_t>(pg);
     void *page = mmap(nullptr, psz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -365,4 +364,55 @@ int da_rwx_self_probe() {
     }
     munmap(page, psz);
     return visible;
+}
+
+// ---- 自身 /proc 读取原语（C9/C11 消费，2026-11-12 v16.1 native 下沉）----
+// 动机：JVM 层（java.io.File/BufferedReader）可被 Frida Java hook / Xposed 一行拦截，
+// 隐藏 Instrumentation 线程名或抹除 maps 关键行。native 侧 fopen/opendir 读取不经 JVM——
+// Java 层 hook 失效；libc PLT/GOT 层 hook 由 C7 完整性探针（A 级）兜底，与本文件
+// textRead/rwxSelfProbe 读 /proc/self/maps 的既有惯例一致（svc 白名单保持不变）。
+
+// 读取 /proc/self 下小文件（cmdline/maps/comm 等，截断于 max_len）。
+// 返回：0 成功；-1 打开失败；-2 读错误。
+int da_read_self_file(const char *path, size_t max_len, std::vector<char> *out) {
+    FILE *f = fopen(path, "re");
+    if (f == nullptr) return -1;
+    out->clear();
+    char buf[4096];
+    size_t total = 0;
+    while (total < max_len) {
+        const size_t want = std::min(sizeof(buf), max_len - total);
+        const size_t n = fread(buf, 1, want, f);
+        if (n == 0) break;
+        out->insert(out->end(), buf, buf + n);
+        total += n;
+    }
+    const int e = ferror(f);
+    fclose(f);
+    return e ? -2 : 0;
+}
+
+// 全量线程 comm（/proc/self/task/<tid>/comm，一次性枚举）。
+// 返回：0 成功（含 0 线程的空列表）；-1 task 目录不可开。
+int da_thread_comms(std::vector<std::string> *out) {
+    out->clear();
+    DIR *d = opendir("/proc/self/task");
+    if (d == nullptr) return -1;
+    struct dirent *de;
+    char path[300];
+    while ((de = readdir(d)) != nullptr) {
+        if (de->d_name[0] < '0' || de->d_name[0] > '9') continue;  // 跳过 . ..
+        snprintf(path, sizeof(path), "/proc/self/task/%s/comm", de->d_name);
+        FILE *f = fopen(path, "re");
+        if (f == nullptr) continue;
+        char line[64];
+        if (fgets(line, sizeof(line), f) != nullptr) {
+            char *nl = strchr(line, '\n');
+            if (nl != nullptr) *nl = '\0';
+            out->emplace_back(line);
+        }
+        fclose(f);
+    }
+    closedir(d);
+    return 0;
 }

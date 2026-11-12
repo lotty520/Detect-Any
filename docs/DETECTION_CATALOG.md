@@ -273,6 +273,6 @@
 
 | 检测项 | 说明 | 置信 |
 |---|---|---|
-| automation.instrumented ★v16 | 进程被 am instrument 驱动：线程 comm=`Instrumentation`（androidx.test 1.5+ "InstrumentationThread" 截断，2026-11-12 Pixel 4/API 33 实证）或 `Instr:` 前缀（AOSP 老路径）或 mInstrumentation 实例非基类（反射；实证 Android 13 下可用） | B |
+| automation.instrumented ★v16 | 进程被 am instrument 驱动：线程 comm=`Instrumentation`（androidx.test 1.5+ "InstrumentationThread" 截断，2026-11-12 Pixel 4/API 33 实证）或 `Instr:` 前缀（AOSP 老路径）或 mInstrumentation 实例非基类（反射；实证 Android 13 下可用）。★v16.1 读取下沉 native（ProcSelfReads：JVM 层 File hook 失效，libc 路径由 C7 GOT 完整性兜底） | B |
 | automation.known.* | 已知自动化工具无障碍服务（AutoJS/Tasker/按键精灵等包名，或组件字符串含 uiautomator/appium——★v16 组件级匹配，任意测试包名下的 uiautomator2 服务可命中） | B |
 | automation.unknown.* | 非白名单无障碍服务（不参与定性） | C |

@@ -37,6 +37,7 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 - **FP**：正常启动 L2（618ms）与改动前基线一致——STRONG 0 / MED 0 / WEAK 2（仅 SIM 无卡 + ADB 姿态两条预存 C 级），零 AUTOMATION/EMULATOR 新增，判定 Inconclusive；新探针全部输入源 OS 层核验缺席（appium/orchestrator 包、无障碍串、qemu/avd 属性、goldfish 传感器、/dev 节点）
 - **TP（实证修正）**：androidx.test 1.6.2 下无 `Instr:` 前缀线程——真实形态为 comm=`Instrumentation`（"InstrumentationThread" 被 TASK_COMM_LEN=15 截断），argv0=包名；探针按三证据 OR（线程 comm / Instr: 老路径 / mInstrumentation 反射非基类）。instrumented 运行双证据同时命中（thread + `androidx.test.runner.AndroidJUnitRunner`，反射在 targetSdk 35/API 33 实测可用）
 - 设备测试 **22/22**（21 既有 + 新增构造性 TP `automationInstrumentedProbeFiresUnderTestHarness`）
+- **v16.1 native 下沉**（同日）：C9 maps/线程名 + C11 cmdline/comm 读取改走 `ProcSelfReads`（native fopen/opendir，`ProbeJni.readSelfFile/threadComms`；JVM 层 File hook 失效，native 库不可用时降级 JVM）。svc 白名单**未动**（沿用 libc 惯例，PLT/GOT 层由 C7 A 级兜底）。复验：TP 双证据命中不变（native 枚举路径）、干净 Pixel 4 FP 基线不变（WEAK 2）、connected 22/22、16KB 门、Lint 全绿
 - ⚠️ 待办：模拟器侧 TP（goldfish_pipe 存在性 / avd_name / sensor_goldfish）——`scripts/verify_v16_google_test_stack.sh`，本机网络未执行；三个向量均为零误报形态（缺席即不产出），模拟器实证只影响召回不影响准确性
 
 ### 2026-11-10 回归发现与修复

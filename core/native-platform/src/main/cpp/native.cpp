@@ -34,6 +34,8 @@ long da_mem_read(unsigned long addr, void *buf, size_t len);
 long da_text_read(unsigned long addr, void *buf, size_t len);
 int da_solist(std::vector<std::string> *out);
 int da_rwx_self_probe();
+int da_read_self_file(const char *path, size_t max_len, std::vector<char> *out);
+int da_thread_comms(std::vector<std::string> *out);
 long da_elf_read_at_vaddr(const char *path, unsigned long vaddr, unsigned char *buf, size_t len);
 int da_elf_relocations(const char *path, std::vector<std::string> *out);
 
@@ -280,6 +282,27 @@ extern "C" JNIEXPORT jobjectArray JNICALL DA_PKG(ProbeJni_solist)(JNIEnv *env, j
 
 extern "C" JNIEXPORT jint JNICALL DA_PKG(ProbeJni_rwxSelfProbe)(JNIEnv *, jobject) {
     return da_rwx_self_probe();
+}
+
+// /proc/self 小文件 native 读取（cmdline/maps 等）。null = 打开/读取失败（Kotlin 侧降级 JVM 路径）。
+extern "C" JNIEXPORT jbyteArray JNICALL DA_PKG(ProbeJni_readSelfFile)(JNIEnv *env, jobject,
+                                                                       jstring jpath, jint maxLen) {
+    if (maxLen <= 0 || maxLen > 8 * 1024 * 1024) return nullptr;
+    const char *path = env->GetStringUTFChars(jpath, nullptr);
+    std::vector<char> buf;
+    const int rc = da_read_self_file(path, static_cast<size_t>(maxLen), &buf);
+    env->ReleaseStringUTFChars(jpath, path);
+    if (rc != 0 || buf.empty()) return nullptr;
+    const jbyteArray arr = env->NewByteArray(static_cast<jsize>(buf.size()));
+    env->SetByteArrayRegion(arr, 0, static_cast<jsize>(buf.size()), reinterpret_cast<const jbyte *>(buf.data()));
+    return arr;
+}
+
+// 全量线程 comm（native 枚举）。null = 不可用（Kotlin 侧降级 JVM 路径）。
+extern "C" JNIEXPORT jobjectArray JNICALL DA_PKG(ProbeJni_threadComms)(JNIEnv *env, jobject) {
+    std::vector<std::string> comms;
+    if (da_thread_comms(&comms) != 0) return nullptr;
+    return to_string_array(env, comms);
 }
 
 // ---------- ElfJni 扩展（C7） ----------

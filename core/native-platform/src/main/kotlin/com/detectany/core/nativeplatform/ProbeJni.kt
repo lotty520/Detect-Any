@@ -48,4 +48,10 @@ object ProbeJni {
 
     /** RWX 自探针：1 maps 可信 / 0 maps 被篡改 / -1 分配失败。 */
     external fun rwxSelfProbe(): Int
+
+    /** /proc/self 小文件 native 读取（cmdline/maps 等，JVM 层 hook 失效）。null = 不可用。 */
+    external fun readSelfFile(path: String, maxLen: Int): ByteArray?
+
+    /** 全量线程 comm（native 枚举 /proc/self/task/<tid>/comm）。null = 不可用。 */
+    external fun threadComms(): Array<String>?
 }
