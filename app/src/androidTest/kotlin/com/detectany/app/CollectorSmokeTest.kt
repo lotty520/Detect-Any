@@ -40,7 +40,19 @@ class CollectorSmokeTest {
     fun c2MountCollectorClean() {
         val r = run(MountCollector())
         assertTrue(r.status != CollectorResult.Status.BLOCKED)
-        assertEquals("挂载分析在干净环境不应命中: ${r.findings}", 0, r.findings.size)
+        // 2026-11-12 小米 Android 16 实证：HyperOS 出厂 overlay 覆盖 /system 系目录
+        //（无 /data/adb upperdir 指纹）按设计降 C 级 weight-only——对齐 c3 真机分流惯例：
+        // 干净真机仅断言零 B 级以上（定性安全），C 级 OEM 形态放行
+        val isEmu = android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.PRODUCT.contains("sdk_gphone")
+        if (isEmu) {
+            assertEquals("挂载分析在干净模拟器不应命中: ${r.findings}", 0, r.findings.size)
+        } else {
+            assertEquals(
+                "干净真机不得出现 B 级以上挂载命中: ${r.findings}",
+                0,
+                r.findings.count { it.confidence != com.detectany.core.model.Confidence.C },
+            )
+        }
         assertTrue(r.meta.getValue("mounts").toInt() > 10)
     }
 

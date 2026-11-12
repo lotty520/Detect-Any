@@ -162,6 +162,7 @@ adb -s emulator-5554 shell cat /sdcard/verify.xml
 | `ro.dalvik.vm.native.bridge=0` triggered detection | Default value on all devices | Added `valueContains` condition to property entries |
 | 5 个 properties 主机单测 UnsatisfiedLinkError（被 -x 排除掩盖 2 天） | v6 把 PropJni.propGet 内联进纯 Kotlin 的 PropertyAnalyzer，破坏主机可测性；模块被排除后真回归无人察觉 | 2026-11-10 审计修复：native 直读改注入式（directRead 参数）；教训——**给模块加测试排除时要设定期复检点，排除不是永久豁免** |
 | 干净华为真机 58 分误定性（PIF build_pair×3 B 级假阳性） | 华为出厂 bootimage.build.tags=dev-keys vs 主指纹 release-keys、bootimage fingerprint 为 generic_a15 模板、vendor.product.* 全空——六对成对属性全部存在 OEM 出厂合法不一致；原 B 级仅在 Pixel 验证属验证面不足 | 2026-11-11 修复：六对全部降 C（PIF 定性改由 verified_boot_lie A 级承担）；华为系统无障碍入白名单（distributedpasteboard 拖拽服务）。教训——**OEM 属性形态必须在多厂商矩阵验证后才能定 B 级** |
+| 干净小米 Android 16 真机 98 分误定性（mount.overlay B×24 + mem.hidden_mapping B×12） | ① HyperOS 出厂用 overlayfs 定制 /product、/oem、/system 系目录，「fstype=overlay 即 B」未区分 OEM 形态；② C6 先读 maps 后读 solist，两快照之间 Adreno 图形栈 dlopen →「链表有 maps 无」竞态（diag 单独跑 uncovered=0 实证） | 2026-11-12 修复：① overlay 判定改 upperdir/workdir 含 /data/adb（模块物理指纹）才 B，OEM 定制区不产出、其余降 C；② solist 快移到 maps 快照之前（顺序方向决定竞态开闭，真抹除检测能力不变）；③ solist 输出改首个 allocatable 段真实映射地址。教训——**OEM 挂载形态必须矩阵验证后才能定 B；快照类交叉检查的读取顺序是正确性的一部分** |
 
 ### Principle: false negatives are recoverable, false positives destroy trust
 

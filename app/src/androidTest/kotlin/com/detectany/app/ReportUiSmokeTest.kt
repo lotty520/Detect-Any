@@ -54,6 +54,35 @@ class ReportUiSmokeTest {
     }
 
     @Test
+    fun diagSolistVsMaps() {
+        // 诊断工具（2026-11-12 mem.hidden_mapping FP 取证）：打印 maps 行数、solist 数、
+        // 未覆盖条目明细，以及样本库在 maps 中的原始行——区分「整库缺席/起点错位/读取截断」
+        val maps = com.detectany.core.nativeplatform.ProcSelfReads.readLines("/proc/self/maps")
+        val solist = runCatching { com.detectany.core.nativeplatform.ProbeJni.solist().toList() }.getOrDefault(emptyList())
+        println("DIAG maps.lines=${maps.size} solist=${solist.size}")
+        var uncovered = 0
+        for (line in solist) {
+            val name = line.substringBefore('\t')
+            val bias = line.substringAfter('\t').toLongOrNull() ?: continue
+            if (name == "[anon-linker]") continue
+            val ranges = maps.mapNotNull { m ->
+                val parts = m.split(Regex("\\s+"))[0].split("-")
+                val s = parts.getOrNull(0)?.toLongOrNull(16) ?: return@mapNotNull null
+                val e = parts.getOrNull(1)?.toLongOrNull(16) ?: return@mapNotNull null
+                s to e
+            }
+            if (ranges.none { bias >= it.first && bias < it.second }) {
+                uncovered++
+                if (uncovered <= 5) {
+                    println("DIAG-UNCOVERED $name @0x${bias.toString(16)}")
+                    maps.filter { it.contains(name.substringAfterLast('/').take(18)) }.take(2).forEach { println("DIAG-MAPS-HIT: $it") }
+                }
+            }
+        }
+        println("DIAG uncovered_total=$uncovered")
+    }
+
+    @Test
     fun orchestratorFullScanRunsCleanOnEmulator() {
         // UI 背后的同一编排器（7.2「逐项一致」的数据源）：全链路 L2 扫描可执行、干净环境零误报
         val orchestrator = ScanOrchestrator(InstrumentationRegistry.getInstrumentation().targetContext)
@@ -82,5 +111,14 @@ class ReportUiSmokeTest {
         }
         assertTrue("8 采集器应全部执行: ${report.collectorResults.size}", report.collectorResults.size >= 7)
         assertTrue("L2 时延预算超限: ${report.elapsedMs}ms", report.elapsedMs < 10_000) // 模拟器宽放（真机 100ms 预算在 8.3 验证）
+        // 回归记录用：全量 findings + 判定一行打印（logcat System.out）；
+        // mem.*/mount.* 附 detail（OEM 形态取证——HyperOS overlay FP 诊断引入）
+        val all = report.collectorResults.flatMap { it.findings }
+        println("SCAN-REPORT score=${report.verdict.riskScore} conclusive=${report.verdict.conclusive} findings=${all.size} " +
+            all.joinToString(";") {
+                if (it.ruleId.startsWith("mem.") || it.ruleId.startsWith("mount."))
+                    "${it.ruleId}(${it.confidence})[${it.detail.take(90)}]"
+                else "${it.ruleId}(${it.confidence})"
+            })
     }
 }

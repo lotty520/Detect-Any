@@ -32,6 +32,18 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 - 正向验证新增（2026-11-10）：DRVCAM 官方 APK 装入模拟器 → 虚拟摄像头威胁
   全链路命中（queries→C5→rule→ThreatMeta），卸载回落基线
 
+### 2026-11-12 小米 Android 16 真机首测（0 阳性测试抓出两大系统性 FP 并根除）
+
+- 设备：2607DRA18C（HyperOS/Android 16，1280×2772），零 root/自动化包，首次 API 36 实测
+- **首扫 98 分误定性（38 findings）→ 修复后 36 分 Inconclusive（8 findings，全为预期项）**：
+  - mount.overlay B×24 → HyperOS 出厂 overlayfs 定制（/product /oem 全系）。修复：upperdir/workdir 含 /data/adb 才 B（模块物理指纹）；OEM 定制区不产出；其余降 C。修复后仅剩 /system 系 6 条 C 级 weight-only
+  - mem.hidden_mapping B×12 → solist/maps 快照竞态（扫描动画触发 Adreno 栈 dlopen 落在两快照之间；diag 单进程复跑 uncovered=0 实证）。修复：solist 快照先于 maps；solist 输出改首个 allocatable 段真实映射地址（probes.cpp）
+- com.miui.carlink（CarWith 车联，/product/app + SYSTEM 标志）入无障碍白名单——华为 distributedpasteboard 先例
+- 设备测试：Mutation OK(2) / CollectorSmoke OK(8，c2 用例对齐真机 B 级以上零命中口径) / SelfGuard OK(6) / TimingProbe OK(1) / orchestrator 全扫 OK；ReportUiSmoke 走查与 AttestationSmoke 因设备反复断连未跑完（HyperOS GreezeManager 会 SIGKILL 长驻 instrumentation 进程——逐类单跑规避）
+- 诊断基建：diagSolistVsMaps 测试（maps/solist 交叉取证）+ SCAN-REPORT 全量 findings 打印常驻 logcat
+- 主机测试（fs-probe/memory-map/native-platform + 全模块）绿；16KB 门绿
+- ⚠️ 待设备稳定：UI v18 视觉矩阵截图 + ReportUiSmoke 走查 + screenshots/ 存档
+
 ### 2026-11-12 v18 UI 重设计（构建/静态门禁全绿；真机视觉矩阵待设备回连）
 
 - 设计系统：全字阶调校（SemiBold 标题/正文 12sp 底线）、Shapes 统一（8/10/14/20）、严重度四色 token 化（critical/warning/watch/clean × 明暗，CompositionLocal 下发——深色模式徽章/状态低对比一次性修复）、values-night 启动背影

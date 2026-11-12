@@ -313,7 +313,10 @@ long da_text_read(unsigned long addr, void *buf, size_t len) {
 }
 
 // ---- linker 权威加载列表（dl_iterate_phdr，对抗 maps 抹除）----
-// 返回 "name\tload_bias" 列表；与 maps 交叉：链表有而 maps 无 = 隐藏映射（B 级证据）。
+// 返回 "name\tfirst_mapped" 列表；与 maps 交叉：链表有而 maps 无 = 隐藏映射（B 级证据）。
+// 2026-11-12 修复：原输出 load bias（dlpi_addr）。高通 Adreno 栈（/vendor/lib64/egl/*，
+// 小米 Android 16 实证 12 条 FP）存在首 PT_LOAD 非映射/非零 vaddr 时，bias 落在全部
+// 映射区间之外——误报「隐藏映射」。改为首个 allocatable 段的真实映射地址（bias+min vaddr）。
 struct SoListSink {
     std::vector<std::string> *out;
 };
@@ -322,7 +325,21 @@ int da_solist_cb(struct dl_phdr_info *info, size_t /*size*/, void *data) {
     auto *out = static_cast<std::vector<std::string> *>(data);
     char line[640];
     const char *name = (info->dlpi_name != nullptr && info->dlpi_name[0] != '\0') ? info->dlpi_name : "[anon-linker]";
-    snprintf(line, sizeof(line), "%s\t%lu", name, static_cast<unsigned long>(info->dlpi_addr));
+    // 最小 allocatable 段 vaddr（相对 bias）；无段信息的库退化为 bias 本身
+    unsigned long minVaddr = 0;
+    bool hasSeg = false;
+    for (int i = 0; i < info->dlpi_phnum; i++) {
+        const ElfW(Phdr) *ph = info->dlpi_phdr + i;
+        if (ph->p_type == PT_LOAD && ph->p_memsz > 0) {
+            const unsigned long v = static_cast<unsigned long>(ph->p_vaddr);
+            if (!hasSeg || v < minVaddr) {
+                minVaddr = v;
+                hasSeg = true;
+            }
+        }
+    }
+    const unsigned long firstMapped = static_cast<unsigned long>(info->dlpi_addr) + minVaddr;
+    snprintf(line, sizeof(line), "%s\t%lu", name, firstMapped);
     out->emplace_back(line);
     return 0;
 }

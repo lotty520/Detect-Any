@@ -62,6 +62,9 @@ class BehaviorCheckCollector(
         // 2026-11-11 华为真机实证：分布式剪贴板拖拽服务（EMUI 系统功能）误入未知名单
         "com.huawei.distributedpasteboard", "com.huawei.screenreader",
         "com.coloros.accessibility", "com.heytap.accessibility",
+        // 2026-11-12 小米 Android 16 真机实证：CarWith 车联聚焦服务
+        // （/product/app/CarWith + SYSTEM 标志——OEM 系统功能，非用户装自动化）
+        "com.miui.carlink",
     )
 
     override fun collect(input: ScanInput): CollectorResult = try {

@@ -23,6 +23,12 @@ class MemoryMapCollector(
     override val id: CollectorId = CollectorId.C6_MEMORY_MAP
 
     override fun collect(input: ScanInput): CollectorResult = try {
+        // 2026-11-12 竞态修复：solist 快照必须先于 maps 快照。原顺序（maps 先）下，
+        // 两快照之间被 dlopen 的库（小米 Android 16 实证：Adreno 图形栈 12 条，扫描页
+        // 动画触发 GPU 初始化）呈现「solist 有、maps 无」→ mem.hidden_mapping 误报。
+        // 反转后：晚于 solist 加载的库不在 solist 里（不参与判定）；在 solist 里的库
+        // 加载时刻必然早于 maps 读取（真抹除时 maps 仍然缺失，检测能力不变）。
+        val solistSnapshot = solist()
         val maps = MapsParser.parse(mapsReader())
         // 时延优化：smaps 体积大（数 MB），仅当 maps 有可疑路径才解析
         val mapsSuspicious = maps.any { m ->
@@ -31,7 +37,7 @@ class MemoryMapCollector(
                 p.contains("riru") || p.contains("XposedBridge") || p.contains("edxp")
         }
         val smaps = if (mapsSuspicious) MapsParser.parseSmapsPrivateDirty(smapsReader()) else emptyMap()
-        val findings = MemoryMapAnalyzer.analyze(maps, smaps, fdNames(), solist(), rwxProbe())
+        val findings = MemoryMapAnalyzer.analyze(maps, smaps, fdNames(), solistSnapshot, rwxProbe())
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,

@@ -62,7 +62,8 @@ $A install -r -t "$APK" >/dev/null && $A install -r -t "$TESTAPK" >/dev/null
 # v18 UI：坐标动态推导（按文本取 bounds 中心）——布局重排不再破坏脚本
 tap_by_text() { # $1 = 节点文本子串
   $A shell uiautomator dump /sdcard/tap.xml >/dev/null 2>&1
-  local raw=$($A shell cat /sdcard/tap.xml | tr '<' '\n<' | grep -F "$1" | head -1 | grep -oE 'bounds="\[[0-9]+\]\[[0-9]+\]\[[0-9]+\]\[[0-9]+\]"' | grep -oE '[0-9]+')
+  # bounds 带逗号格式（HyperOS/新 uiautomator）：[l,t][r,b]
+  local raw=$($A shell cat /sdcard/tap.xml | tr '<' '\n<' | tr -d '\r' | grep -F "$1" | head -1 | grep -oE 'bounds="\[[0-9]+,[0-9]+\]\[[0-9]+,[0-9]+\]"' | grep -oE '[0-9]+')
   if [ -z "$raw" ]; then echo "!! 未找到节点: $1"; return 1; fi
   local l=$(echo $raw | awk '{print $1}'); local t=$(echo $raw | awk '{print $2}')
   local r=$(echo $raw | awk '{print $3}'); local b=$(echo $raw | awk '{print $4}')

@@ -72,19 +72,45 @@ class MountAnalyzer(
         entries: List<MountEntry>,
         stDevSamples: Map<String, Long> = emptyMap(),
     ): List<Finding> = buildList {
-        // 1) overlay 挂载（模块挂载形态，B 级）
+        // 1) overlay 挂载——2026-11-12 小米 Android 16 真机校准降档：
+        // HyperOS 出厂用 overlayfs 定制 /product、/oem（实证 24 条全 FP，98 分误定性）。
+        // 本质判据：模块挂载（Magisk/KSU/APatch）的 upperdir/workdir 必指向 /data/adb；
+        // OEM 出厂 overlay 的 upperdir 在 ramdisk/mnt/vendor。
         entries.filter { it.fstype == "overlay" }.forEach { e ->
-            add(
-                Finding(
-                    ruleId = "mount.overlay.${e.mountPoint.hashCode().toUInt()}",
-                    collector = com.detectany.core.model.CollectorId.C2_MOUNT,
-                    confidence = Confidence.B,
-                    category = Finding.Category.ROOT_USERSPACE,
-                    framework = inferFramework(e),
-                    detail = "overlay mount: mountPoint=${e.mountPoint} source=${e.source}",
-                    raw = mapOf("fstype" to e.fstype, "mountPoint" to e.mountPoint, "source" to e.source),
-                ),
-            )
+            val opts = e.superOpts.joinToString(",")
+            val moduleOverlay = opts.contains("/data/adb")
+            val oemStock = !moduleOverlay && (
+                e.mountPoint == "/product" || e.mountPoint.startsWith("/product/") ||
+                    e.mountPoint == "/oem" || e.mountPoint.startsWith("/oem/")
+                )
+            when {
+                // 模块挂载形态（upperdir 物理指纹）→ 保持 B
+                moduleOverlay -> add(
+                    Finding(
+                        ruleId = "mount.overlay.${e.mountPoint.hashCode().toUInt()}",
+                        collector = com.detectany.core.model.CollectorId.C2_MOUNT,
+                        confidence = Confidence.B,
+                        category = Finding.Category.ROOT_USERSPACE,
+                        framework = inferFramework(e),
+                        detail = "overlay mount with /data/adb upperdir: mountPoint=${e.mountPoint}",
+                        raw = mapOf("fstype" to e.fstype, "mountPoint" to e.mountPoint, "upperdir" to "data_adb"),
+                    ),
+                )
+                // OEM 出厂定制区（/product、/oem）无模块指纹 → 不产出
+                oemStock -> Unit
+                // 其余 overlay（system/vendor/odm 覆盖且无 /data/adb 线索）→ 降 C 权重-only
+                else -> add(
+                    Finding(
+                        ruleId = "mount.overlay.${e.mountPoint.hashCode().toUInt()}",
+                        collector = com.detectany.core.model.CollectorId.C2_MOUNT,
+                        confidence = Confidence.C,
+                        category = Finding.Category.ROOT_USERSPACE,
+                        framework = inferFramework(e),
+                        detail = "overlay mount (no module fingerprint): mountPoint=${e.mountPoint}",
+                        raw = mapOf("fstype" to e.fstype, "mountPoint" to e.mountPoint),
+                    ),
+                )
+            }
         }
 
         // 2) magic mount 残留（source 含 magisk，C 级弱信号）
