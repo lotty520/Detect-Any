@@ -44,6 +44,11 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 - 主机测试（fs-probe/memory-map/native-platform + 全模块）绿；16KB 门绿
 - ⚠️ 待设备稳定：UI v18 视觉矩阵截图 + ReportUiSmoke 走查 + screenshots/ 存档
 
+### 2026-11-13 UI v18 真机视觉验证（小米 Android 16；HyperOS 限制记录）
+
+- **浅色 + 深色双主题全过**（视觉模型逐项核验）：分段选择器（L2 选中+勾选态）、单一 Start Scan CTA、盾形徽章+三 stat+Browse capabilities 空态、4 tab 选中态、零裁切/伪影；深色全屏无白闪、徽章对比度达标。截图存档 `screenshots/v18-scan-empty-{light,dark}.png`
+- HyperOS 对自动化测试的三重限制（该机型实证，其他设备不受影响）：① adb input 注入被拒（INJECT_EVENTS）② shell 写 font_scale 被拒（WRITE_SETTINGS）→ 字体 1.3 矩阵截图做不了（FlowRow 防溢出与仪表盘 fontScale 反向补偿是代码级保证）③ **UiDevice/instrumentation 走查测试在本机挂起**（walkthrough 类超时不返回；orchestrator/diag/TP 等非 UiDevice 测试正常）——ReportUiSmoke 走查在本机型标记为已知限制，走查实质（activity 启动+截图）已手动验证
+
 ### 2026-11-12 v18 UI 重设计（构建/静态门禁全绿；真机视觉矩阵待设备回连）
 
 - 设计系统：全字阶调校（SemiBold 标题/正文 12sp 底线）、Shapes 统一（8/10/14/20）、严重度四色 token 化（critical/warning/watch/clean × 明暗，CompositionLocal 下发——深色模式徽章/状态低对比一次性修复）、values-night 启动背影
