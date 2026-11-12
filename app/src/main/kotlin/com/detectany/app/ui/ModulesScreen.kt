@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -28,8 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.detectany.app.R
 import com.detectany.core.model.CollectorId
 import com.detectany.core.model.CollectorResult
 
@@ -41,7 +42,10 @@ import com.detectany.core.model.CollectorResult
 fun ModulesScreen(controller: ScanController) {
     val report = controller.rawReport
     if (report == null) {
-        EmptyPage("No capability data yet", "Run a scan from the Scan tab first")
+        EmptyPage(
+            stringResource(R.string.modules_empty_title),
+            stringResource(R.string.modules_empty_hint),
+        )
         return
     }
     val results = report.collectorResults
@@ -53,14 +57,18 @@ fun ModulesScreen(controller: ScanController) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "${CapabilityDomain.entries.size} domains · ${results.count { it.status == CollectorResult.Status.OK }} OK · " +
-                    "${results.count { it.status == CollectorResult.Status.DEGRADED }} degraded · " +
-                    "${results.count { it.status == CollectorResult.Status.BLOCKED }} blocked",
+                stringResource(
+                    R.string.modules_summary,
+                    CapabilityDomain.entries.size,
+                    results.count { it.status == CollectorResult.Status.OK },
+                    results.count { it.status == CollectorResult.Status.DEGRADED },
+                    results.count { it.status == CollectorResult.Status.BLOCKED },
+                ),
                 style = MaterialTheme.typography.labelLarge,
             )
             Spacer(Modifier.weight(1f))
             Text(
-                "Total ${report.elapsedMs}ms",
+                stringResource(R.string.modules_total_ms, report.elapsedMs),
                 fontFamily = FontFamily.Monospace,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -82,6 +90,7 @@ fun ModulesScreen(controller: ScanController) {
 @Composable
 private fun DomainCard(domain: CapabilityDomain, results: List<CollectorResult>) {
     var expanded by remember { mutableStateOf(false) }
+    val sev = severityColors()
     val members = results.filter { it.collector in domain.members }
     if (members.isEmpty()) return
     val totalMs = members.sumOf { it.meta["elapsedMs"]?.toLongOrNull() ?: 0L }
@@ -89,7 +98,7 @@ private fun DomainCard(domain: CapabilityDomain, results: List<CollectorResult>)
     val hitCount = members.sumOf { it.findings.size }
 
     Card(
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -101,10 +110,14 @@ private fun DomainCard(domain: CapabilityDomain, results: List<CollectorResult>)
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(domain.title, style = MaterialTheme.typography.titleSmall)
-                    Text(domain.desc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        domain.desc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 if (hitCount > 0) {
-                    Text("$hitCount", style = MaterialTheme.typography.titleSmall, color = BadgeStrong)
+                    Text("$hitCount", style = MaterialTheme.typography.titleSmall, color = sev.critical)
                 }
                 Text(
                     if (totalMs > 0) "${totalMs}ms" else "—",
@@ -137,9 +150,9 @@ private fun DomainCard(domain: CapabilityDomain, results: List<CollectorResult>)
                             )
                         }
                         Text(
-                            if (r.findings.isEmpty()) "none" else "${r.findings.size}",
+                            if (r.findings.isEmpty()) stringResource(R.string.modules_none) else "${r.findings.size}",
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (r.findings.isEmpty()) ScoreClean else BadgeStrong,
+                            color = if (r.findings.isEmpty()) sev.clean else sev.critical,
                         )
                         StatusChip(r.status.name)
                     }
@@ -169,7 +182,11 @@ private fun DomainCard(domain: CapabilityDomain, results: List<CollectorResult>)
                         )
                     }
                     r.meta["error"]?.let {
-                        Text("  Error: $it", style = MaterialTheme.typography.bodySmall, color = StatusBlocked)
+                        Text(
+                            stringResource(R.string.modules_error, it),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = sev.critical,
+                        )
                     }
                 }
             }

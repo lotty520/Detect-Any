@@ -56,14 +56,25 @@ else
 fi
 wait
 
-echo "== 3. 正常启动扫描（AGENTS 流程：新探针在非 instrument 启动下必须零产出）=="
+echo "== 3. 正常启动扫描（新探针在非 instrument 启动下必须零产出）=="
 $A install -r -t "$APK" >/dev/null && $A install -r -t "$TESTAPK" >/dev/null
+
+# v18 UI：坐标动态推导（按文本取 bounds 中心）——布局重排不再破坏脚本
+tap_by_text() { # $1 = 节点文本子串
+  $A shell uiautomator dump /sdcard/tap.xml >/dev/null 2>&1
+  local raw=$($A shell cat /sdcard/tap.xml | tr '<' '\n<' | grep -F "$1" | head -1 | grep -oE 'bounds="\[[0-9]+\]\[[0-9]+\]\[[0-9]+\]\[[0-9]+\]"' | grep -oE '[0-9]+')
+  if [ -z "$raw" ]; then echo "!! 未找到节点: $1"; return 1; fi
+  local l=$(echo $raw | awk '{print $1}'); local t=$(echo $raw | awk '{print $2}')
+  local r=$(echo $raw | awk '{print $3}'); local b=$(echo $raw | awk '{print $4}')
+  $A shell input tap $(( (l + r) / 2 )) $(( (t + b) / 2 ))
+}
+
 $A shell am force-stop $PKG
 $A shell am start -n $PKG/.MainActivity >/dev/null
 sleep 3
-$A shell input tap 194 498   # Scan
+tap_by_text "Start Scan"    # v18：分段选择器默认 L2，直接启动
 sleep 10
-$A shell input tap 402 2274  # Threats tab
+tap_by_text "Threats"       # 底部 tab（匹配 label 节点）
 sleep 2
 $A shell uiautomator dump /sdcard/verify.xml >/dev/null 2>&1
 $A shell cat /sdcard/verify.xml | grep -oE '(automation\.instrumented|emulator\.avd_name|emulator\.sensor_goldfish|emulator\.hw\.qemu|app\.appium|app\.test_orchestrator|automation\.known[^"< ]*)' | sort | uniq -c

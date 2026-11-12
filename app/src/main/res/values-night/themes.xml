@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色启动背影（Compose 接管前的一瞬）；与 values/ 的 Light 背影成对 -->
+    <style name="Theme.DetectAny" parent="android:Theme.Material.NoActionBar" />
+</resources>

@@ -25,8 +25,8 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -82,13 +82,13 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private data class Tab(val route: String, val label: String, val icon: ImageVector)
+private data class Tab(val route: String, val labelRes: Int, val icon: ImageVector)
 
 private val TABS = listOf(
-    Tab("scan", "Scan", Icons.Filled.Radar),
-    Tab("evidence", "Threats", Icons.Filled.BugReport),
-    Tab("modules", "Capabilities", Icons.Filled.ViewModule),
-    Tab("settings", "Settings", Icons.Filled.Settings),
+    Tab("scan", R.string.tab_scan, Icons.Filled.Radar),
+    Tab("evidence", R.string.tab_threats, Icons.Filled.BugReport),
+    Tab("modules", R.string.tab_capabilities, Icons.Filled.ViewModule),
+    Tab("settings", R.string.tab_settings, Icons.Filled.Settings),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,9 +111,11 @@ fun AppShell(orchestrator: ScanOrchestrator) {
         topBar = {
             TopAppBar(
                 title = {
+                    // v18：按页标题（当前 tab 名）；品牌名留驻 About
+                    val titleRes = TABS.firstOrNull { it.route == currentRoute }?.labelRes
                     Text(
-                        "Detect-Any",
-                                                style = MaterialTheme.typography.titleLarge,
+                        titleRes?.let { stringResource(it) } ?: stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleLarge,
                     )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -144,7 +146,7 @@ fun AppShell(orchestrator: ScanOrchestrator) {
                                 TabIcon(tab, selected)
                             }
                         },
-                        label = { Text(tab.label) },
+                        label = { Text(stringResource(tab.labelRes)) },
                     )
                 }
             }
@@ -157,10 +159,12 @@ fun AppShell(orchestrator: ScanOrchestrator) {
 
 @Composable
 private fun TabIcon(tab: Tab, selected: Boolean) {
+    val label = stringResource(tab.labelRes)
     Icon(
         tab.icon,
-        contentDescription = tab.label,
-        tint = if (selected) MaterialTheme.colorScheme.primary else Color.Gray,
+        contentDescription = label,
+        // v18：未选中色走主题 token（原 Color.Gray 死值在深色下偏暗）
+        tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
@@ -188,7 +192,7 @@ private fun AppNavHost(nav: NavHostController, controller: ScanController, modif
                 launchSingleTop = true
                 restoreState = true
             }
-        }) }
+        }, onOpenCapabilities = { navigateTab(nav, "modules") }) }
         composable("evidence" + "?threat={threat}", arguments = listOf(androidx.navigation.navArgument("threat") { nullable = true; defaultValue = null })) { entry ->
             EvidenceScreen(controller, scrollToThreat = entry.arguments?.getString("threat"))
         }

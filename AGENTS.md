@@ -118,14 +118,18 @@ enum class Confidence { A(40), B(15), C(5) }
 adb -s emulator-5554 install -r app/build/outputs/apk/debug/app-debug.apk
 
 # 3. Run L2 full scan
+#    v18 UI（2026-11-12）：分段选择器默认 L2 + "Start Scan" 主按钮；
+#    点击坐标必须按 uiautomator dump 动态推导（勿硬编码——布局会再变），
+#    或直接用 scripts/verify_v16_google_test_stack.sh 的 tap_by_text
 adb -s emulator-5554 shell am force-stop com.detectany.app
 adb -s emulator-5554 shell am start -n com.detectany.app/.MainActivity
-sleep 3 && adb -s emulator-5554 shell input tap 194 498
-sleep 10
+sleep 3 && adb -s emulator-5554 shell uiautomator dump /sdcard/tap.xml
+# 取 "Start Scan" 节点 bounds 中心 tap；sleep 10
+adb -s emulator-5554 shell cat /sdcard/tap.xml   # 从中读 bounds 手动 tap
 
 # 4. Check threats page — new probe MUST NOT produce findings
 #    (only pre-existing emulator signals: qemu, sdk_gphone, ranchu, etc.)
-adb -s emulator-5554 shell input tap 402 2274 && sleep 2
+#    同法取 "Threats" tab 节点中心 tap
 adb -s emulator-5554 shell uiautomator dump /sdcard/verify.xml
 adb -s emulator-5554 shell cat /sdcard/verify.xml
 ```

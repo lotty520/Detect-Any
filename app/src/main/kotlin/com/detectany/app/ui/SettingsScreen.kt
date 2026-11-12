@@ -8,12 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,8 +20,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.detectany.app.BuildConfig
+import com.detectany.app.R
 
 /** 设置页：导出/导入、能力边界、版本。 */
 @Composable
@@ -34,14 +34,14 @@ fun SettingsScreen(controller: ScanController) {
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) {
-            feedback = "Import cancelled"
+            feedback = context.getString(R.string.import_cancelled)
         } else {
             runCatching {
                 context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
             }.getOrNull()?.let { text ->
                 controller.importSignature(text)
                 feedback = controller.statusLine
-            } ?: run { feedback = "Import failed: cannot read file" }
+            } ?: run { feedback = context.getString(R.string.import_failed) }
         }
     }
 
@@ -49,57 +49,71 @@ fun SettingsScreen(controller: ScanController) {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        SettingsCard("Data") {
-            OutlinedButton(onClick = { feedback = controller.exportReport(context) }, modifier = Modifier.fillMaxWidth()) {
-                Text("Export structured report (redacted JSON)")
+        SettingsCard(stringResource(R.string.settings_data)) {
+            OutlinedButton(
+                onClick = { feedback = controller.exportReport(context) },
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+            ) {
+                Text(stringResource(R.string.settings_export))
             }
             OutlinedButton(
                 onClick = {
-                    feedback = "Select signature file…"
+                    feedback = context.getString(R.string.import_selecting)
                     importLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
                 },
                 modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
             ) {
-                Text("Import signature update (ed25519-signed, instant)")
+                Text(stringResource(R.string.settings_import))
             }
         }
 
-        SettingsCard("Capability Boundaries (public commitments)") {
-            BoundaryRow("KPM (Kernel Patch Module)", "Not detectable from userspace — no detection promise, hardware attestation as backstop")
-            BoundaryRow("Full susfs configuration", "Some static traces not promised; accepted via adversarial-combo capture rate")
-            BoundaryRow("Probabilistic detection", "Verdicts anchor to evidence combinations (STRONG/MED/WEAK resonance), not single-point absolutes")
-            BoundaryRow("Android 7 attestation", "Collect-but-dont-trust when hardware chain unassured; local signals as backstop")
+        SettingsCard(stringResource(R.string.settings_boundaries)) {
+            BoundaryRow(stringResource(R.string.boundary_kpm), stringResource(R.string.boundary_kpm_desc))
+            BoundaryRow(stringResource(R.string.boundary_susfs), stringResource(R.string.boundary_susfs_desc))
+            BoundaryRow(stringResource(R.string.boundary_prob), stringResource(R.string.boundary_prob_desc))
+            BoundaryRow(stringResource(R.string.boundary_api24), stringResource(R.string.boundary_api24_desc))
         }
 
-        SettingsCard("About") {
-            Text("Detect-Any 0.1.0", fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodyMedium)
+        SettingsCard(stringResource(R.string.settings_about)) {
+            // 版本号读 BuildConfig（v0.2.0 bump 后不再手改此处——2026-11-12 审计发现曾滞留 0.1.0）
             Text(
-                "Signature DB v${com.detectany.data.signature.BundledSignatureDb.db.version} · Rules v${com.detectany.core.rules.BundledRuleSet.ruleSet.version} · online channel pending",
+                "Detect-Any ${BuildConfig.VERSION_NAME}",
+                fontFamily = FontFamily.Monospace,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                stringResource(
+                    R.string.settings_versions,
+                    com.detectany.data.signature.BundledSignatureDb.db.version,
+                    com.detectany.core.rules.BundledRuleSet.ruleSet.version,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "25+ targets: Magisk / KernelSU family / APatch / ZN / ReZygisk / LSPosed / LSPatch / TrickyStore / susfs / Shamiko / PIF / Frida / emulators / spoofing tools",
+                stringResource(R.string.settings_targets),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
         feedback?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+            )
         }
     }
 }
 
 @Composable
 private fun SettingsCard(title: String, content: @Composable () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+    InfoCard(elevation = 1.dp) {
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             content()
         }
     }

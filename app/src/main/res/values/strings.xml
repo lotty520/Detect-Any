@@ -1,4 +1,80 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Detect-Any</string>
+
+    <!-- Shell / tabs -->
+    <string name="tab_scan">Scan</string>
+    <string name="tab_threats">Threats</string>
+    <string name="tab_capabilities">Capabilities</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Scan screen -->
+    <string name="scan_subtitle">Root / Hook / Spoofing Detection</string>
+    <string name="tier_l1">L1 Quick</string>
+    <string name="tier_l2">L2 Full</string>
+    <string name="tier_l3">L3 Deep</string>
+    <string name="tier_l1_desc">Fast signals · milliseconds</string>
+    <string name="tier_l2_desc">All 12 collectors · signature DB v%1$d</string>
+    <string name="tier_l3_desc">L2 + hardware key attestation · seconds</string>
+    <string name="start_scan">Start Scan</string>
+    <string name="scanning_status">Scanning · mount forensics / supercall probes / instruction integrity</string>
+    <string name="empty_title">Run your first scan</string>
+    <string name="stat_domains">12 domains</string>
+    <string name="stat_frameworks">25+ frameworks</string>
+    <string name="stat_signals">90+ signals</string>
+    <string name="browse_capabilities">Browse capabilities</string>
+    <string name="hiding_stack">⚠ Hiding stack detected (anti-detection module active)</string>
+    <string name="scan_meta">%1$s · %2$dms · %3$d collector(s) degraded</string>
+    <string name="framework_hits">Framework Hits</string>
+    <string name="view_findings">View %1$d findings</string>
+    <string name="clean_no_findings">✓ Clean: no findings</string>
+    <string name="delta_vs_last">vs last</string>
+    <string name="delta_no_change">no change</string>
+    <string name="delta_new">New: %1$s</string>
+    <string name="delta_gone">Gone: %1$s</string>
+    <string name="delta_stable">No environment change</string>
+
+    <!-- Shared components -->
+    <string name="risk_score">Risk Score</string>
+    <string name="verdict_detected">Detected · conclusive evidence</string>
+    <string name="verdict_inconclusive">Inconclusive · insufficient evidence</string>
+    <string name="status_degraded">Degraded</string>
+    <string name="status_blocked">Blocked</string>
+
+    <!-- Threats screen -->
+    <string name="threats_empty_title">No results yet</string>
+    <string name="threats_empty_hint">Run a scan from the Scan tab first</string>
+    <string name="filter_strong">STRONG %1$d</string>
+    <string name="filter_med">MED %1$d</string>
+    <string name="filter_weak">WEAK %1$d</string>
+    <string name="threats_count">%1$d threats · %2$d findings</string>
+    <string name="finding_source">Source: %1$s · Rule %2$s · Category %3$s</string>
+    <string name="raw_observations">Raw observations:</string>
+
+    <!-- Capabilities screen -->
+    <string name="modules_empty_title">No capability data yet</string>
+    <string name="modules_empty_hint">Run a scan from the Scan tab first</string>
+    <string name="modules_summary">%1$d domains · %2$d OK · %3$d degraded · %4$d blocked</string>
+    <string name="modules_total_ms">Total %1$dms</string>
+    <string name="modules_none">none</string>
+    <string name="modules_error">  Error: %1$s</string>
+
+    <!-- Settings screen -->
+    <string name="settings_data">Data</string>
+    <string name="settings_export">Export structured report (redacted JSON)</string>
+    <string name="settings_import">Import signature update (ed25519-signed, instant)</string>
+    <string name="settings_boundaries">Capability Boundaries (public commitments)</string>
+    <string name="boundary_kpm">KPM (Kernel Patch Module)</string>
+    <string name="boundary_kpm_desc">Not detectable from userspace — no detection promise, hardware attestation as backstop</string>
+    <string name="boundary_susfs">Full susfs configuration</string>
+    <string name="boundary_susfs_desc">Some static traces not promised; accepted via adversarial-combo capture rate</string>
+    <string name="boundary_prob">Probabilistic detection</string>
+    <string name="boundary_prob_desc">Verdicts anchor to evidence combinations (STRONG/MED/WEAK resonance), not single-point absolutes</string>
+    <string name="boundary_api24">Android 7 attestation</string>
+    <string name="boundary_api24_desc">Collect-but-dont-trust when hardware chain unassured; local signals as backstop</string>
+    <string name="settings_about">About</string>
+    <string name="settings_versions">Signature DB v%1$d · Rules v%2$d · online channel pending</string>
+    <string name="settings_targets">25+ targets: Magisk / KernelSU family / APatch / ZN / ReZygisk / LSPosed / LSPatch / TrickyStore / susfs / Shamiko / PIF / Frida / emulators / spoofing tools</string>
+    <string name="import_cancelled">Import cancelled</string>
+    <string name="import_failed">Import failed: cannot read file</string>
+    <string name="import_selecting">Select signature file…</string>
 </resources>

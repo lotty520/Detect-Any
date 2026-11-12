@@ -32,6 +32,15 @@ Android 8-12 中端 ≥2 台（含骁龙 7 系时延基准机）、Android 13-16
 - 正向验证新增（2026-11-10）：DRVCAM 官方 APK 装入模拟器 → 虚拟摄像头威胁
   全链路命中（queries→C5→rule→ThreatMeta），卸载回落基线
 
+### 2026-11-12 v18 UI 重设计（构建/静态门禁全绿；真机视觉矩阵待设备回连）
+
+- 设计系统：全字阶调校（SemiBold 标题/正文 12sp 底线）、Shapes 统一（8/10/14/20）、严重度四色 token 化（critical/warning/watch/clean × 明暗，CompositionLocal 下发——深色模式徽章/状态低对比一次性修复）、values-night 启动背影
+- Scan 屏：三档统一 SegmentedButton + 单一 Start Scan 主 CTA（修「三兄弟三布局/无主行动点」）；空态瘦身为 3 亮点 stat + Capabilities 跳转；ScoreGauge v2（自适应尺寸 ≤200dp、字分随环径缩放并按 fontScale 反向补偿、caption ≥12sp）
+- Threats 屏：筛选行 FlowRow（字体 ≥1.3 不溢出）、威胁卡左缘严重度色条、ruleId 等宽
+- 兼容性：未选中 tab 色 → onSurfaceVariant；全部文案抽入 strings.xml（英文逐字保留——uiautomator 文本匹配不断）；Settings 版本号改读 BuildConfig（曾滞留 0.1.0）
+- 验证脚本 tap 坐标改动态推导（tap_by_text），AGENTS 流程同步
+- ⚠️ 待办：真机截图矩阵（浅/深 × 字体 1.0/1.3 × 四 tab）、connected 套件、screenshots/ 存档更新——设备断连未执行
+
 ### 2026-11-12 v16 Google 测试栈识别（Pixel 4 / Android 13 干净真机）
 
 - **FP**：正常启动 L2（618ms）与改动前基线一致——STRONG 0 / MED 0 / WEAK 2（仅 SIM 无卡 + ADB 姿态两条预存 C 级），零 AUTOMATION/EMULATOR 新增，判定 Inconclusive；新探针全部输入源 OS 层核验缺席（appium/orchestrator 包、无障碍串、qemu/avd 属性、goldfish 传感器、/dev 节点）
