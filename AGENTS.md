@@ -108,6 +108,8 @@ enum class Confidence { A(40), B(15), C(5) }
 
 **Every new detection probe or modification to an existing probe MUST pass a clean emulator verification before commit.** No exceptions.
 
+**FP 核准（2026-11-13 起）**：探针/特征库/分级改动，除模拟器验证外还必须在**全矩阵干净真机**上各跑一次 `scripts/fp_certify.sh <serial>`（L1 输入源核验 + L2 全扫 + 机型基线 diff），**PASS 才可 commit**。新机型无基线时走 `--new` 引导人工定级。方法论与门槛：`docs/FP_CERTIFICATION.md`。
+
 ### Procedure
 
 ```bash

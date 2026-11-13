@@ -1,0 +1,15 @@
+{
+  "model": "2607DRA18C",
+  "api": 36,
+  "recorded": "2026-11-12",
+  "notes": "小米 HyperOS / Android 16（首次 API 36 实测）。合法形态：HyperOS 出厂 overlayfs 覆盖 /system 系目录（无 /data/adb upperdir 指纹，C 级 weight-only——2026-11-12 根因修复后基线）；CarWith 车联无障碍已白名单。实测 score 36 Inconclusive。",
+  "testHarness": [
+    "automation.instrumented(B)"
+  ],
+  "expected": [
+    "screenshare.adb_enabled(C)",
+    "mount.overlay.(C)"
+  ],
+  "maxScore": 40,
+  "conclusive": false
+}

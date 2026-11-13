@@ -1,5 +1,12 @@
 # 回归矩阵与实测记录
 
+> **FP 核准**：探针/特征库改动须过 `scripts/fp_certify.sh`（机型基线在 `scripts/baselines/`）——方法论见 [FP_CERTIFICATION.md](FP_CERTIFICATION.md)。
+
+## 2026-11-13 FP 核准体系落地 + P8 对抗组实证
+
+- **体系落地**：`docs/FP_CERTIFICATION.md`（三层证据链：L1 输入源核验 / L2 干净矩阵×机型基线 diff / L3 分级审计）+ `scripts/fp_certify.sh` 自动执行器 + `scripts/baselines/{pixel4,2607DRA18C}.json` 实测基线。已验证：L1 正确拦截非干净设备（P8 误入即拒，exit 1）；diff 引擎前缀+置信匹配判别正确；退码语义（0 PASS/1 FAIL/2 新机型引导）就位
+- **P8 对抗组扫描（TP 实证）**：APatch+SukiSU+HMA+双自动点击器在装 → score 84 conclusive，10 findings：`verified_boot_lie(A)` 锚定 + `app.sukisu(B)`/`app.apatch(B)`/`prop.zygisk_denylists(B)` + **`app.hma(C)` 首次真机命中（v17 条目正向验证）** + automation.unknown×3（dianjiqi/autoclick/anydesk）。与历史基线（50+ 定性）一致
+
 ## 矩阵规格（specs / 原需求 §10）
 
 13 项目标 × 机型矩阵，特征库发版前回归；必含对抗组：

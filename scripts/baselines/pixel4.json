@@ -1,0 +1,15 @@
+{
+  "model": "Pixel 4",
+  "api": 33,
+  "recorded": "2026-11-12",
+  "notes": "纯净 AOSP 形态基准机。实测（2026-11-12，v16.1）：正常启动 L2 = 618ms，WEAK 2，score 18→36 区间（取决于 SIM 在位），Inconclusive。",
+  "testHarness": [
+    "automation.instrumented(B)"
+  ],
+  "expected": [
+    "screenshare.adb_enabled(C)",
+    "sim.all_absent(C)"
+  ],
+  "maxScore": 40,
+  "conclusive": false
+}
