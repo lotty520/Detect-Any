@@ -12,9 +12,13 @@
 
 ## Screenshots
 
-| Home | Scan Result | Threats | Capabilities | Settings |
-|:---:|:---:|:---:|:---:|:---:|
-| <img src="screenshots/01-home.png" width="180" height="400"> | <img src="screenshots/02-scan.png" width="180" height="400"> | <img src="screenshots/03-threats.png" width="180" height="400"> | <img src="screenshots/04-capabilities.png" width="180" height="400"> | <img src="screenshots/05-settings.png" width="180" height="400"> |
+**UI v18**（2026-11-12 重设计：分段扫描档选择器 + 单一主 CTA + 严重度 token 体系，真机浅/深双主题验证）：
+
+| Scan · Light | Scan · Dark |
+|:---:|:---:|
+| <img src="screenshots/v18-scan-empty-light.png" width="180" height="400"> | <img src="screenshots/v18-scan-empty-dark.png" width="180" height="400"> |
+
+> 全四 tab × 扫描结果态截图矩阵刷新中（验证环境设备受限，见 `docs/REGRESSION.md`）。
 
 ---
 

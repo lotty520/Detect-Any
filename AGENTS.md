@@ -63,8 +63,8 @@ enum class Confidence { A(40), B(15), C(5) }
 
 ```bash
 ./gradlew assembleDebug                        # Build debug APK
-./gradlew test                                # Host unit tests (~150+)
-./gradlew :app:connectedDebugAndroidTest      # Device tests (21 per device)
+./gradlew $(grep -o 'include(":[^"]*")' settings.gradle.kts | sed 's/include("://;s/")//' | sed 's/$/:test/' | tr '\n' ' ')   # 全模块 host 测试（⚠️ 根任务 `test` 是空操作——2026-11-13 实证，必须显式列模块）
+./gradlew :app:connectedDebugAndroidTest      # Device tests (23 per device)
 ./gradlew :app:verify16kAlignment             # 16KB page alignment gate (MUST pass)
 ./gradlew :app:lintDebug                      # Android Lint (NewApi=0 强制；2026-11-10 审计实证抓到 API 24-27 启动崩溃)
 ```
@@ -188,17 +188,15 @@ When uncertain about a detection signal's reliability:
 
 ## Signature Database
 
-Versioned, ed25519-signed, hot-updatable. Current: **v12**.
+Versioned, ed25519-signed, hot-updatable. Current: **v17**.
 
 ```bash
 # Location: data/signature/src/main/kotlin/.../BundledSignatureDb.kt
-# Update flow: edit entries → bump version → update tests (they hardcode version)
-# Verify: ./gradlew :data:signature:test
+# Update flow: edit entries → bump version
+# Verify: ./gradlew :data:signature:test :feature:report:test
 ```
 
-**Important**: When bumping the DB version, update these test files:
-- `data/signature/src/test/.../SignatureStoreTest.kt`
-- `feature/report/src/test/.../ReportTest.kt`
+**Note**: 测试动态取 `BundledSignatureDb.db.version`，**无需**随版本号手改测试文件（2026-11-12 实证——早前「tests hardcode version」的说法已过时）。
 
 ---
 
@@ -212,7 +210,7 @@ Versioned, ed25519-signed, hot-updatable. Current: **v12**.
 | `docs/CAPABILITY_BOUNDARIES.md` | What we explicitly don't promise |
 | `docs/REGRESSION.md` | Device test data, timing benchmarks |
 | `docs/RUNBOOK.md` | Ops, hot-update, release checklist, troubleshooting |
-| `openspec/specs/` | 6 capability behavior contracts (31 requirements) |
+| `openspec/specs/` | 10 capability behavior contracts (54 requirements) |
 
 ---
 

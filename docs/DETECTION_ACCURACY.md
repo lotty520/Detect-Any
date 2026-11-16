@@ -51,7 +51,7 @@
 | 策展（历史版本） | path.debug_ramdisk.magisk（until v26.x） | 数据策展字段，v27+ 设备自然 miss |
 | 不可达 | frida.dbus 多端口枚举 | API28+ /proc/net/tcp EACCES（spec 已注明，27042 恒探测） |
 | 不可达 | sock.* 全部 6 条（现代设备） | /proc/net/unix 门控 DEGRADED；API≤8 或宽松环境可达 |
-| 未接线 | mount.too_clean / stdev_deviation | 无机型基线（deviceBaselines 空） |
+| ~~未接线~~ 已接线（窄） | mount.too_clean / stdev_deviation | deviceBaselines 已有 2 条（TAS-AL00 / Pixel 8，v13 起）并接入 MountCollector——其余机型无基线时维持不判；st_dev 跨重启稳定性仍未验证（消费侧 C 级） |
 
 ## 四、FP 侧验证完备项（干净双环境零误报实证）
 
