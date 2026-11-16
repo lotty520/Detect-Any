@@ -76,11 +76,18 @@ $A install -r -t "$APK" >/dev/null 2>&1 || { echo "ENV-ERROR: 主包安装失败
 $A install -r -t "$TESTAPK" >/dev/null 2>&1 || { echo "ENV-ERROR: 测试包安装失败"; exit 3; }
 
 REPORT=""
+# macOS 无 GNU timeout——可用则套 300s 超时，否则裸跑（重试循环兜底 GreezeManager 类查杀/挂起）
+TO="$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || true)"
 for attempt in 1 2; do
   $A shell am force-stop $PKG 2>/dev/null
   $A logcat -c 2>/dev/null
-  timeout 300 $A shell am instrument -w -e class com.detectany.app.ReportUiSmokeTest#orchestratorFullScanRunsCleanOnEmulator \
-    $PKG.test/androidx.test.runner.AndroidJUnitRunner >/dev/null 2>&1
+  if [ -n "$TO" ]; then
+    "$TO" 300 $A shell am instrument -w -e class com.detectany.app.ReportUiSmokeTest#orchestratorFullScanRunsCleanOnEmulator \
+      $PKG.test/androidx.test.runner.AndroidJUnitRunner >/dev/null 2>&1
+  else
+    $A shell am instrument -w -e class com.detectany.app.ReportUiSmokeTest#orchestratorFullScanRunsCleanOnEmulator \
+      $PKG.test/androidx.test.runner.AndroidJUnitRunner >/dev/null 2>&1
+  fi
   REPORT=$($A logcat -d 2>/dev/null | grep "SCAN-REPORT" | tail -1 | sed 's/^.*SCAN-REPORT: //' | tr -d '\r')
   [ -n "$REPORT" ] && break
   echo "  (第 $attempt 次扫描未出报告——重试)"
@@ -102,15 +109,16 @@ done
 if [ -z "$BASE" ]; then
   cat <<EOF
 
-[NEW-DEVICE] 机型「$MODEL」无基线（$BASE_DIR/）。
+[NEW-DEVICE] model "$MODEL" has no baseline in $BASE_DIR/
 
-  1. 对上面每条 finding 人工定级：测试环境构造项 → testHarness；合法 OEM 形态 → expected；
-     任何存疑项先按 FP 处理（修探针），不拍脑袋入基线
-  2. 生成 $BASE_DIR/$(echo "$MODEL" | tr ' ' '_').json：
+  1. Grade every finding above MANUALLY: test-harness artifacts -> testHarness;
+     legitimate OEM form -> expected; anything doubtful -> treat as FP first
+     (fix the probe) -- never guess things into the baseline
+  2. Create $BASE_DIR/$(echo "$MODEL" | tr ' ' '_').json:
      { "model": "$MODEL", "api": $API, "recorded": "$(date '+%F')",
        "testHarness": ["automation.instrumented(B)"],
        "expected": ["prefix(C)"], "maxScore": $((SCORE + 10)), "conclusive": false }
-  3. 重跑本脚本应 PASS
+  3. Re-run this script -- it should PASS
 EOF
   exit 2
 fi

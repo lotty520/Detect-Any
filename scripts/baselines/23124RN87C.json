@@ -1,0 +1,15 @@
+{
+  "model": "23124RN87C",
+  "api": 35,
+  "recorded": "2026-11-16",
+  "notes": "Redmi HyperOS / Android 15。与 2607DRA18C（A16）形态完全同构：HyperOS 出厂 overlayfs 覆盖 /system 系目录（C 级，挂载点 hash 一致），无 /data/adb upperdir 指纹。实测 score 36 Inconclusive。第二台小米——C2 overlay 修复跨版本复验通过。",
+  "testHarness": [
+    "automation.instrumented(B)"
+  ],
+  "expected": [
+    "screenshare.adb_enabled(C)",
+    "mount.overlay.(C)"
+  ],
+  "maxScore": 46,
+  "conclusive": false
+}

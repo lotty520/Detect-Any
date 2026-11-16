@@ -2,6 +2,13 @@
 
 > **FP 核准**：探针/特征库改动须过 `scripts/fp_certify.sh`（机型基线在 `scripts/baselines/`）——方法论见 [FP_CERTIFICATION.md](FP_CERTIFICATION.md)。
 
+## 2026-11-16 A2 闭环：fp_certify 全流程首台真机走通（Redmi 23124RN87C / HyperOS A15）
+
+- **全流程演练**：新机型 `--new` 引导（8 findings 供定级）→ 人工定级（overlay×6→expected、instrumented→testHarness）→ 基线落库 → 重跑 **✓ FP CERTIFIED（score 36 Inconclusive，0 A / 0 基线外）**
+- **C2/C6 修复跨版本复验**：第二台 HyperOS（A15）与 2607DRA18C（A16）形态完全同构——6 条 /system 系 overlay **连 mountPoint hash 都一致**；score 36 与 A16 完全相同
+- 基线库第三条：`scripts/baselines/23124RN87C.json`
+- 脚本修复两个：① macOS 无 GNU timeout 依赖（可用则用/降级裸跑+重试兜底）② --new 引导 heredoc 坏字节（重写为 ASCII）
+
 ## 2026-11-16 B6 frida 变异链对抗：受控改名实验 → 三防线加固（P8 实证闭环）
 
 **注入协议**（API 36 ptrace 全封后仍可行的攻击路径，亦是本实验方法）：root `wrap.<pkg>` 属性 + `LD_PRELOAD=frida-gadget`（so 需 `chcon apk_data_file` 绕 untrusted_app 对 shell_data_file 的 exec 拒绝）+ gadget 自续 config（listen on_port_locked=resume）。frida-server 路径在 API 36 不可用（root attach PermissionDenied、spawn 握手超时——平台加固情报）。
