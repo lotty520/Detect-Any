@@ -88,9 +88,10 @@ fun ScoreGauge(score: Int, conclusive: Boolean, modifier: Modifier = Modifier) {
                     )
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    // 字号随环径缩放，fontScale 反向补偿（视觉数字，不参与无障碍缩放）
+                    // 字号随环径缩放，fontScale 反向补偿（视觉数字，不参与无障碍缩放）；
+                    // 0.19 系数：1.3 字号实测数字贴近左弧内缘（Redmi A15 视觉核验），留边距
                     val density = LocalDensity.current
-                    val numeralSp = with(density) { (diameter.toPx() * 0.21f / fontScale).toSp() }
+                    val numeralSp = with(density) { (diameter.toPx() * 0.19f / fontScale).toSp() }
                     Text(
                         "$animated",
                         fontFamily = MonoEmphasis.fontFamily,

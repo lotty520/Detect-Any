@@ -2,6 +2,13 @@
 
 > **FP 核准**：探针/特征库改动须过 `scripts/fp_certify.sh`（机型基线在 `scripts/baselines/`）——方法论见 [FP_CERTIFICATION.md](FP_CERTIFICATION.md)。
 
+## 2026-11-16 A 类·红米可执行项清零（UI v18 视觉矩阵 + 红米 L3 关闭）
+
+- **UI v18 矩阵完成（Redmi 23124RN87C，input/字体写/夜间全开放）**：字体 1.3 × 空/结果/Threats/Capabilities/Settings 五屏 + 浅色 1.0 四 tab + 深色三屏，8 张存档 `screenshots/v18-matrix/`
+- **视觉模型逐项核验**：仪表盘数字 1.3 下**未溢出**（fontScale 反向补偿生效）但左弧间隙紧 → 微调系数 0.21→0.19 后复拍 **四向间隙 PASS**；Threats 筛选 chip FlowRow 换行优雅（v18 修复实证）；卡内徽章/计数/chevron 布局完好。已知 cosmetic：底导航 "Capabilities" 1.3 下断词换行（M3 平台惯例，同 Pixel 系统行为，不处理）
+- **walkthrough 测试（UiDevice）在小米双机（A15/A16）均挂起** → 定性 OEM 级限制（Pixel 正常 22/22；walkthrough 实质——启动+截图——手动路径两机全通）
+- **红米 L3 面关闭**：本机 AttestationDeviceSmoke OK(2)（更早一次在 R8 minified 构建上通过——含在线 CRL 通道实装）；lancelot 老机型的 MIUI 安装拦截限制对新红米不成立
+
 ## 2026-11-16 C 类工程债清零（R8 校准为最大项）
 
 - **R8 校准（RUNBOOK 债务根因消除）**：minified release 在 Redmi A15 实测 **≡ debug ≡ 机型基线**（36 分/8 findings 完全一致；历史"minify 90 vs debug 70"差异的根因是 release 块**从未接 proguardFiles**——规则文件裸奔）。修复链：① proguardFiles 接线 ② 校准规则（kotlin/kotlinx 面、androidx.tracing、com.detectany.** ——androidTest 经 app classloader 解析这些面；本项目开源、混淆无防护价值）③ orchestrator 测试变体分流（debug=运行时分支 / release=装配分支断言）。**L3 attestation + 全 instrument 链在 minified release 真机通过**
