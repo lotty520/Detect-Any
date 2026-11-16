@@ -1,0 +1,16 @@
+{
+  "model": "Pixel 8",
+  "serial": "39011FDJH00G5G",
+  "setup": "P8 对抗组：APatch + SukiSU-Ultra + HMA(com.tsng.hidemyapplist) + 点金器/autoclick/AnyDesk 无障碍 + magisk-context root（2026-11-16 实测配置）",
+  "recorded": "2026-11-16",
+  "mustHit": [
+    "prop.verified_boot_lie(A)",
+    "app.sukisu(B)",
+    "app.apatch(B)",
+    "prop.zygisk_denylists(B)",
+    "app.hma(C)"
+  ],
+  "minScore": 50,
+  "mustConclusive": true,
+  "notes": "实测 score=84 conclusive（2026-11-16）。verified_boot_lie(A) 为深隐藏锚点（susfs+manager 卸载仍命中）；app.hma 为 v17 新条目首个真机命中——两代特征库的正向回归锚。自动化工具（dianjiqi/autoclick/anydesk）的 automation.unknown C 级不列入 mustHit（包名随机族，非稳定锚）。"
+}

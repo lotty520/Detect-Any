@@ -85,6 +85,22 @@ class VirtualEnvCollector(
             )
         }
 
+        // C 级：Cuttlefish（crosvm）形态——qemu 系向量对其全盲（2026-11-16 GitHub 审计补）；
+        // 无实机矩阵证据，按 OEM 矩阵原则 C 起步（avd_name B 面若 cvd 设置则另行命中）
+        if (EmulatorMatching.cuttlefishHit(Build.PRODUCT, Build.DEVICE)) {
+            add(
+                Finding(
+                    ruleId = "emulator.cuttlefish",
+                    collector = id,
+                    confidence = Confidence.C,
+                    category = Finding.Category.EMULATOR,
+                    framework = "cuttlefish",
+                    detail = "Cuttlefish device form (cutf/cvd product/device shape) — crosvm virtual device, qemu-family vectors blind to it",
+                    raw = mapOf("product" to Build.PRODUCT, "device" to Build.DEVICE),
+                ),
+            )
+        }
+
         // B 级：AVD 名属性（host 侧注入 ro 键；真机不存在。cuttlefish 同样设置——均为虚拟设备）
         val avdName = sysprop("ro.boot.qemu.avd_name") ?: sysprop("ro.kernel.qemu.avd_name")
         if (avdName != null) {

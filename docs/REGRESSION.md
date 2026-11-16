@@ -1,6 +1,14 @@
 # 回归矩阵与实测记录
 
 > **FP 核准**：探针/特征库改动须过 `scripts/fp_certify.sh`（机型基线在 `scripts/baselines/`）——方法论见 [FP_CERTIFICATION.md](FP_CERTIFICATION.md)。
+> **TP 核准**：对抗组设备须过 `scripts/tp_certify.sh`（检出面 profile 在 `scripts/tp-profiles/`，P8 范例已入库）——mustHit 缺失 = 检出面退化告警。
+
+## 2026-11-16 B 类·无设备项清零（glib 升 B / Cuttlefish / TP 核准工具）
+
+- **frida.glib_threads C→B**：升 B 论证三件套——①自进程范围（FP 面是自家依赖非 OEM 形态）②依赖审计零 GLib 系 ③三厂商干净零命中（Pixel4/A16 小米/A15 Redmi）。改名免疫防线三条现在全部 B 级
+- **emulator.cuttlefish（C）**：crosvm 形态双判据（cutf contains / cvd product-device 全等，防短串撞名）；qemu 系向量对 cuttlefish 全盲的覆盖缺口补上 C 面；无实机矩阵证据按原则不升 B
+- **TP 对抗组核准工具落地**：`scripts/tp_certify.sh`（fp_certify 对偶——mustHit 检出锚点 + minScore + mustConclusive 门槛；匹配引擎干跑 P8 实测样本全 HIT）+ `scripts/tp-profiles/39011FDJH00G5G.json`（P8 实测 84 分配置：verified_boot_lie(A)/sukisu/apatch/zygisk_denylists/hma 五锚点）
+- ⚠️ 仍设备门控：B6 尾巴最坏情况轮 + D-Bus 实验轮（需 P8 回连）；FTL 物理真机基线（需 FTL 云服务账号，外部依赖）
 
 ## 2026-11-16 A 类·红米可执行项清零（UI v18 视觉矩阵 + 红米 L3 关闭）
 

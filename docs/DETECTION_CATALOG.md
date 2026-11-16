@@ -299,4 +299,11 @@
 |---|---|---|
 | frida.external_mapping ★ | /data/local、/sdcard、/storage 路径可执行映射（SELinux 物理禁止 untrusted_app 加载——达成必经 root 改标签） | B |
 | frida.rwx.anon_clusters ★ | 无名匿名 RWX 簇 ≥2 处或 ≥16KB（gum 运行时代码生成足迹；改名免疫。替代旧 frida.rwx.pages——其连续段判据有 trailing bug 且对离散簇盲） | B |
-| frida.glib_threads ★ | gmain+gdbus 线程共存（GLib 栈指纹；嵌 GLib 合法 app 理论存在 → C 起步待机型矩阵） | C |
+| frida.glib_threads ★ | gmain+gdbus 线程共存（GLib 栈指纹；2026-11-16 升 B——自进程范围+依赖审计+三厂商零证据） | B |
+
+### 2026-11-16 B 类推进：glib_threads 升 B + Cuttlefish C 面
+
+| 检测项 | 说明 | 置信 |
+|---|---|---|
+| frida.glib_threads（C→**B** 升级） | gmain+gdbus 共存。升 B 论证：① 探针只扫**自身进程**——FP 面是自家依赖是否引入 GLib（非 OEM 系统形态）；② 依赖审计零 GLib 系（compose/bouncycastle/kotlinx/自有 native）；③ 三厂商干净实证零命中（Pixel4/小米A16/RedmiA15） | B |
+| emulator.cuttlefish ★ | crosvm 官方无头虚拟设备形态（cutf contains / cvd product-device 全等双判据）。qemu 系向量对 cuttlefish 全盲；无实机矩阵证据按原则 C 起步；avd_name B 面另覆盖 | C |

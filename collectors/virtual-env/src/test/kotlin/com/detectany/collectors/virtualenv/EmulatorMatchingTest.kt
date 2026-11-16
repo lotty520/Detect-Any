@@ -2,6 +2,7 @@ package com.detectany.collectors.virtualenv
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /** fixture：真实 emulator 指纹 vs 三台真机（Pixel4/Redmi/华为模板形态——FP 边界）。 */
@@ -45,5 +46,17 @@ class EmulatorMatchingTest {
                 model = "TAS-AL00", product = "TAS-AL00", hardware = "kirin990",
             ).isEmpty(),
         )
+    }
+
+    @Test
+    fun cuttlefishForms() {
+        // cutf 系列（contains）与 cvd（product/device 全等）
+        assertTrue(EmulatorMatching.cuttlefishHit(product = "cutf_cvd", device = "cvd_10_phone"))
+        assertTrue(EmulatorMatching.cuttlefishHit(product = "cvd", device = "cvd"))
+        // "cvd" 过短防撞：仅全等命中，contains 不算
+        assertFalse(EmulatorMatching.cuttlefishHit(product = "SomeCvdPro", device = "mi8953"))
+        // 真机不命中
+        assertFalse(EmulatorMatching.cuttlefishHit(product = "flame", device = "flame"))
+        assertFalse(EmulatorMatching.cuttlefishHit(product = "23124RN87C", device = "evergo"))
     }
 }

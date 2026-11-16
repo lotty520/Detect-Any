@@ -151,10 +151,11 @@ class InstrumentProbeCollector(
         } else emptyList()
     }
 
-    // ---- L2b: GLib 线程组合（2026-11-16 P8 实测新增，改名免疫，C 级起步）----
+    // ---- L2b: GLib 线程组合（2026-11-16 P8 实测；同日 C→B 升级）----
     // frida/gadget 基于 GLib：驻留进程实测 gmain+gdbus 共存（改名后 xum-js-loop 仍带此二线程）。
-    // 干净 app/Chrome 对照 0；但嵌入 GLib 栈的合法 app（gstreamer 系播放器）理论存在——
-    // 按 OEM 矩阵原则 C 级起步（weight-only），多机型矩阵后再议 B。
+    // 升 B 论证（2026-11-16）：① 探针只扫**自身进程**——FP 面是「自家依赖是否引入 GLib 主循环」
+    // 而非 OEM 系统形态；② 依赖审计：compose/bouncycastle/kotlinx/自有 native 均无 GLib 系；
+    // ③ 三厂商干净实证零命中（Pixel4 / 小米A16 / RedmiA15）。gmain 单独仍不产出（calibration #9）。
     private fun scanGlibThreads(): List<Finding> {
         val threads = runCatching { threadComms() }.getOrDefault(emptyList())
         return if (C9Analyzer.hasGlibPair(threads)) {
@@ -162,10 +163,10 @@ class InstrumentProbeCollector(
                 Finding(
                     ruleId = "frida.glib_threads",
                     collector = id,
-                    confidence = Confidence.C,
+                    confidence = Confidence.B,
                     category = Finding.Category.INSTRUMENTATION,
                     framework = null,
-                    detail = "GLib main loop + D-Bus helper threads coexist (gmain+gdbus) — frida/gadget runtime fingerprint; clean baseline zero",
+                    detail = "GLib main loop + D-Bus helper threads coexist (gmain+gdbus) — frida/gadget runtime fingerprint; zero on 3-vendor clean baseline",
                     raw = mapOf("gmain" to "1", "gdbus" to "1"),
                 ),
             )
