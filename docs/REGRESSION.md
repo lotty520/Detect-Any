@@ -2,6 +2,14 @@
 
 > **FP 核准**：探针/特征库改动须过 `scripts/fp_certify.sh`（机型基线在 `scripts/baselines/`）——方法论见 [FP_CERTIFICATION.md](FP_CERTIFICATION.md)。
 
+## 2026-11-16 C 类工程债清零（R8 校准为最大项）
+
+- **R8 校准（RUNBOOK 债务根因消除）**：minified release 在 Redmi A15 实测 **≡ debug ≡ 机型基线**（36 分/8 findings 完全一致；历史"minify 90 vs debug 70"差异的根因是 release 块**从未接 proguardFiles**——规则文件裸奔）。修复链：① proguardFiles 接线 ② 校准规则（kotlin/kotlinx 面、androidx.tracing、com.detectany.** ——androidTest 经 app classloader 解析这些面；本项目开源、混淆无防护价值）③ orchestrator 测试变体分流（debug=运行时分支 / release=装配分支断言）。**L3 attestation + 全 instrument 链在 minified release 真机通过**
+- **CI 空测试 bug 修复**：ci.yml 的 `./gradlew test` 是根任务空操作（从未真正跑过任何 host 测试）→ 改模块枚举命令
+- **C9/C10/C11 host 单测从 0 → 15**：C9Analyzer（9 用例，fixture 用 P8 取证实测数据：gadget 5 簇 RWX/外部映射/GLib 线程 + 干净对照 + 最坏情况 app 私有目录场景）、AutomationMatching（4，含 carlink/harmonizerx 实证样本）、EmulatorMatching（2，保持多命中共振语义）——采集器接线同一实现
+- **P2-3 在线通道落地**：`HttpCrlFetcher`（真实拉取 + s-maxage 优先 + 1MB 上限，CrlStore 失败降级不变）替换 error 桩；`OnlineChannel`（签名热更新拉取，与手动导入共用验签管线）；host 测试用 JDK HttpServer 回环（信封真实 ed25519 签名全链装载；注：HTTP 回环只能放纯 JVM 模块——android.jar 的 com.sun 桩缺方法，attestation 侧仅测纯解析）
+- **Domains.kt strings 项以设计决策关闭**：内容注册表 = 数据非 chrome，抽 @StringRes 破坏纯 Kotlin 可测性（文件头注明，本地化走专门改造）
+
 ## 2026-11-16 A2 闭环：fp_certify 全流程首台真机走通（Redmi 23124RN87C / HyperOS A15）
 
 - **全流程演练**：新机型 `--new` 引导（8 findings 供定级）→ 人工定级（overlay×6→expected、instrumented→testHarness）→ 基线落库 → 重跑 **✓ FP CERTIFIED（score 36 Inconclusive，0 A / 0 基线外）**

@@ -183,8 +183,7 @@ class BehaviorCheckCollector(
             if (accessibilityWhitelist.any { pkg.startsWith(it.lowercase()) }) continue
 
             // 已知自动化工具（包名）或测试框架组件标记（完整 component 匹配）→ B 级
-            val isKnownAutomation = knownAutomationPackages.any { pkg.contains(it.lowercase()) } ||
-                automationComponentMarkers.any { svcLower.contains(it) }
+            val isKnownAutomation = AutomationMatching.isKnownAutomation(svc, knownAutomationPackages, automationComponentMarkers)
             add(
                 Finding(
                     ruleId = if (isKnownAutomation) "automation.known.$pkg" else "automation.unknown.$pkg",
@@ -215,9 +214,7 @@ class BehaviorCheckCollector(
 
     private fun checkInstrumentationPosture(): List<Finding> = buildList {
         val argv0 = readSelfArgv0()
-        val instrThread = readSelfThreadComms().firstOrNull {
-            it.startsWith("instr:", true) || it.equals("instrumentation", true)
-        }
+        val instrThread = readSelfThreadComms().firstOrNull { AutomationMatching.isInstrumentationThread(it) }
         val argvHit = argv0.startsWith("instr:", true)
         val instrClass = readInstrumentationClass()
 

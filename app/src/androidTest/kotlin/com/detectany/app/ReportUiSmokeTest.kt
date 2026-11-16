@@ -85,8 +85,13 @@ class ReportUiSmokeTest {
     @Test
     fun orchestratorFullScanRunsCleanOnEmulator() {
         // UI 背后的同一编排器（7.2「逐项一致」的数据源）：全链路 L2 扫描可执行、干净环境零误报
+        // 2026-11-16 R8 校准：变体分流——debug 走运行时实测分支；release 走装配常量分支（P3 哨兵设计）
         val orchestrator = ScanOrchestrator(InstrumentationRegistry.getInstrumentation().targetContext)
-        assertTrue("debug 构建应走运行时预期分支(usesNative=${orchestrator.selfGuardUsesNativeExpected})", !orchestrator.selfGuardUsesNativeExpected)
+        if (com.detectany.app.BuildConfig.DEBUG) {
+            assertTrue("debug 构建应走运行时预期分支(usesNative=${orchestrator.selfGuardUsesNativeExpected})", !orchestrator.selfGuardUsesNativeExpected)
+        } else {
+            assertTrue("release 构建应走装配常量分支(usesNative=${orchestrator.selfGuardUsesNativeExpected})", orchestrator.selfGuardUsesNativeExpected)
+        }
         val report = orchestrator.scan(ScanTier.L2)
         val isEmu = android.os.Build.FINGERPRINT.contains("generic") || android.os.Build.PRODUCT.contains("sdk_gphone")
         if (isEmu) {

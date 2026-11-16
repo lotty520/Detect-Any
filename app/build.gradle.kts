@@ -31,6 +31,10 @@ android {
             // C10 分级/SelfGuard 常量的行为差异需发布期专项校准（实测 minify 版
             // 90 分 vs debug 70 分），在 RUNBOOK 债务表跟踪。
             isMinifyEnabled = true
+            // 2026-11-16 R8 校准修复：原块只有 minify 开关、未接 proguardFiles——
+            // proguard-rules.pro（serialization/JNI keeps）从未生效，minified release
+            // 以 R8 默认规则裸奔（androidTest 起动即 NoClassDefFoundError Intrinsics 实证）
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = if (project.hasProperty("DA_KEYSTORE")) {
                 signingConfigs.create("release") {
                     storeFile = file(project.property("DA_KEYSTORE") as String)

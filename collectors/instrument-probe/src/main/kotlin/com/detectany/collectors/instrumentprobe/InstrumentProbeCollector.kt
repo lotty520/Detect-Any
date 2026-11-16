@@ -108,26 +108,13 @@ class InstrumentProbeCollector(
         }
     }
 
-    // ---- L3: RWX 页特征扫描（2026-11-16 P8 实测重校准）----
+    // ---- L3: RWX 页特征扫描（2026-11-16 P8 实测重校准；逻辑在 C9Analyzer，主机单测覆盖）----
     // 实测（frida-gadget 17.26.2 驻留进程）：RWX 呈**离散小簇**（5 处 4-28KB，共 ~92KB）；
     // 干净进程（app/Chrome 对照）0 处。旧判据（连续≥4 页）有 trailing 段 bug 且对离散簇盲。
-    // 新判据：**无名匿名 rwxp** 段数 ≥2 或总大小 ≥16KB（无名 = 排除带路径/命名区，
-    // 规避改名免疫——物理映射形态）。
 
     private fun scanRwxPages(): List<Finding> {
-        val maps = runCatching { mapsLines() }.getOrDefault(emptyList())
-        var anonRegions = 0
-        var anonBytes = 0L
-        for (line in maps) {
-            if (!line.contains("rwxp")) continue
-            val path = line.trim().substringAfterLast(' ', "")
-            if (path.startsWith("/") || path.startsWith("[")) continue // 带路径/命名区不属 gum 簇
-            anonRegions++
-            anonBytes += line.split(Regex("\\s+"))[0].split("-").let {
-                (it.getOrNull(1)?.toLongOrNull(16) ?: 0L) - (it.getOrNull(0)?.toLongOrNull(16) ?: 0L)
-            }
-        }
-        return if (anonRegions >= 2 || anonBytes >= 16 * 1024) {
+        val cov = C9Analyzer.anonRwxCoverage(runCatching { mapsLines() }.getOrDefault(emptyList()))
+        return if (cov.hit) {
             listOf(
                 Finding(
                     ruleId = "frida.rwx.anon_clusters",
@@ -135,42 +122,33 @@ class InstrumentProbeCollector(
                     confidence = Confidence.B,
                     category = Finding.Category.INSTRUMENTATION,
                     framework = null,
-                    detail = "$anonRegions anonymous RWX regions (${anonBytes / 1024}KB) — runtime code-generation footprint (gum/agent); zero on clean app/Chrome baseline",
-                    raw = mapOf("regions" to anonRegions.toString(), "totalKb" to (anonBytes / 1024).toString()),
+                    detail = "${cov.regions} anonymous RWX regions (${cov.bytes / 1024}KB) — runtime code-generation footprint (gum/agent); zero on clean app/Chrome baseline",
+                    raw = mapOf("regions" to cov.regions.toString(), "totalKb" to (cov.bytes / 1024).toString()),
                 ),
             )
         } else emptyList()
     }
 
-    // ---- L3b: 外部路径可执行映射（2026-11-16 P8 实测新增，改名免疫）----
+    // ---- L3b: 外部路径可执行映射（2026-11-16 P8 实测新增，改名免疫；逻辑在 C9Analyzer）----
     // 物理不变量：untrusted_app 被 SELinux 禁止执行 /data/local、/storage 路径文件
     //（实测 avc denied execute shell_data_file）；这些位置的 .so 可执行映射 = 注入
     //（gadget/LD_PRELOAD 落点），达成必经 root 改标签——本身就是异常态。so 名字任意。
 
-    private val externalPrefixes = listOf("/data/local/", "/sdcard/", "/storage/")
-
-    private fun scanExternalExecMappings(): List<Finding> = buildList {
-        val maps = runCatching { mapsLines() }.getOrDefault(emptyList())
-        for (line in maps) {
-            val perms = line.split(Regex("\\s+")).getOrNull(1) ?: continue
-            if (!perms.contains('x')) continue
-            val path = line.trim().substringAfterLast(' ', "")
-            val hit = externalPrefixes.firstOrNull { path.startsWith(it) }
-            if (hit != null) {
-                add(
-                    Finding(
-                        ruleId = "frida.external_mapping",
-                        collector = id,
-                        confidence = Confidence.B,
-                        category = Finding.Category.INSTRUMENTATION,
-                        framework = null,
-                        detail = "Executable mapping from external storage path (untrusted_app cannot legally load these; injection artifact): $path",
-                        raw = mapOf("prefix" to hit),
-                    ),
-                )
-                return@buildList // 一条即证
-            }
-        }
+    private fun scanExternalExecMappings(): List<Finding> {
+        val path = C9Analyzer.externalExecMapping(runCatching { mapsLines() }.getOrDefault(emptyList()))
+        return if (path != null) {
+            listOf(
+                Finding(
+                    ruleId = "frida.external_mapping",
+                    collector = id,
+                    confidence = Confidence.B,
+                    category = Finding.Category.INSTRUMENTATION,
+                    framework = null,
+                    detail = "Executable mapping from external storage path (untrusted_app cannot legally load these; injection artifact): $path",
+                    raw = mapOf("path" to path.hashCode().toString()),
+                ),
+            )
+        } else emptyList()
     }
 
     // ---- L2b: GLib 线程组合（2026-11-16 P8 实测新增，改名免疫，C 级起步）----
@@ -179,7 +157,7 @@ class InstrumentProbeCollector(
     // 按 OEM 矩阵原则 C 级起步（weight-only），多机型矩阵后再议 B。
     private fun scanGlibThreads(): List<Finding> {
         val threads = runCatching { threadComms() }.getOrDefault(emptyList())
-        return if (threads.any { it == "gmain" } && threads.any { it == "gdbus" }) {
+        return if (C9Analyzer.hasGlibPair(threads)) {
             listOf(
                 Finding(
                     ruleId = "frida.glib_threads",

@@ -67,7 +67,10 @@ class ScanOrchestrator(context: Context) {
     private val attestationCollector = com.detectany.feature.attestation.AttestationCollector(
         service = com.detectany.feature.attestation.AttestationService(
             verifier = com.detectany.feature.attestation.AttestationVerifier(attestationRoots),
-            crl = com.detectany.feature.attestation.CrlStore(fetcher = { error("online channel pending P2-3") }),
+            // P2-3 在线通道（2026-11-16）：真实 HTTP 拉取（失败由 CrlStore 降级，不阻断扫描）
+            crl = com.detectany.feature.attestation.CrlStore(
+                fetcher = { url -> com.detectany.feature.attestation.HttpCrlFetcher.fetch(url) },
+            ),
             firstApiLevel = {
                 runCatching {
                     com.detectany.core.nativeplatform.PropJni.propGet("ro.product.first_api_level")?.toIntOrNull()

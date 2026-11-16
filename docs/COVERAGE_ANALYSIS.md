@@ -131,7 +131,7 @@
 | 代码完整性 | ✅ A 级 | prologue 字节比对 |
 | 反调试 | ✅ B 级 | TracerPid + 子进程反查 |
 | 静默响应 | ✅ | 不崩溃不弹窗 + 延迟回调 |
-| 混淆 | ⬜ | 发布期 minify 启用（RUNBOOK 清单）|
+| 混淆 | ✅ | 2026-11-16 R8 校准完成：proguardFiles 接线修复（原裸奔）+ 校准规则；minified release ≡ debug ≡ 基线（Redmi 实测 36 分/8 findings 一致），L3 attestation 真机通过 |
 
 ---
 

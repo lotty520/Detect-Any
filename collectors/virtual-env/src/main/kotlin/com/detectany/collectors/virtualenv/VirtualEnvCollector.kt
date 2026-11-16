@@ -55,35 +55,19 @@ class VirtualEnvCollector(
 
     // ---- 构建属性检测 ----
 
-    private val EMULATOR_BUILD_PATTERNS = listOf(
-        "generic" to "generic",
-        "google_sdk" to "google_sdk",
-        "sdk_gphone" to "sdk_gphone",
-        "vbox86" to "vbox",
-        "nox" to "nox",
-        "ttVM" to "tencent",
-        "ldplayer" to "ldplayer",
-        "goldfish" to "goldfish",
-        "ranchu" to "ranchu",
-    )
-
     private fun checkBuildProperties(): List<Finding> = buildList {
-        for ((pattern, name) in EMULATOR_BUILD_PATTERNS) {
-            if (Build.FINGERPRINT.contains(pattern, true) || Build.MODEL.contains(pattern, true) ||
-                Build.PRODUCT.contains(pattern, true) || Build.HARDWARE.contains(pattern, true)
-            ) {
-                add(
-                    Finding(
-                        ruleId = "emulator.build.$name",
-                        collector = id,
-                        confidence = Confidence.B,
-                        category = Finding.Category.EMULATOR,
-                        framework = name,
-                        detail = "Build property matches emulator pattern: $pattern",
-                        raw = mapOf("pattern" to pattern),
-                    ),
-                )
-            }
+        EmulatorMatching.buildPatternHits(Build.FINGERPRINT, Build.MODEL, Build.PRODUCT, Build.HARDWARE).forEach { pattern ->
+            add(
+                Finding(
+                    ruleId = "emulator.build.$pattern",
+                    collector = id,
+                    confidence = Confidence.B,
+                    category = Finding.Category.EMULATOR,
+                    framework = pattern,
+                    detail = "Build property matches emulator pattern: $pattern",
+                    raw = mapOf("pattern" to pattern),
+                ),
+            )
         }
 
         // A 级：ro.kernel.qemu = 1（不可伪装）
