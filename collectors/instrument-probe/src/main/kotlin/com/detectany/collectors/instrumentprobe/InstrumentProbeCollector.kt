@@ -35,6 +35,8 @@ class InstrumentProbeCollector(
         findings += scanMapsForStrings()
         findings += scanThreadNames()
         findings += scanRwxPages()
+        findings += scanExternalExecMappings()
+        findings += scanGlibThreads()
         findings += probeDbusPorts()
         CollectorResult(
             collector = id,
@@ -106,37 +108,87 @@ class InstrumentProbeCollector(
         }
     }
 
-    // ---- L3: RWX 页特征扫描（大小/对齐过滤，calibration #5） ----
+    // ---- L3: RWX 页特征扫描（2026-11-16 P8 实测重校准）----
+    // 实测（frida-gadget 17.26.2 驻留进程）：RWX 呈**离散小簇**（5 处 4-28KB，共 ~92KB）；
+    // 干净进程（app/Chrome 对照）0 处。旧判据（连续≥4 页）有 trailing 段 bug 且对离散簇盲。
+    // 新判据：**无名匿名 rwxp** 段数 ≥2 或总大小 ≥16KB（无名 = 排除带路径/命名区，
+    // 规避改名免疫——物理映射形态）。
 
     private fun scanRwxPages(): List<Finding> {
         val maps = runCatching { mapsLines() }.getOrDefault(emptyList())
-        var consecutiveRwx = 0
-        var totalRwxSize = 0L
-
+        var anonRegions = 0
+        var anonBytes = 0L
         for (line in maps) {
-            if (line.contains("rwxp")) {
-                consecutiveRwx++
-                val size = line.split(Regex("\\s+"))[0].split("-").let {
-                    (it.getOrNull(1)?.toLongOrNull(16) ?: 0L) - (it.getOrNull(0)?.toLongOrNull(16) ?: 0L)
-                }
-                totalRwxSize += size
-            } else {
-                consecutiveRwx = 0
+            if (!line.contains("rwxp")) continue
+            val path = line.trim().substringAfterLast(' ', "")
+            if (path.startsWith("/") || path.startsWith("[")) continue // 带路径/命名区不属 gum 簇
+            anonRegions++
+            anonBytes += line.split(Regex("\\s+"))[0].split("-").let {
+                (it.getOrNull(1)?.toLongOrNull(16) ?: 0L) - (it.getOrNull(0)?.toLongOrNull(16) ?: 0L)
             }
         }
-
-        // Frida agent 典型：≥4 连续 RWX 页 + 总大小 ≥64KB
-        // JIT 合法场景通常 ≤2 页且 <32KB（calibration #5 过滤）
-        return if (consecutiveRwx >= 4 && totalRwxSize >= 64 * 1024) {
+        return if (anonRegions >= 2 || anonBytes >= 16 * 1024) {
             listOf(
                 Finding(
-                    ruleId = "frida.rwx.pages",
+                    ruleId = "frida.rwx.anon_clusters",
                     collector = id,
-                    confidence = Confidence.B, // B 级；与 maps 字符串共振才 A
+                    confidence = Confidence.B,
                     category = Finding.Category.INSTRUMENTATION,
                     framework = null,
-                    detail = "$consecutiveRwx consecutive RWX pages (${totalRwxSize / 1024}KB) — Frida agent injection signature",
-                    raw = mapOf("consecutive" to consecutiveRwx.toString(), "totalKb" to (totalRwxSize / 1024).toString()),
+                    detail = "$anonRegions anonymous RWX regions (${anonBytes / 1024}KB) — runtime code-generation footprint (gum/agent); zero on clean app/Chrome baseline",
+                    raw = mapOf("regions" to anonRegions.toString(), "totalKb" to (anonBytes / 1024).toString()),
+                ),
+            )
+        } else emptyList()
+    }
+
+    // ---- L3b: 外部路径可执行映射（2026-11-16 P8 实测新增，改名免疫）----
+    // 物理不变量：untrusted_app 被 SELinux 禁止执行 /data/local、/storage 路径文件
+    //（实测 avc denied execute shell_data_file）；这些位置的 .so 可执行映射 = 注入
+    //（gadget/LD_PRELOAD 落点），达成必经 root 改标签——本身就是异常态。so 名字任意。
+
+    private val externalPrefixes = listOf("/data/local/", "/sdcard/", "/storage/")
+
+    private fun scanExternalExecMappings(): List<Finding> = buildList {
+        val maps = runCatching { mapsLines() }.getOrDefault(emptyList())
+        for (line in maps) {
+            val perms = line.split(Regex("\\s+")).getOrNull(1) ?: continue
+            if (!perms.contains('x')) continue
+            val path = line.trim().substringAfterLast(' ', "")
+            val hit = externalPrefixes.firstOrNull { path.startsWith(it) }
+            if (hit != null) {
+                add(
+                    Finding(
+                        ruleId = "frida.external_mapping",
+                        collector = id,
+                        confidence = Confidence.B,
+                        category = Finding.Category.INSTRUMENTATION,
+                        framework = null,
+                        detail = "Executable mapping from external storage path (untrusted_app cannot legally load these; injection artifact): $path",
+                        raw = mapOf("prefix" to hit),
+                    ),
+                )
+                return@buildList // 一条即证
+            }
+        }
+    }
+
+    // ---- L2b: GLib 线程组合（2026-11-16 P8 实测新增，改名免疫，C 级起步）----
+    // frida/gadget 基于 GLib：驻留进程实测 gmain+gdbus 共存（改名后 xum-js-loop 仍带此二线程）。
+    // 干净 app/Chrome 对照 0；但嵌入 GLib 栈的合法 app（gstreamer 系播放器）理论存在——
+    // 按 OEM 矩阵原则 C 级起步（weight-only），多机型矩阵后再议 B。
+    private fun scanGlibThreads(): List<Finding> {
+        val threads = runCatching { threadComms() }.getOrDefault(emptyList())
+        return if (threads.any { it == "gmain" } && threads.any { it == "gdbus" }) {
+            listOf(
+                Finding(
+                    ruleId = "frida.glib_threads",
+                    collector = id,
+                    confidence = Confidence.C,
+                    category = Finding.Category.INSTRUMENTATION,
+                    framework = null,
+                    detail = "GLib main loop + D-Bus helper threads coexist (gmain+gdbus) — frida/gadget runtime fingerprint; clean baseline zero",
+                    raw = mapOf("gmain" to "1", "gdbus" to "1"),
                 ),
             )
         } else emptyList()

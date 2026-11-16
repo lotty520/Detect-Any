@@ -2,6 +2,26 @@
 
 > **FP 核准**：探针/特征库改动须过 `scripts/fp_certify.sh`（机型基线在 `scripts/baselines/`）——方法论见 [FP_CERTIFICATION.md](FP_CERTIFICATION.md)。
 
+## 2026-11-16 B6 frida 变异链对抗：受控改名实验 → 三防线加固（P8 实证闭环）
+
+**注入协议**（API 36 ptrace 全封后仍可行的攻击路径，亦是本实验方法）：root `wrap.<pkg>` 属性 + `LD_PRELOAD=frida-gadget`（so 需 `chcon apk_data_file` 绕 untrusted_app 对 shell_data_file 的 exec 拒绝）+ gadget 自续 config（listen on_port_locked=resume）。frida-server 路径在 API 36 不可用（root attach PermissionDenied、spawn 握手超时——平台加固情报）。
+
+**受控改名实验**（官方 17.26.2 gadget + 等长洗 5 个检测关键字 = strongR/Florida 精确模拟）：
+
+| 轮次 | C9 命中 | 结论 |
+|---|---|---|
+| vanilla gadget | 仅 `frida.thread.gum-js-loop(B)` | 旧 RWX 检查有 trailing 段 bug（记录"最后一段"而非最大段）+ 阈值对离散簇盲 |
+| **改名 gadget（活跃实证：xum-js-loop/xrida-gadget/gdbus 线程俱在）** | **零命中** | 洗 5 关键字即完全致盲——威胁模型预判被实证 |
+| 干净对照（app + Chrome） | rwxp=0、外部路径映射=0、gmain/gdbus=0 | 三不变量 FP 基础 |
+| 全量洗 server（670 处） | 无法启动（backend soname 自引用断裂） | 规避方无法全量洗串 |
+
+**C9 三防线加固（全部改名免疫，物理形态级）**：
+- `frida.external_mapping(B)`：/data/local|/sdcard|/storage 路径**可执行映射**（untrusted_app 被 SELinux 物理禁止加载——达成必经 root 改标签）
+- `frida.rwx.anon_clusters(B)`：无名匿名 RWX 簇 ≥2 处或 ≥16KB（实测 gadget 5 簇 ~92KB vs 干净 0）
+- `frida.glib_threads(C)`：gmain+gdbus 共存（GLib 栈指纹；嵌 GLib 合法 app 理论存在 → 按 OEM 矩阵原则 C 起步）
+
+**加固后复测**：改名 gadget 注入下三防线全中（90 分定性恢复）；干净轮 C9 零命中。工件在 `.adversarial/`（gitignore）。
+
 ## 2026-11-13 FP 核准体系落地 + P8 对抗组实证
 
 - **体系落地**：`docs/FP_CERTIFICATION.md`（三层证据链：L1 输入源核验 / L2 干净矩阵×机型基线 diff / L3 分级审计）+ `scripts/fp_certify.sh` 自动执行器 + `scripts/baselines/{pixel4,2607DRA18C}.json` 实测基线。已验证：L1 正确拦截非干净设备（P8 误入即拒，exit 1）；diff 引擎前缀+置信匹配判别正确；退码语义（0 PASS/1 FAIL/2 新机型引导）就位

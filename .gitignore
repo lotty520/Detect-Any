@@ -39,3 +39,4 @@ google-services.json
 
 # Dev-session UI test screenshots (not README assets)
 gui-test-screenshots/
+.adversarial/

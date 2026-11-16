@@ -292,3 +292,11 @@
 | automation.instrumented ★v16 | 进程被 am instrument 驱动：线程 comm=`Instrumentation`（androidx.test 1.5+ "InstrumentationThread" 截断，2026-11-12 Pixel 4/API 33 实证）或 `Instr:` 前缀（AOSP 老路径）或 mInstrumentation 实例非基类（反射；实证 Android 13 下可用）。★v16.1 读取下沉 native（ProcSelfReads：JVM 层 File hook 失效，libc 路径由 C7 GOT 完整性兜底） | B |
 | automation.known.* | 已知自动化工具无障碍服务（AutoJS/Tasker/按键精灵等包名，或组件字符串含 uiautomator/appium——★v16 组件级匹配，任意测试包名下的 uiautomator2 服务可命中） | B |
 | automation.unknown.* | 非白名单无障碍服务（不参与定性） | C |
+
+### C9 加固（2026-11-16，frida 变异链对抗，P8 受控改名实验实证）
+
+| 检测项 | 说明 | 置信 |
+|---|---|---|
+| frida.external_mapping ★ | /data/local、/sdcard、/storage 路径可执行映射（SELinux 物理禁止 untrusted_app 加载——达成必经 root 改标签） | B |
+| frida.rwx.anon_clusters ★ | 无名匿名 RWX 簇 ≥2 处或 ≥16KB（gum 运行时代码生成足迹；改名免疫。替代旧 frida.rwx.pages——其连续段判据有 trailing bug 且对离散簇盲） | B |
+| frida.glib_threads ★ | gmain+gdbus 线程共存（GLib 栈指纹；嵌 GLib 合法 app 理论存在 → C 起步待机型矩阵） | C |

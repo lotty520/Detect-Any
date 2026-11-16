@@ -38,7 +38,7 @@
 | Variant | Mechanism | Detection Vectors |
 |---|---|---|
 | frida-server v17.26.2 | ptrace attach → frida-agent injection | Port 27042 + D-Bus AUTH; maps scan (frida-agent, linjector); thread names (gum-js-loop, gmain, pool-frida) |
-| **strongR-frida (hluda)** v17.26.2 | Auto-rebuilt with renamed strings/symbols/thread names | String/port checks **FAIL**; need D-Bus protocol behavior + page-permission characteristics |
+| **strongR-frida (hluda)** v17.26.2 | Auto-rebuilt with renamed strings/symbols/thread names | 2026-11-16 P8 受控改名实验闭环：洗 5 关键字即致盲旧 L1/L2 → 已补三条**改名免疫**防线（external_mapping B / rwx.anon_clusters B / glib_threads C，实测全中）；另实证全量洗串致 server 无法启动（backend 自引用断裂） |
 | **Florida** v17.26.2 | Same evasion approach | Same as hluda |
 | zer0def/undetected-frida | Same, auto-tracks upstream | Same |
 | Frida Gadget (no-root) | Embedded in repackaged APK; loads at startup | ✅ We detect via signature pinning; maps scan for frida-gadget.so |
