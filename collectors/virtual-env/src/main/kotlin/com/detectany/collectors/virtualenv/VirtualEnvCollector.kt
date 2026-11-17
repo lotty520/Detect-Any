@@ -118,6 +118,36 @@ class VirtualEnvCollector(
         }
     }
 
+    /**
+     * 防线 2：uid↔包名错位（C 级）。正常运行 getPackagesForUid(myUid) 必含自身包名
+     * （共享 uid / :process 子进程同样成立）；VirtualApp 系容器内 myUid 属宿主 → 不含。
+     * cgroup uid_ 段与 myUid 不一致为第二证据。成熟容器会 hook PMS 伪造——对抗面故 C 起步。
+     */
+    private fun checkUidOwnership(): List<Finding> {
+        val mine = context.packageName
+        val pkgs = runCatching {
+            context.packageManager.getPackagesForUid(android.os.Process.myUid())
+        }.getOrNull()
+        val uidMismatch = pkgs != null && pkgs.isNotEmpty() && pkgs.none { it == mine }
+        val cgroup = runCatching { java.io.File("/proc/self/cgroup").readText() }.getOrDefault("")
+        val cgroupMismatch = ContainerMatching.cgroupUidMismatch(cgroup, android.os.Process.myUid())
+        if (!uidMismatch && !cgroupMismatch) return emptyList()
+        return listOf(
+            Finding(
+                ruleId = "virtual.uid_mismatch",
+                collector = id,
+                confidence = Confidence.C,
+                category = Finding.Category.VIRTUAL_ENV,
+                framework = null,
+                detail = "uid/package ownership mismatch (packages-for-uid lacks self; or cgroup uid differs) — virtualization container artifact",
+                raw = mapOf(
+                    "pkgMissing" to uidMismatch.toString(),
+                    "cgroupMismatch" to cgroupMismatch.toString(),
+                ),
+            ),
+        )
+    }
+
     /** 系统属性读取：JVM 镜像层优先，反射 android.os.SystemProperties 兜底。 */
     private fun sysprop(key: String): String? = (System.getProperty(key) as? String)
         ?: runCatching {
@@ -316,12 +346,46 @@ class VirtualEnvCollector(
         }
     }
 
-    // ---- 容器检测（排除 Work Profile） ----
+    // ---- 容器/多开检测（2026-11-17 多开识别三防线；判定逻辑在 ContainerMatching）----
 
     private fun checkContainer(): List<Finding> = buildList {
-        // 仅在主用户（userId=0）下检测；user≥10 = Work Profile / 副用户，不产出
+        // userId 语义分流（替代一刀切豁免）：
+        // CLONE(999) = OEM 双开/分身 → C 级风控因子；PROFILE_OR_SECONDARY(10+) = 合法豁免；
+        // MAIN(0) → 走容器路径检查 + uid 错位检查
         val userId = android.os.Process.myUserHandle().hashCode()
-        if (userId != 0) return@buildList
+        // 主判据 API 30+：user-type 语义（isProfile && !isManaged → clone 类 profile；
+        // P8 实证原生 CLONE 分到 userId=10，数值 999 仅 MIUI 老形态）。不可用则数值兜底。
+        val um = runCatching { context.getSystemService(android.os.UserManager::class.java) }.getOrNull()
+        val ctx: ContainerMatching.UserContext = if (android.os.Build.VERSION.SDK_INT >= 30 && um != null) {
+            ContainerMatching.classifyProfile(
+                isProfile = runCatching { um.isProfile }.getOrNull(),
+                isManagedProfile = runCatching { um.isManagedProfile }.getOrNull(),
+            ) ?: ContainerMatching.classifyUser(userId)
+        } else {
+            ContainerMatching.classifyUser(userId)
+        }
+        when (ctx) {
+            ContainerMatching.UserContext.CLONE -> {
+                add(
+                    Finding(
+                        ruleId = "virtual.clone_user",
+                        collector = id,
+                        confidence = Confidence.C, // 多开是风控因子非作弊实锤（合法单开双开用户不该被定性）
+                        category = Finding.Category.VIRTUAL_ENV,
+                        framework = "clone_user",
+                        detail = "Running in clone user (userId=999) — OEM dual-app/app-twin environment (legal feature; multi-account risk factor, weight-only)",
+                        raw = mapOf("userId" to userId.toString()),
+                    ),
+                )
+                return@buildList // clone user 的 data 路径体系本就不同，跳过主用户路径判据
+            }
+            ContainerMatching.UserContext.PROFILE_OR_SECONDARY -> return@buildList // work profile / 副用户：合法
+            ContainerMatching.UserContext.MAIN -> Unit
+        }
+
+        // 防线 2：容器内 uid↔包名物理错位（getPackagesForUid 属宿主 → 不含自身；
+        // /proc/self/cgroup 的 uid_ 段双证据）。现代容器 hook getFilesDir 令路径判据失效后的补强。
+        addAll(checkUidOwnership())
 
         val expectedPath = "/data/data/${context.packageName}"
         val actualPath = context.filesDir?.parentFile?.absolutePath ?: return@buildList

@@ -3,6 +3,15 @@
 > **FP 核准**：探针/特征库改动须过 `scripts/fp_certify.sh`（机型基线在 `scripts/baselines/`）——方法论见 [FP_CERTIFICATION.md](FP_CERTIFICATION.md)。
 > **TP 核准**：对抗组设备须过 `scripts/tp_certify.sh`（检出面 profile 在 `scripts/tp-profiles/`，P8 范例已入库）——mustHit 缺失 = 检出面退化告警。
 
+## 2026-11-17 多开识别落地 + B6 尾巴闭环（P8）
+
+- **多开三防线**（COVERAGE 失实声称「C5 特征库覆盖 VMOS/Parallel Space」修正为真实覆盖）：①`virtual.clone_user(C)`——**原型验证推翻 999 假设**：P8 root 实造 CLONE profile（`pm create-user --user-type ...CLONE`）实测 userId=10 走普通序列，Type 字段才是真相 → 主判据改 API30+ user-type 语义（isProfile&&!isManagedProfile），999 仅 MIUI 老形态兜底；②`virtual.uid_mismatch(C)`（getPackagesForUid/cgroup 错位，容器 hook 路径后的补强）；③DB v18 三族多开工具（Dual Space/Parallel Space/VMOS——包名逐一 Play/官网实证）
+- **TP 实证**：clone user 内 instrument 扫描 → `virtual.clone_user(C)` 命中；且 clone 域内主用户包（sukisu/apatch/hma）正确不可见、系统级 A/B 信号跨 user 仍在（score 66 conclusive）
+- **FP 中性**：主用户扫描与 84 分基线逐条一致（新防线零新增）
+- **B6 尾巴·最坏情况轮闭环**：改名 gadget 藏 app 私有 code_cache（绕过 external_mapping 路径前缀）+ 端口 31337 → 路径防线按设计失效，但 **rwx_clusters(B) + glib_threads(B) 双命中、90 分定性保持——纵深成立**
+- D-Bus L4 实验仍空缺（gadget listen 在 API36 从未绑定成功；server 形态被平台 ptrache 封锁）——长期边界
+- 注入残留全清（wrap/code_cache/local_tmp）；clone user 10 已删
+
 ## 2026-11-16 B 类·无设备项清零（glib 升 B / Cuttlefish / TP 核准工具）
 
 - **frida.glib_threads C→B**：升 B 论证三件套——①自进程范围（FP 面是自家依赖非 OEM 形态）②依赖审计零 GLib 系 ③三厂商干净零命中（Pixel4/A16 小米/A15 Redmi）。改名免疫防线三条现在全部 B 级

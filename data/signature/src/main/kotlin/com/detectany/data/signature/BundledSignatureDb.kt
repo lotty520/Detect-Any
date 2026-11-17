@@ -54,7 +54,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 17,
+      "version": 18,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "until": "v26.x"},
         {"id": "path.magisk.device_socket", "path": "/debug_ramdisk/.magisk/device/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "since": "v27"},
@@ -112,7 +112,10 @@ object BundledSignatureDb {
         {"id": "app.appium", "packageNames": ["io.appium.uiautomator2.server", "io.appium.uiautomator2.server.test", "io.appium.settings"], "dexStrings": ["appium", "uiautomator2"], "framework": "appium", "confidence": "B", "category": "AUTOMATION"},
         {"id": "app.test_orchestrator", "packageNames": ["androidx.test.orchestrator"], "dexStrings": [], "framework": "androidx_test", "confidence": "C", "category": "AUTOMATION"},
         {"id": "app.hma", "packageNames": ["com.tsng.hidemyapplist"], "dexStrings": ["hidemyapplist"], "framework": "hma", "confidence": "B", "category": "ANTI_DETECT_PRESENT"},
-        {"id": "app.lsposed_manager", "packageNames": ["org.lsposed.manager"], "dexStrings": ["LSPosed"], "framework": "lsposed", "confidence": "C", "category": "HOOK"}
+        {"id": "app.lsposed_manager", "packageNames": ["org.lsposed.manager"], "dexStrings": ["LSPosed"], "framework": "lsposed", "confidence": "C", "category": "HOOK"},
+        {"id": "app.dual_space", "packageNames": ["com.excelliance.dualizer"], "dexStrings": ["dualizer"], "framework": "dual_space", "confidence": "C", "category": "VIRTUAL_ENV"},
+        {"id": "app.parallel_space", "packageNames": ["com.lbe.parallel.intl", "com.lbe.parallel"], "dexStrings": [], "framework": "parallel_space", "confidence": "C", "category": "VIRTUAL_ENV"},
+        {"id": "app.vmos", "packageNames": ["com.vmos.pro", "com.vmos.google", "com.vmos.glb"], "dexStrings": ["vmos"], "framework": "vmos", "confidence": "C", "category": "VIRTUAL_ENV"}
       ],
       "sockets": [
         {"id": "sock.ksud", "name": "ksud", "framework": "ksu", "confidence": "C", "category": "ROOT_KERNEL"},

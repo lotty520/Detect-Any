@@ -29,7 +29,7 @@
 | **注入框架** | LSPosed / Vector / TrustMeAlready / NeoZygisk / NyaZygisk | C5 特征库 | ✅ Frida server 已入库（v4，B 级 4 条路径）|
 | **远程桌面** | AnyDesk / TeamViewer×3 / AirDroid×2 / Vysor / ChromeRemote | C12 包指纹 | ✅ 完整 |
 | **文件路径** | /system/bin/su / /data/adb/{ksu,ap,apd,kpm,ksud,rezygisk,lspd,tricky_store,pif.json} + 7 框架模块目录 | C1 特征库 v7 | ✅ v7 补齐（28 条）|
-| **虚拟机** | VMOS / Parallel Space / X8 Sandbox / F1 VM | C5 特征库 | 光速虚拟机去虚拟化版 / 大三K |
+| **虚拟机/多开** | VMOS×3 变体 / Dual Space / Parallel Space×2 | **v18 起真实入库**（包名经 Play/官网实证）+ C10 多开三防线（clone_user/uid 错位/路径） | 光速虚拟机/VPhoneGaGa/X8/F1 等中系工具待包名实证；第三方容器的 uid 错位 TP 待容器实测 |
 | **重打包** | APK 签名钉住（A 级） | SelfGuard | ✅ 完整 |
 
 **安装层盲区**：

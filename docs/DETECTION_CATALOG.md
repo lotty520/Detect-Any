@@ -307,3 +307,11 @@
 |---|---|---|
 | frida.glib_threads（C→**B** 升级） | gmain+gdbus 共存。升 B 论证：① 探针只扫**自身进程**——FP 面是自家依赖是否引入 GLib（非 OEM 系统形态）；② 依赖审计零 GLib 系（compose/bouncycastle/kotlinx/自有 native）；③ 三厂商干净实证零命中（Pixel4/小米A16/RedmiA15） | B |
 | emulator.cuttlefish ★ | crosvm 官方无头虚拟设备形态（cutf contains / cvd product-device 全等双判据）。qemu 系向量对 cuttlefish 全盲；无实机矩阵证据按原则 C 起步；avd_name B 面另覆盖 | C |
+
+### 2026-11-17 多开识别三防线（C10 + DB v18）
+
+| 检测项 | 说明 | 置信 |
+|---|---|---|
+| virtual.clone_user ★ | clone 类 profile 环境（OEM 双开/分身）。主判据 API30+ user-type 语义（isProfile && !isManagedProfile——P8 实证原生 CLONE 分到 userId=10，**999 非原生标准**仅 MIUI 老形态兜底）；work profile 保持合法豁免 | C |
+| virtual.uid_mismatch ★ | 容器内 uid↔包名物理错位（getPackagesForUid 不含自身 / cgroup uid_ 段不一致）——现代容器 hook getFilesDir 令路径判据失效后的补强 | C（矩阵+容器实测后议 B） |
+| app.dual_space / app.parallel_space / app.vmos ★v18 | 三族多开/虚拟化工具装机（包名均经 Play/官网实证） | C |
