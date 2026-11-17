@@ -5,20 +5,20 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![minSdk](https://img.shields.io/badge/minSdk-24_(Android_7.0)-orange.svg)](app/build.gradle.kts)
 [![16KB](https://img.shields.io/badge/Page_Size-16KB_Aligned-green.svg)](docs/RUNBOOK.md)
-[![Tests](https://img.shields.io/badge/Tests-136_total-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/Tests-181_total-brightgreen.svg)](#testing)
 [![CI](https://github.com/lotty520/Detect-Any/actions/workflows/ci.yml/badge.svg)](https://github.com/lotty520/Detect-Any/actions/workflows/ci.yml)
 
 ---
 
 ## Screenshots
 
-**UI v18**（2026-11-12 重设计：分段扫描档选择器 + 单一主 CTA + 严重度 token 体系，真机浅/深双主题验证）：
+**UI v18** (redesigned 2026-11-12: segmented tier selector + single primary CTA + severity token system; verified on real hardware in both light and dark themes):
 
 | Scan · Light | Scan · Dark |
 |:---:|:---:|
 | <img src="screenshots/v18-scan-empty-light.png" width="180" height="400"> | <img src="screenshots/v18-scan-empty-dark.png" width="180" height="400"> |
 
-> 全四 tab × 扫描结果态截图矩阵刷新中（验证环境设备受限，见 `docs/REGRESSION.md`）。
+> The full four-tab × scan-result screenshot matrix is being refreshed (verification-device constraints — see `docs/REGRESSION.md`).
 
 ---
 
@@ -46,7 +46,7 @@ Views: **Scan** (risk gauge, verdict badge, delta vs previous scan) · **Threats
 | Dynamic Instrumentation | Frida (all variants incl. hluda/Florida, renamed builds) |
 | Emulators / VMs | QEMU family, 4-dimension cross (props/hardware/sensors/GL) |
 | Cloud Phones | cross-subsystem C-signal resonance (sensor rhythm, battery cross-layer, SIM absence) |
-| Device Spoofing | appenv (应用变量), Device ID Changer, VirtualNet, fake GPS/camera tools |
+| Device Spoofing | appenv, Device ID Changer, VirtualNet, fake GPS/camera tools |
 | Risk Postures | VPN/proxy (3 layers), SIM anomalies, geo inconsistency, speed-hack clock drift, screen sharing/recording, overlay injection, automation services |
 
 ## Architecture
@@ -67,7 +67,7 @@ Views: **Scan** (risk gauge, verdict badge, delta vs previous scan) · **Threats
 │        │ virt-env / a11y │  repackaging check   │
 │        │ screen-share    │                      │
 ├────────┴─────────────────┴─────────────────────┤
-│ :data:signature (v15, hot-updatable, ed25519)  │
+│ :data:signature (v19, hot-updatable, ed25519)  │
 │ :compat:platform (API 24-16 capability gating) │
 └────────────────────────────────────────────────┘
 ```
@@ -113,7 +113,7 @@ Measured against the leading open-source detection libraries (Nov 2026):
 | Hardware attestation | **L3 tier (chain, CRL, cross-checks)** | — | — | — | — |
 | Hot-updatable signature DB | **ed25519-signed, versioned** | — | — | — | — |
 | 16KB page-size | **build-enforced gate** | n/a | n/a | n/a | n/a |
-| Behavioral contracts | **10 specs, 31+ requirements** | — | — | — | — |
+| Behavioral contracts | **10 specs, 54 requirements** | — | — | — | — |
 | Honest per-item accuracy docs | **142-item evidence ledger** | — | — | — | — |
 | License | Apache-2.0 | Apache-2.0 | Apache-2.0 | Apache-2.0 | **non-commercial free tier, closed core** |
 
@@ -154,8 +154,8 @@ cd Detect-Any
 ## Testing
 
 ```bash
-./gradlew test                              # host unit tests (115)
-./gradlew :app:connectedDebugAndroidTest    # device tests (21 per device)
+./gradlew test                              # host unit tests (158)
+./gradlew :app:connectedDebugAndroidTest    # device tests (23 per device)
 ./gradlew :app:verify16kAlignment           # 16KB alignment gate
 ./gradlew :app:lintDebug                    # NewApi = 0 enforced
 ```
@@ -182,11 +182,11 @@ Detect-Any/
 ├── feature/
 │   ├── attestation/         # Hardware key attestation (C13, L3 tier)
 │   └── report/              # Report presenter, exporter, update import
-├── data/signature/          # Hot-updatable signature DB (v15, ed25519-signed)
+├── data/signature/          # Hot-updatable signature DB (v19, ed25519-signed)
 ├── compat/platform/         # API 24-16 capability gating
 ├── selfguard/               # Self-protection (async anti-debug, integrity)
 ├── docs/                    # Engineering documentation
-└── openspec/                # 10 behavior-contract specs (31+ requirements)
+└── openspec/                # 10 behavior-contract specs (54 requirements)
 ```
 
 ## Documentation
@@ -194,7 +194,7 @@ Detect-Any/
 | Doc | |
 |---|---|
 | [Contributing](CONTRIBUTING.md) | How to add detection items without breaking accuracy |
-| [Detection Catalog](docs/DETECTION_CATALOG.md) | All 90+ detection items (signature DB v15 + behavioral probes) |
+| [Detection Catalog](docs/DETECTION_CATALOG.md) | All 90+ detection items (signature DB v19 + behavioral probes) |
 | [Detection Accuracy](docs/DETECTION_ACCURACY.md) | Per-item evidence grading (TP/FP verified, blind spots, boundaries) |
 | [Framework Interfaces](docs/FRAMEWORK_INTERFACES.md) | Source-audited stable interface constants (supercall magics etc.) |
 | [Threat Model](docs/CHEATING_THREAT_MODEL.md) | 80+ tools across 12 domains, incl. BTMOB RAT intel |
