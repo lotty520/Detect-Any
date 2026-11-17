@@ -74,14 +74,15 @@
 |---|---|---|
 | **VirtualApp** (commercial) | Binder proxy AMS/PMS; stub Activities; ClassLoader chain; seccomp-bpf masking | Host pkg names; data-dir path anomalies; stack traces with VA classes; hardened: syscall-level /proc verification |
 | VirtualXposed | VA + epic hooker | VA artifacts + XposedBridge classloader |
-| **Parallel Space** (com.lbe.parallel.*) | LBE VA-derived container | Package scan; container process detection |
-| **光速虚拟机** (VPhoneGaGa) | Independent virtual kernel + own memory mgmt | Guest /proc/version nonstandard; ROM build props; "去虚拟化" builds scrub these |
-| **VMOS Pro** | Full Android OS-in-app; root toggle inside VM | Guest ROM fingerprints; com.vmos.* packages |
-| X8 Sandbox | Guest ROM 5.1/7.1.2; root+Xposed toggles | ROM fingerprint; cn.x8box.* |
-| Taichi / 太极 | VA container + epic (免root) or Magisk mode (阳) | Container or Magisk artifacts |
+| **Parallel Space** (com.lbe.parallel.*) | LBE VA-derived container | ✅ **v19 in DB**（装机面）+ uid↔包名错位（进程内，v17）+ 路径异常 |
+| **光速虚拟机** (VPhoneGaGa/VPhoneOS) | Independent virtual kernel + own memory mgmt | ✅ **v19 in DB**（com.vphonegaga.titan + Play 变体）；"去虚拟化" builds scrub guest props → 容器进程内向量兜底 |
+| **VMOS Pro** | Full Android OS-in-app; root toggle inside VM | ✅ **v18 in DB**（3 变体）+ guest ROM fingerprints |
+| X8 Sandbox | Guest ROM 5.1/7.1.2; root+Xposed toggles | ✅ **v19 in DB**（com.x8zs.sandbox——多开+Xposed+GG 复合面） |
+| Taichi / 太极 | VA container + epic (免root) or Magisk mode (阳) | Container or Magisk artifacts（包名待实证入库） |
 | SandVXposed | VA + SandHook | Container + SandHook artifacts |
-| F1 VM / Virtual Master / twoyi | Full guest ROM in container | ROM fingerprint |
+| F1 VM / Virtual Master / twoyi | Full guest ROM in container | ✅ **v19 in DB**（com.f1player / com.clone.android.dual.space） |
 | LSPatch | Patches target APK to embed Xposed (no container) | ✅ We detect via signature pinning |
+| **OEM 双开/应用分身**（MIUI 双开/Dual Messenger/华为分身/原生 clone profile） | Android clone user（API30+ user-type CLONE；老 MIUI 用 999） | ✅ **v17 virtual.clone_user(C)**——主判据 isProfile&&!isManagedProfile（P8 实造 CLONE 实证 userId 走普通序列）；work profile 合法豁免 |
 
 **Key insight**: commercial VA engines now use seccomp-bpf to mask /proc reads — static client checks alone are insufficient. Combine with syscall-level verification and hardware attestation.
 

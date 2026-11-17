@@ -50,6 +50,7 @@ FP 核准 = 三层证据全部成立。任何一层不成立即核准失败。
 | 深色 / 大字体（≥1.3） | UI 层（不影响 findings，视觉矩阵覆盖） | ⏳ HyperOS 受限，代码级保证 |
 | 系统录屏 / 合法投屏 | screenshare.recording_active | ⏳ API 34 回调路径待实测 |
 | 高通/联发科图形栈设备 | 本 session Adreno 教训泛化 | 部分（1 台高通） |
+| OEM 双开/应用分身（clone user） | virtual.clone_user 误伤合法单开 | ✅ P8 实造 CLONE 实证（TP）；C 级 weight-only 不参与定性 |
 
 **设备矩阵要求**（对齐 REGRESSION「机型要求」）：
 - Pixel 系 ≥1（纯净 AOSP 形态基准）
