@@ -47,13 +47,18 @@
         <!-- v17：HMA（应用列表隐藏）+ 旧版 LSPosed manager 装机存量 -->
         <package android:name="com.tsng.hidemyapplist" />
         <package android:name="org.lsposed.manager" />
-        <!-- v18：多开/虚拟化工具（包名均经实证：Play/官网） -->
+        <!-- v18/v19：多开/虚拟化工具（包名均经实证：Play/商店/官网） -->
         <package android:name="com.excelliance.dualizer" />
         <package android:name="com.lbe.parallel.intl" />
         <package android:name="com.lbe.parallel" />
         <package android:name="com.vmos.pro" />
         <package android:name="com.vmos.google" />
         <package android:name="com.vmos.glb" />
+        <package android:name="com.x8zs.sandbox" />
+        <package android:name="com.vphonegaga.titan" />
+        <package android:name="com.yoyo.snake.rush" />
+        <package android:name="com.f1player" />
+        <package android:name="com.clone.android.dual.space" />
     </queries>
 
     <application

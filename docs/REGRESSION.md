@@ -3,6 +3,14 @@
 > **FP 核准**：探针/特征库改动须过 `scripts/fp_certify.sh`（机型基线在 `scripts/baselines/`）——方法论见 [FP_CERTIFICATION.md](FP_CERTIFICATION.md)。
 > **TP 核准**：对抗组设备须过 `scripts/tp_certify.sh`（检出面 profile 在 `scripts/tp-profiles/`，P8 范例已入库）——mustHit 缺失 = 检出面退化告警。
 
+## 2026-11-17 DB v19：中系多开四族实证入库
+
+- X8 Sandbox `com.x8zs.sandbox`（APKPure + 官网 x8sb.com 双源）；内置 Xposed+GG 支持的沙箱——多开+作弊复合面
+- 光速虚拟机/VPhoneOS（前 VPhoneGaGa）`com.vphonegaga.titan`（小米商店+应用宝双源）+ Play 规避审核变体 `com.yoyo.snake.rush`
+- F1 VM `com.f1player`（Uptodown）
+- Virtual Master `com.clone.android.dual.space`（Google Play）
+- 至此特征库 74 条；多开/虚拟化覆盖 8 族（v18 三族 + 本批四族 + HMA 间接）；容器进程内 TP（uid_mismatch/路径）待容器实测，装机面（C5）全部就绪
+
 ## 2026-11-17 多开识别落地 + B6 尾巴闭环（P8）
 
 - **多开三防线**（COVERAGE 失实声称「C5 特征库覆盖 VMOS/Parallel Space」修正为真实覆盖）：①`virtual.clone_user(C)`——**原型验证推翻 999 假设**：P8 root 实造 CLONE profile（`pm create-user --user-type ...CLONE`）实测 userId=10 走普通序列，Type 字段才是真相 → 主判据改 API30+ user-type 语义（isProfile&&!isManagedProfile），999 仅 MIUI 老形态兜底；②`virtual.uid_mismatch(C)`（getPackagesForUid/cgroup 错位，容器 hook 路径后的补强）；③DB v18 三族多开工具（Dual Space/Parallel Space/VMOS——包名逐一 Play/官网实证）

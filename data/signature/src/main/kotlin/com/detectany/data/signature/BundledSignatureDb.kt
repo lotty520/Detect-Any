@@ -54,7 +54,7 @@ object BundledSignatureDb {
 
     private val JSON_TEXT = """
     {
-      "version": 18,
+      "version": 19,
       "paths": [
         {"id": "path.debug_ramdisk.magisk", "path": "/debug_ramdisk/.magisk/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "until": "v26.x"},
         {"id": "path.magisk.device_socket", "path": "/debug_ramdisk/.magisk/device/socket", "framework": "magisk", "confidence": "C", "category": "ROOT_USERSPACE", "since": "v27"},
@@ -115,7 +115,11 @@ object BundledSignatureDb {
         {"id": "app.lsposed_manager", "packageNames": ["org.lsposed.manager"], "dexStrings": ["LSPosed"], "framework": "lsposed", "confidence": "C", "category": "HOOK"},
         {"id": "app.dual_space", "packageNames": ["com.excelliance.dualizer"], "dexStrings": ["dualizer"], "framework": "dual_space", "confidence": "C", "category": "VIRTUAL_ENV"},
         {"id": "app.parallel_space", "packageNames": ["com.lbe.parallel.intl", "com.lbe.parallel"], "dexStrings": [], "framework": "parallel_space", "confidence": "C", "category": "VIRTUAL_ENV"},
-        {"id": "app.vmos", "packageNames": ["com.vmos.pro", "com.vmos.google", "com.vmos.glb"], "dexStrings": ["vmos"], "framework": "vmos", "confidence": "C", "category": "VIRTUAL_ENV"}
+        {"id": "app.vmos", "packageNames": ["com.vmos.pro", "com.vmos.google", "com.vmos.glb"], "dexStrings": ["vmos"], "framework": "vmos", "confidence": "C", "category": "VIRTUAL_ENV"},
+        {"id": "app.x8_sandbox", "packageNames": ["com.x8zs.sandbox"], "dexStrings": ["x8zs"], "framework": "x8_sandbox", "confidence": "C", "category": "VIRTUAL_ENV"},
+        {"id": "app.vphoneos", "packageNames": ["com.vphonegaga.titan", "com.yoyo.snake.rush"], "dexStrings": ["vphonegaga"], "framework": "vphoneos", "confidence": "C", "category": "VIRTUAL_ENV"},
+        {"id": "app.f1_vm", "packageNames": ["com.f1player"], "dexStrings": [], "framework": "f1_vm", "confidence": "C", "category": "VIRTUAL_ENV"},
+        {"id": "app.virtual_master", "packageNames": ["com.clone.android.dual.space"], "dexStrings": [], "framework": "virtual_master", "confidence": "C", "category": "VIRTUAL_ENV"}
       ],
       "sockets": [
         {"id": "sock.ksud", "name": "ksud", "framework": "ksu", "confidence": "C", "category": "ROOT_KERNEL"},
