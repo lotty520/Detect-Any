@@ -10,6 +10,16 @@
 
 ---
 
+## Try It
+
+[![Download APK](https://img.shields.io/badge/Download-Latest_APK-3DDC84?logo=android&logoColor=white)](https://github.com/lotty520/Detect-Any/releases/latest)
+
+Install the APK (**Android 7.0+**, no root required, scan runs fully offline) and hit **Start Scan** — 12 collectors probe your device in parallel and produce a weighted 0-100 risk score with per-item evidence replay. The demo below shows an L2 full scan on a stock emulator (the only findings are genuine emulator signals — qemu / sdk_gphone):
+
+![Detect-Any demo — L2 scan on a stock emulator](screenshots/demo-scan-v18.gif)
+
+---
+
 ## Screenshots
 
 **UI v18** (redesigned 2026-11-12: segmented tier selector + single primary CTA + severity token system; verified on real hardware in both light and dark themes):
