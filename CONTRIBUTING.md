@@ -38,4 +38,4 @@ Open an issue with: device model, Android version, the exact finding `ruleId` (v
 
 Describe the hiding stack (framework + versions + modules). Note that some scenarios are documented boundaries (see [CAPABILITY_BOUNDARIES.md](docs/CAPABILITY_BOUNDARIES.md)) — check there first.
 
-Running a serious hiding stack (susfs + hidden manager, Shamiko, TrickyStore, ...)? Post your setup and L2 result in the **Deep-Hiding Challenge** pinned issue — reported catches and misses both feed the detection backlog.
+Running a serious hiding stack (susfs + hidden manager, Shamiko, TrickyStore, ...)? Post your setup and L2 result in the [Deep-Hiding Challenge](https://github.com/lotty520/Detect-Any/issues/1) pinned issue — reported catches and misses both feed the detection backlog.

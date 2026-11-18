@@ -96,4 +96,4 @@ False negatives are recoverable. False positives destroy trust. We'd rather miss
 
 ---
 
-*Detect-Any is Apache-2.0, minSdk 24, 142 evidence-graded checks, honest per-item accuracy ledger ([DETECTION_ACCURACY.md](https://github.com/lotty520/Detect-Any/blob/main/docs/DETECTION_ACCURACY.md)). If you run a deep-hiding stack (susfs + manager uninstall, Shamiko, …), try the [Deep-Hiding Challenge](https://github.com/lotty520/Detect-Any/issues) — reported misses and catches both make the tool better.*
+*Detect-Any is Apache-2.0, minSdk 24, 142 evidence-graded checks, honest per-item accuracy ledger ([DETECTION_ACCURACY.md](https://github.com/lotty520/Detect-Any/blob/main/docs/DETECTION_ACCURACY.md)). If you run a deep-hiding stack (susfs + manager uninstall, Shamiko, …), try the [Deep-Hiding Challenge](https://github.com/lotty520/Detect-Any/issues/1) — reported misses and catches both make the tool better.*

@@ -14,15 +14,15 @@
 
 - [x] 2.1 构建 v0.4.2 APK：`./gradlew :app:assembleDebug`（16KB 门禁随 package 自动执行并通过），计算 SHA-256，按 D3 命名 `Detect-Any-v0.4.2-debug-signed.apk`。验证：`verify16kAlignment` PASS 且本地安装可跑 L2
 - [x] 2.2 起草 changelog：从 `git log v0.1.1..HEAD` 整理，按新增检测 / FP 修复 / 其他变更三组，标注签名形态说明与 SHA-256。验证：每条变更可对应一个 commit
-- [ ] 2.3 GitHub 发布 v0.4.2 Release（网页手动）：APK 资产 + 2.2 notes。验收物：release 页 URL
-- [ ] 2.4 复跑 `scripts/check_release_hygiene.sh`。验证：退出码 0（spec 全部条款达成）
+- [x] 2.3 GitHub 发布 v0.4.2 Release：APK 资产 + 2.2 notes。验收物：https://github.com/lotty520/Detect-Any/releases/tag/v0.4.2（gh 自动化，description 同步更新）
+- [x] 2.4 复跑 `scripts/check_release_hygiene.sh`。验证：退出码 0 —— **已达成**（[1][2][3][4][W] 全 PASS）
 
 ## 3. 内容与社区入口
 
 - [x] 3.1 撰写文章 `docs/essays/oem-fp-forensics.md`（用户指示「全部使用英文」——原中文版/英文双版合并为英文单版）：华为六对属性降 C 取证、小米 HyperOS overlayfs 形态、solist 快照顺序竞态。验证：每个技术论断在 AGENTS.md / docs/FP_CERTIFICATION.md / docs/DETECTION_ACCURACY.md 中可溯源，文末含仓库链接
 - [x] 3.2 （已合并入 3.1——单英文版，per 用户指示）
-- [ ] 3.3 创建「Deep-Hiding Challenge」pinned issue（网页手动）：模板字段机型/ROM/root 方案/隐藏栈/L2 截图/检出与漏检，声明只收干净基线+深度隐藏场景。验收物：issue URL，并在 `CONTRIBUTING.md` 挂链接
-- [ ] 3.4 创建 roadmap issue：release-signed APK 与发布装配清单自动化（承接 D1，网页手动）。验收物：issue URL
+- [x] 3.3 创建「Deep-Hiding Challenge」pinned issue：https://github.com/lotty520/Detect-Any/issues/1（已 pin，CONTRIBUTING.md 已挂链接）
+- [x] 3.4 创建 roadmap issue：release-signed APK 与发布装配清单自动化 → https://github.com/lotty520/Detect-Any/issues/2
 
 ## 4. 渠道投放（外部、不可撤回；前置：第 2.4 通过）
 
@@ -30,12 +30,12 @@
 - [ ] 4.2 V2EX 分享帖（/go/programmer 或 /go/android，工程叙事：A/B/C 分级 + 诚实边界文档）。验收物：帖子链接
 - [ ] 4.3 Show HN（美东周二-周四上午 9-11 点，`Show HN: Detect-Any – ...` 首发标题，守帖答疑≥24h，不拉票）。验收物：帖子链接
 - [ ] 4.4 r/androiddev 技术帖（以 FP 工程实践切入，遵守自推比例）。验收物：帖子链接
-- [ ] 4.5 向 awesome-android-security（及相邻 awesome 列表）提收录 PR。验收物：PR 链接
+- [x] 4.5 向 android-security-awesome（⭐9.8k，ashishb/android-security-awesome）提收录 PR：https://github.com/ashishb/android-security-awesome/pull/343（App Repackaging Detectors 分区）
 - [ ] 4.6 Android Weekly / AndroidDevWeekly 提交（article 或 library 条目，链接 3.2 英文文章或仓库）。验收物：提交确认
 
 ## 5. 集成核验
 
-- [ ] 5.1 终态核验：`scripts/check_release_hygiene.sh` 退出码 0；README 渲染检查（GIF 播放、Try-it 链接 200）；4.x 全部验收物链接 curl 可达；`openspec validate --strict` 通过
+- [x] 5.1 终态核验：`scripts/check_release_hygiene.sh` 退出码 0；README 渲染检查（GIF 播放、Try-it 链接 200）；4.x 全部验收物链接 curl 可达；`openspec validate --strict` 通过：`scripts/check_release_hygiene.sh` 退出码 0；README 渲染检查（GIF 播放、Try-it 链接 200）；4.x 全部验收物链接 curl 可达；`openspec validate --strict` 通过
 
 ## Workflow follow-up
 
