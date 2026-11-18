@@ -16,19 +16,7 @@
 
 Install the APK (**Android 7.0+**, no root required, scan runs fully offline) and hit **Start Scan** — 12 collectors probe your device in parallel and produce a weighted 0-100 risk score with per-item evidence replay. The demo below shows an L2 full scan on a stock emulator (the only findings are genuine emulator signals — qemu / sdk_gphone):
 
-![Detect-Any demo — L2 scan on a stock emulator](screenshots/demo-scan-v18.gif)
-
----
-
-## Screenshots
-
-**UI v18** (redesigned 2026-11-12: segmented tier selector + single primary CTA + severity token system; verified on real hardware in both light and dark themes):
-
-| Scan · Light | Scan · Dark |
-|:---:|:---:|
-| <img src="screenshots/v18-scan-empty-light.png" width="180" height="400"> | <img src="screenshots/v18-scan-empty-dark.png" width="180" height="400"> |
-
-> The full four-tab × scan-result screenshot matrix is being refreshed (verification-device constraints — see `docs/REGRESSION.md`).
+![Detect-Any demo — L2 scan on a stock emulator (UI v18)](screenshots/demo-scan-v18.gif)
 
 ---
 
