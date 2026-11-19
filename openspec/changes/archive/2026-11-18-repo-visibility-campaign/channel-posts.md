@@ -16,8 +16,9 @@ Scan your own phone in 10 seconds. Detect-Any is an open-source (Apache-2.0) env
 
 - Fully offline, no root needed, Android 7.0+
 - Every signal graded A/B/C by evidence strength — a single physical-invariant A-grade is conclusive; static traces alone never are
-- Every false positive we've ever shipped is documented and forensically explained (Huawei 58-score and Xiaomi 98-score incidents, both root-caused): https://github.com/lotty520/Detect-Any/blob/main/docs/FP_CERTIFICATION.md
+- Every false positive we've ever shipped is documented and forensically explained (Huawei 58-score and Xiaomi 98-score incidents, both root-caused): https://lotty520.github.io/Detect-Any/accuracy/ (EN) · https://github.com/lotty520/Detect-Any/blob/main/docs/FP_CERTIFICATION.md (中文)
 
+Website: https://lotty520.github.io/Detect-Any/
 Download (latest): https://github.com/lotty520/Detect-Any/releases/latest
 
 Root users: we want to lose. Post your hiding stack + L2 result in the Deep-Hiding Challenge pinned issue — catches and misses both welcome.
@@ -56,8 +57,8 @@ It detects root frameworks (KernelSU/APatch/Magisk), Zygisk injection, LSPosed, 
 
 Two things we think are unusual:
 
-1. Every false positive we've shipped is publicly documented with full forensics. A clean Huawei scored 58 and a clean Xiaomi scored 98 before we built a certification pipeline — the Xiaomi incident included a solist-vs-maps snapshot race where our own scanner induced the finding. Write-up: https://github.com/lotty520/Detect-Any/blob/main/docs/essays/oem-fp-forensics.md
-2. There's an honest accuracy ledger for all 142 items — including what we can't detect (KPM kernel patches, high-end cloud phones with real-peripheral passthrough): https://github.com/lotty520/Detect-Any/blob/main/docs/DETECTION_ACCURACY.md
+1. Every false positive we've shipped is publicly documented with full forensics. A clean Huawei scored 58 and a clean Xiaomi scored 98 before we built a certification pipeline — the Xiaomi incident included a solist-vs-maps snapshot race where our own scanner induced the finding. Write-up: https://lotty520.github.io/Detect-Any/essay-oem-fp-forensics/
+2. There's an honest accuracy ledger for all 142 items — including what we can't detect (KPM kernel patches, high-end cloud phones with real-peripheral passthrough): https://lotty520.github.io/Detect-Any/accuracy/
 
 The asymmetry that drives the engineering: false negatives are recoverable, false positives destroy trust.
 
@@ -81,9 +82,9 @@ Both incidents were grading failures, not detection failures:
 - Huawei ships `bootimage.build.tags=dev-keys` while the main fingerprint says release-keys, `vendor.product.*` empty — six "tamper-indicating" property-pair inconsistencies that are factory-legal
 - Xiaomi/HyperOS ships overlayfs on /product and /oem from the factory; and our linker-list-vs-maps cross-check had a snapshot race where the Adreno driver's dlopen between two reads looked like maps-hiding
 
-Full write-up with the race-condition forensics: https://github.com/lotty520/Detect-Any/blob/main/docs/essays/oem-fp-forensics.md
+Full write-up with the race-condition forensics: https://lotty520.github.io/Detect-Any/essay-oem-fp-forensics/
 
-We ended up building a three-layer FP certification pipeline (input-source verification, clean device × legal-state matrix scan, per-signal grading audit) that's now mandatory for every probe change: https://github.com/lotty520/Detect-Any/blob/main/docs/FP_CERTIFICATION.md
+We ended up building a three-layer FP certification pipeline (input-source verification, clean device × legal-state matrix scan, per-signal grading audit) that's now mandatory for every probe change: https://lotty520.github.io/Detect-Any/accuracy/ (EN) · https://github.com/lotty520/Detect-Any/blob/main/docs/FP_CERTIFICATION.md (中文)
 
 Curious how others handle OEM variation in integrity/anti-fraud signals — the "validated on one vendor" trap seems universal.
 
@@ -105,7 +106,7 @@ PR title: `Add Detect-Any - open-source Android integrity detection`
 
 https://androidweekly.net/ → submit link. Use either:
 - Repo: https://github.com/lotty520/Detect-Any
-- Article (better fit for newsletters): https://github.com/lotty520/Detect-Any/blob/main/docs/essays/oem-fp-forensics.md
+- Article (better fit for newsletters): https://lotty520.github.io/Detect-Any/essay-oem-fp-forensics/
 
 Suggested description: *"How two clean flagship phones scored 58 and 100 on an Android integrity scanner — FP forensics and the certification pipeline that fixed it."*
 
