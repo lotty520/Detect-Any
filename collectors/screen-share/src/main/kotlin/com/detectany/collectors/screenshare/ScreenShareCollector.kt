@@ -58,6 +58,7 @@ class ScreenShareCollector(
         findings += checkOverlay()
         findings += checkScreenRecordingState()
         findings += checkInputBehavior()
+        findings += checkVirtualDisplays()
         CollectorResult(
             collector = id,
             status = CollectorResult.Status.OK,
@@ -68,6 +69,8 @@ class ScreenShareCollector(
                 "remoteDesktopApps" to findRemoteDesktopApps().size.toString(),
                 "screenRecording" to (ScreenRecordingMonitor.stateVisible?.toString() ?: "unknown"),
                 "inputEvents" to InputEventMonitor.snapshot().total.toString(),
+                "selfDisplayId" to SelfDisplayTracker.displayId.toString(),
+                "virtualDisplays" to findings.count { it.ruleId.startsWith("screenshare.virtual_display") }.toString(),
             ),
         )
     } catch (e: Throwable) {
@@ -290,6 +293,98 @@ class ScreenShareCollector(
             )
         }
     }
+
+    // ---- 虚拟显示器检测（change virtual-display-detect；真值 docs/calibration/virtual-displays.md） ----
+
+    /**
+     * C12 第四防线：枚举非默认 Display 并按建屏者分类。
+     * 单信号全 C；唯一 B 是复合——自身位于 shell-owned 屏 + ADB 姿态共现（就地合成一条，
+     * 定性走 ScoreModel 既有同域 B+C 共振，不新增定性机制）。
+     */
+    private fun checkVirtualDisplays(): List<Finding> = runCatching {
+        val dm = context.getSystemService(Context.DISPLAY_SERVICE) as? android.hardware.display.DisplayManager
+            ?: return emptyList()
+        val self = SelfDisplayTracker.displayId
+        val overlaySetting = Settings.Global.getString(context.contentResolver, "overlay_display_devices")
+        val castRoutes = castRouteNames()
+        val adb = isAdbEnabled()
+        val ctx = VirtualDisplayClassifier.ClassifyContext(overlaySetting, adb, castRoutes)
+
+        val findings = mutableListOf<Finding>()
+        var selfClass: VirtualDisplayClassifier.DisplayClass? = null
+        for (display in dm.getDisplays()) {
+            val dId = display.displayId
+            if (dId == android.view.Display.DEFAULT_DISPLAY) continue
+            val snapshot = VirtualDisplayClassifier.DisplaySnapshot(
+                displayId = dId,
+                name = display.name,
+                flags = display.flags,
+                isSelf = dId == self,
+            )
+            val c = VirtualDisplayClassifier.classify(snapshot, ctx)
+            if (snapshot.isSelf) selfClass = c.cls
+            val evidenceBase = mapOf(
+                "displayId" to dId.toString(),
+                "name" to (display.name ?: ""),
+                "flags" to "0x${snapshot.flags.toString(16)}",
+                "class" to c.cls.name,
+                "chain" to c.chain.joinToString(" → "),
+                "calibrationV" to VirtualDisplayClassifier.CALIBRATION_VERSION.toString(),
+                "self" to snapshot.isSelf.toString(),
+            )
+            when {
+                snapshot.isSelf && c.cls == VirtualDisplayClassifier.DisplayClass.SHELL_OWNED && adb -> findings.add(
+                    Finding(
+                        ruleId = "screenshare.virtual_display_shell_control",
+                        collector = id,
+                        confidence = Confidence.B, // 复合信号：shell 建屏 + ADB 姿态两族共现（spec R3 例外路径）
+                        category = Finding.Category.SCREEN_SHARE,
+                        framework = "scrcpy",
+                        detail = "App is running on a shell-created virtual display with ADB posture present (scrcpy --new-display class remote control; physical screen shows nothing)",
+                        raw = evidenceBase + ("adb" to "1"),
+                    ),
+                )
+                snapshot.isSelf && c.cls != VirtualDisplayClassifier.DisplayClass.LEGIT_CAST_OEM -> findings.add(
+                    Finding(
+                        ruleId = "screenshare.virtual_display_posture",
+                        collector = id,
+                        confidence = Confidence.C, // 单信号：矩阵核验前一律 C（weight-only）
+                        category = Finding.Category.SCREEN_SHARE,
+                        framework = if (c.cls == VirtualDisplayClassifier.DisplayClass.SHELL_OWNED) "scrcpy" else null,
+                        detail = "App is running on a non-default display (class=${c.cls.name}; ${chainSummary(c)})",
+                        raw = evidenceBase + ("adb" to adb.toString()),
+                    ),
+                )
+                else -> findings.add(
+                    Finding(
+                        ruleId = "screenshare.virtual_display_observed",
+                        collector = id,
+                        confidence = Confidence.C, // 非 self 屏观察（本 app 不在其上）
+                        category = Finding.Category.SCREEN_SHARE,
+                        framework = if (c.cls == VirtualDisplayClassifier.DisplayClass.SHELL_OWNED) "scrcpy" else null,
+                        detail = "Non-default display present (class=${c.cls.name}; ${chainSummary(c)})",
+                        raw = evidenceBase,
+                    ),
+                )
+            }
+        }
+        findings
+    }.getOrDefault(emptyList())
+
+    private fun chainSummary(c: VirtualDisplayClassifier.Classification): String =
+        c.chain.joinToString(" → ")
+
+    /** 投屏归因：活跃路由名（仅用于与屏名互证的合法类；异常静默缺席=分类保守降级） */
+    @Suppress("DEPRECATION")
+    private fun castRouteNames(): Set<String> = runCatching {
+        val mr = context.getSystemService(Context.MEDIA_ROUTER_SERVICE) as? android.media.MediaRouter
+            ?: return emptySet()
+        buildSet {
+            for (i in 0 until mr.routeCount) {
+                runCatching { add(mr.getRouteAt(i).getName(context).toString()) }
+            }
+        }
+    }.getOrDefault(emptySet())
 
     // ---- Overlay 权限检测（白名单制） ----
 

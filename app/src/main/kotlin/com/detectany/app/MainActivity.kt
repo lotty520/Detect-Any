@@ -70,6 +70,13 @@ class MainActivity : ComponentActivity() {
             .register(this, executor)
     }
 
+    override fun onResume() {
+        super.onResume()
+        // 虚拟显示器检测供数：application context 取不到自身屏位，由 Activity 注入
+        // （scrcpy --start-app 在 resume 前完成建屏落屏，时序足够）
+        runCatching { com.detectany.collectors.screenshare.SelfDisplayTracker.update(this) }
+    }
+
     override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
         runCatching { com.detectany.collectors.screenshare.InputEventMonitor.onMotionEvent(ev) }
         return super.dispatchTouchEvent(ev)
