@@ -35,3 +35,9 @@
 - 应用枚举走 `<queries>` 声明式（不申报 QUERY_ALL_PACKAGES）。
 - 出端数据最小化：属性键仅哈希形态、值脱敏截断（`Redactor`）。
 - 遥测默认关闭；FP 申诉样本经结构化导出（ReportExporter）人工回传。
+
+## 虚拟显示器形态边界（2026-11-19）
+
+- 合法虚拟屏（DeX/Chromecast/折叠副屏）分类白名单为空起步：未匹配形态一律 `unknown` C 级 weight-only，多厂商矩阵核验前不升 B（FP_CERTIFICATION 合法状态矩阵新增行跟踪）
+- scrcpy 虚拟屏自带 FLAG_SECURE：shell 侧 `screencap -d` 不可用（取证需走 dumpsys / 采集器路径）
+- socket A 级探针在 Enforcing API35 的 /proc/net/unix 门控不可达为既知边界（DETECTION_ACCURACY 已录）——虚拟显示器向量是该场景的兜底

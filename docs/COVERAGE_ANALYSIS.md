@@ -47,7 +47,7 @@
 | **Root supercall** | KSU reboot 双魔数 / APatch syscall45 / 旧 prctl | C8 | ✅ 核心 |
 | **SELinux 语义** | magisk / ksu_file / lsposed 域存在性探测 | C8 | ✅ |
 | **Frida 运行时** | maps 字符串 / 线程名 / RWX 页 / D-Bus 协议 | C9 | hluda 字符串全部改名时仅剩 RWX + D-Bus |
-| **scrcpy 运行时** | unix socket `scrcpy_` / HID 设备名 / ADB 会话 | C12 | `--new-display` 虚拟显示器不可见 |
+| **scrcpy 运行时** | unix socket `scrcpy_` / HID 设备名 / ADB 会话 / **虚拟显示器四防线（virtual-display-detect）** | C12 | ~~`--new-display` 虚拟显示器不可见~~ → **2026-11-19 关闭**：`screenshare.virtual_display_*` 三条（枚举+分类+复合 B），真值见 docs/calibration/virtual-displays.md |
 | **挂载伪装** | overlay 检测 / fstype 交叉 / too-clean + st_dev（P2-2 已接线，机型基线渐进生效——现有 TAS-AL00/Pixel 8 两点） | C2 | susfs v2.x 用户态 umount 一致化（降权）|
 | **内存注入** | maps 注入 memfd / known_path / hidden_mapping / RWX 自探针 | C6 | NyaZygisk 双隐藏（maps + solist）|
 | **无障碍自动化** | 已知自动化包 B 级 / 未知 C 级（白名单制） | C11 | 未知服务不参与定性（TalkBack 白名单）|
@@ -183,6 +183,7 @@
 | — | 深度隐藏穿透 | v5 zygisk.denylists 残留（B）+ v6 verified boot 矛盾（A）+ v7 fs.susfs（B），P8 深隐藏实证 50 分检出 |
 | — | 其余 TOP 10 残留 | v7：7 框架模块目录 + ksud/apd/kpm + LSPatch/MagiskDelta 包指纹 |
 | — | GPS/摄像头/设备伪造 | v8-v10：fakegps + fakecamera（DRVCAM 实机正向验证）+ deviceidchanger + virtualnet + screenrecorder |
+| — | **scrcpy `--new-display` 虚拟显示器**（2026-11-19） | C12 四防线：DisplayManager 枚举 + 五类分类（shell-owned/container/legit-cast-oem/dev-simulate/unknown）+ 复合 B（shell 屏 × ADB 姿态）；干净模拟器零 FP + 活 scrcpy 会话设备级 TP 双验证（VirtualDisplayTpTest） |
 
 ### 🔴 P0 — 影响核心检测完整性
 

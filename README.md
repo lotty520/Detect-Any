@@ -45,7 +45,7 @@ Views: **Scan** (risk gauge, verdict badge, delta vs previous scan) · **Threats
 | Emulators / VMs | QEMU family, 4-dimension cross (props/hardware/sensors/GL) |
 | Cloud Phones | cross-subsystem C-signal resonance (sensor rhythm, battery cross-layer, SIM absence) |
 | Device Spoofing | appenv, Device ID Changer, VirtualNet, fake GPS/camera tools |
-| Risk Postures | VPN/proxy (3 layers), SIM anomalies, geo inconsistency, speed-hack clock drift, screen sharing/recording, overlay injection, automation services |
+| Risk Postures | VPN/proxy (3 layers), SIM anomalies, geo inconsistency, speed-hack clock drift, screen sharing/recording (incl. scrcpy `--new-display` virtual displays), overlay injection, automation services |
 
 ## Architecture
 
@@ -95,7 +95,7 @@ Accuracy is the product's prime directive — false positives destroy trust, fal
 
 - **Clean-environment protocol**: every probe change must re-verify on a clean emulator (mandatory, in [AGENTS.md](AGENTS.md))
 - **Device matrix**: clean emulator + adversarial Pixel 8 (APatch+susfs deep hiding) + clean mid-range Huawei + cloud-style rooted emulator (TP matrix)
-- **Honest boundary docs**: unreachable/unwired/dormant entries are labeled, never over-promised ([DETECTION_ACCURACY.md](docs/DETECTION_ACCURACY.md) grades all 142 items by evidence chain)
+- **Honest boundary docs**: unreachable/unwired/dormant entries are labeled, never over-promised ([DETECTION_ACCURACY.md](docs/DETECTION_ACCURACY.md) grades all 145 items by evidence chain)
 - Historical FP fixes (OEM prop pairs, emulator artifacts, timing side-channel) are documented as lessons in [AGENTS.md](AGENTS.md)
 
 ## Comparison with Open-Source Alternatives
@@ -104,7 +104,7 @@ Measured against the leading open-source detection libraries (Nov 2026):
 
 | | Detect-Any | [RootBeer](https://github.com/scottyab/rootbeer) ⭐3.0k | [Ruru](https://github.com/byxiaorun/Ruru) ⭐841 | [android-rasp](https://github.com/securevale/android-rasp) ⭐155 | [Free-RASP](https://github.com/talsec/Free-RASP-Android) ⭐279 |
 |---|---|---|---|---|---|
-| Detection items | **142 (evidence-graded)** | ~15 | focused (hidden manager) | ~20 | closed-core |
+| Detection items | **145 (evidence-graded)** | ~15 | focused (hidden manager) | ~20 | closed-core |
 | Native layer (C/C++) | **1,400 lines** (svc guard, ELF parser, probes) | none | partial | none | closed |
 | Physical-invariant A-grade signals | **prologue bytes, syscall diff, verified-boot contradiction** | — | — | — | — |
 | Deep hiding (susfs + manager uninstalled) | **yes (adversarial-device verified)** | no (acknowledged) | partial | no | unknown |
@@ -112,7 +112,7 @@ Measured against the leading open-source detection libraries (Nov 2026):
 | Hot-updatable signature DB | **ed25519-signed, versioned** | — | — | — | — |
 | 16KB page-size | **build-enforced gate** | n/a | n/a | n/a | n/a |
 | Behavioral contracts | **10 specs, 54 requirements** | — | — | — | — |
-| Honest per-item accuracy docs | **142-item evidence ledger** | — | — | — | — |
+| Honest per-item accuracy docs | **145-item evidence ledger** | — | — | — | — |
 | License | Apache-2.0 | Apache-2.0 | Apache-2.0 | Apache-2.0 | **non-commercial free tier, closed core** |
 
 Notes: RootBeer remains the most widely adopted; Free-RASP's repository hosts a demo app only — the detection core ships as a closed-source binary from a private Maven repository. Detection-Any focuses on auditability: every claim is traceable to a test, device log, or source-audited constant.

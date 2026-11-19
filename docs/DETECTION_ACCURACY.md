@@ -21,6 +21,7 @@
 | **screenshare.scrcpy_hid（A）** | **2026-11-11 云端式验证**：scrcpy 5.0.1 uhid 键鼠模式 → InputDevice "scrcpy"×2 → A 级命中 |
 | **screenshare.scrcpy_socket（A）** | permissive 模式实证（abstract socket @scrcpy_XXX 可见）；Enforcing API35 走门控不可达——与 ProbeCap 语义一致 |
 | **path 族 6 族（C）** | permissive 模式实证：mkdir /data/adb/{ksu,tricky_store,ap,lspd,modules,pif.json} + chmod 755 → KernelSU/APatch(×2)/ZygiskNext/LSPosed/TrickyStore/PIF 六族全命中 |
+| **screenshare.virtual_display_observed（C）/ shell_control（B）（2026-11-19）** | **双验证**：VirtualDisplayTpTest 活 scrcpy `--new-display` 会话设备级命中（SHELL_OWNED 分类 + 复合条件成立）；干净模拟器 UI 全扫零命中。shell_control 的 MainActivity 落屏端到端未走通（虚拟屏输入注入不可测）——以采集器级 TP + 单测覆盖 |
 
 ## 二、仅 FP 侧验证（干净不误报已证，真阳性从未见过）⚠️ 准确性盲区
 
@@ -41,6 +42,7 @@
 | mount.overlay.* / source_magisk / debug_ramdisk / fstype_cross | B/C | Magisk 挂载形态从未在真 Magisk 设备验证（P8 是 susfs 全隐藏） |
 | fs.susfs | B | P8 的 susfs 隐藏了 /proc/filesystems——非隐藏 susfs 设备未测 |
 | speedhack.clock_drift | B | 干净侧漂移 0ms 已证；加速外挂真机未测 |
+| screenshare.virtual_display_posture（C） | 干净侧零命中已证（默认屏）；自身落虚拟屏的端到端 TP 未走通（见上） |
 | attest.cross.* / keybox_revoked / software_backed | A/B | ~~断链未接线~~ → **已接线（2026-11-12 审计修正：5ac1805 后 L3 实质判定，真机 TEE 已验）**；TP 侧对抗组（TrickyStore 实机）仍待补 |
 
 ## 三、不可达 / 未接线 / 策展
@@ -61,7 +63,7 @@ prop.build_pair×6 / debuggable / test_keys / adb_session（开发者场景已�
 
 ## 五、结论与处置
 
-1. **TP 侧矩阵缺失是当前最大准确性盲区**：142 项中约 40 项仅有 FP 侧证据。
+1. **TP 侧矩阵缺失是当前最大准确性盲区**：145 项中约 40 项仅有 FP 侧证据。
    REGRESSION 开篇的「13 项目标 × 机型矩阵」即为设计好的 TP 验证计划，从未执行
    （仅 P8 对抗组单点）。**建议：按矩阵补齐 Magisk/KSU/scrcpy/Frida 真机各一台的正向验证**。
 2. 分级纪律已达标：无越权分级（第十一轮后），A 级全部有物理不变量论证。

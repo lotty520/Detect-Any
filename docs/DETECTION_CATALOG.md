@@ -315,3 +315,16 @@
 | virtual.clone_user ★ | clone 类 profile 环境（OEM 双开/分身）。主判据 API30+ user-type 语义（isProfile && !isManagedProfile——P8 实证原生 CLONE 分到 userId=10，**999 非原生标准**仅 MIUI 老形态兜底）；work profile 保持合法豁免 | C |
 | virtual.uid_mismatch ★ | 容器内 uid↔包名物理错位（getPackagesForUid 不含自身 / cgroup uid_ 段不一致）——现代容器 hook getFilesDir 令路径判据失效后的补强 | C（矩阵+容器实测后议 B） |
 | app.dual_space / app.parallel_space / app.vmos ★v18 | 三族多开/虚拟化工具装机（包名均经 Play/官网实证） | C |
+
+## C12 屏幕共享（虚拟显示器扩展，2026-11-19 补录——virtual-display-detect）
+
+> Ground truth：docs/calibration/virtual-displays.md（API35 实验室，scrcpy 5.0.1）。
+> 分类器：`VirtualDisplayClassifier`（五类，特征表 CALIBRATION_VERSION 数据化维护）。
+
+| 检测项 | 说明 | 置信 |
+|---|---|---|
+| screenshare.virtual_display_shell_control ★ | 自身位于 **shell 建屏**（name="scrcpy"，owner uid 2000）且 ADB 姿态共现——复合信号（两族独立信号，非单信号定级）；定性走 ScoreModel 同域 B+C 共振 | **B** |
+| screenshare.virtual_display_posture ★ | 自身位于非默认显示器（非 legit-cast-oem 类）——weight-only；矩阵核验前不升 | C |
+| screenshare.virtual_display_observed ★ | 存在非默认显示器（本 app 不在其上）；shell-owned 类同样适用（rename 免疫面：socket A 级在 Enforcing API35 门控不可达时的兜底向量） | C |
+
+分级纪律：`legit-cast-oem` 白名单（DeX/投屏/副屏）矩阵核验前为空，未匹配一律 `unknown` C 级；`shell-owned × ADB` 是唯一 B 路径。

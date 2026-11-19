@@ -51,6 +51,7 @@ FP 核准 = 三层证据全部成立。任何一层不成立即核准失败。
 | 系统录屏 / 合法投屏 | screenshare.recording_active | ⏳ API 34 回调路径待实测 |
 | 高通/联发科图形栈设备 | 本 session Adreno 教训泛化 | 部分（1 台高通） |
 | OEM 双开/应用分身（clone user） | virtual.clone_user 误伤合法单开 | ✅ P8 实造 CLONE 实证（TP）；C 级 weight-only 不参与定性 |
+| **外接显示器/投屏激活（Chromecast/DeX/副屏）** | screenshare.virtual_display_posture/observed 误伤合法虚拟屏 | ⏳ **virtual-display-detect 起步**（2026-11-19）：legit-cast-oem 白名单置空 + 全部未匹配落 unknown C 级不参与定性；矩阵核验（≥2 厂商）前禁 B |
 
 **设备矩阵要求**（对齐 REGRESSION「机型要求」）：
 - Pixel 系 ≥1（纯净 AOSP 形态基准）
