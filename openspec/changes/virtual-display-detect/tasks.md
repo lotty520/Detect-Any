@@ -22,7 +22,7 @@
 ## 4. FP 认证
 
 - [x] 4.1 FP_CERTIFICATION.md 合法状态矩阵新增「外接显示器/投屏激活」行（已就位，标注 legit 白名单空起步+矩阵核验前禁 B）。验证修正：fp_certify 面向干净真机，模拟器 L1 按设计拒绝（qemu=1 为真阳性）——模拟器侧零阳性由 3.1 干净模拟器协议覆盖（干净扫描与基线一致、零 virtual_display finding）
-- [ ] 4.2 （真机可得时）多厂商矩阵跑一轮，unknown/legit 类零意外命中记录归档。验证：无新增机型基线外 finding —— **真机矩阵债务（2026-11-19 维护者决策后补）**：无真机接入，维护者指示先行 commit——本 change 按设计矩阵安全（单信号全 C、唯一 B 需 shell 建屏 × ADB 共现、legit 白名单置空），干净模拟器协议已 PASS；下次真机接入时补跑全矩阵并复核分级
+- [ ] 4.2 （真机可得时）多厂商矩阵跑一轮，unknown/legit 类零意外命中记录归档。验证：无新增机型基线外 finding —— **进展（2026-11-19 P8 首个真机数据点）**：对抗组 P8 基线零 virtual_display 误报 + scrcpy 虚拟屏真机端到端复合 B 命中（DA-FIND 实证）+ Android 16 真值交叉验证一致；≥2 厂商干净真机矩阵仍开放（legit 白名单维持空）。原债务：无真机接入，维护者指示先行 commit——本 change 按设计矩阵安全（单信号全 C、唯一 B 需 shell 建屏 × ADB 共现、legit 白名单置空），干净模拟器协议已 PASS；下次真机接入时补跑全矩阵并复核分级
 
 ## Workflow follow-up
 

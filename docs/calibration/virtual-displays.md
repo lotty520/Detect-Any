@@ -13,6 +13,11 @@
 | **dev-simulate overlay** (`settings put global overlay_display_devices "1080x1920/420"`) | name **`"Overlay #1"`**, uniqueId `overlay:1`, type OVERLAY, `FLAG_PRESENTATION \| FLAG_DESTROY_CONTENT_ON_REMOVAL` | name pattern `Overlay #N` → `dev-simulate`; corroborated by `Settings.Global.getString(..., "overlay_display_devices")` flipping null → `"1080x1920/420"` (string key — the `OVERLAY_DISPLAY_DEVICES` constant is hidden API, must not be referenced) |
 | legit-cast-oem (Chromecast/DeX/secondary) | **not reproducible in this lab** | MediaRouter route + name patterns — initial whitelist EMPTY, pending real-device matrix (see FP boundary) |
 
+## Cross-Validation: Real Device (2026-11-19)
+
+Pixel 8 (shiba, Android 16, patch 2025-11-05, verified-boot green) — identical truth:
+`DisplayDeviceInfo{"scrcpy": uniqueId="virtual:com.android.shell,2000,scrcpy,2", 1080x2400/420` — name and shell owner (uid 2000) match the API35 emulator table verbatim. Real-device E2E TP via `am start --display N` + debug broadcast trigger: composite-B finding `screenshare.virtual_display_shell_control` present in the DA-FIND evidence vector. Note: `input -d <id> tap` does NOT reach apps on scrcpy virtual displays (reproduced on both emulator and P8 — platform behavior; the debug scan-trigger broadcast exists for exactly this class of testing).
+
 ## Key Findings
 
 1. **The scrcpy display name is "scrcpy"** — resolves the D4 open question: `shell-owned` is name-attributable via public `Display.getName()`. uniqueId/type are hidden-API territory (ground truth only).

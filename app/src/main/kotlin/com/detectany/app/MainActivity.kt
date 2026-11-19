@@ -51,6 +51,21 @@ class MainActivity : ComponentActivity() {
         // （跨版本一致行为：模拟器 35 与华为 31 均正常）
         this.enableEdgeToEdge()
         val orchestrator = ScanOrchestrator(applicationContext)
+        // Debug 专用扫描触发钩子：虚拟屏等场景 UI 输入注入不可达（input -d 对
+        // scrcpy 虚拟屏结构性失效，双设备实证）——shell 可广播触发引擎路径。
+        // 仅 debug 构建注册（BuildConfig.DEBUG），release 零表面。
+        if (BuildConfig.DEBUG) {
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                object : android.content.BroadcastReceiver() {
+                    override fun onReceive(context: android.content.Context?, intent: android.content.Intent?) {
+                        Thread { orchestrator.scan(com.detectany.core.model.ScanTier.L2) }.start()
+                    }
+                },
+                android.content.IntentFilter("com.detectany.debug.TRIGGER_SCAN"),
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED,
+            )
+        }
         setContent {
             DetectAnyTheme {
                 Surface {

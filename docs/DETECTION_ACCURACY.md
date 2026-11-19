@@ -21,7 +21,7 @@
 | **screenshare.scrcpy_hid（A）** | **2026-11-11 云端式验证**：scrcpy 5.0.1 uhid 键鼠模式 → InputDevice "scrcpy"×2 → A 级命中 |
 | **screenshare.scrcpy_socket（A）** | permissive 模式实证（abstract socket @scrcpy_XXX 可见）；Enforcing API35 走门控不可达——与 ProbeCap 语义一致 |
 | **path 族 6 族（C）** | permissive 模式实证：mkdir /data/adb/{ksu,tricky_store,ap,lspd,modules,pif.json} + chmod 755 → KernelSU/APatch(×2)/ZygiskNext/LSPosed/TrickyStore/PIF 六族全命中 |
-| **screenshare.virtual_display_observed（C）/ shell_control（B）（2026-11-19）** | **双验证**：VirtualDisplayTpTest 活 scrcpy `--new-display` 会话设备级命中（SHELL_OWNED 分类 + 复合条件成立）；干净模拟器 UI 全扫零命中。shell_control 的 MainActivity 落屏端到端未走通（虚拟屏输入注入不可测）——以采集器级 TP + 单测覆盖 |
+| **screenshare.virtual_display_observed（C）/ shell_control（B）/ posture（C）（2026-11-19）** | **双验证（真机端到端）**：① 模拟器 VirtualDisplayTpTest 采集器级命中；② **Pixel 8 / Android 16 真机端到端**——app 落 scrcpy 虚拟屏（am start --display）→ debug 广播触发 L2（虚拟屏 UI 输入注入结构性不可用，input -d 双设备实证失效）→ DA-FIND 证据向量含 `screenshare.virtual_display_shell_control`（复合 B 全链路：onResume 供数→枚举→SHELL_OWNED→ADB 共现→定性）；③ 干净侧：模拟器 UI 全扫 + P8 对抗基线（9 findings）均零 virtual_display 命中 |
 
 ## 二、仅 FP 侧验证（干净不误报已证，真阳性从未见过）⚠️ 准确性盲区
 
@@ -42,7 +42,6 @@
 | mount.overlay.* / source_magisk / debug_ramdisk / fstype_cross | B/C | Magisk 挂载形态从未在真 Magisk 设备验证（P8 是 susfs 全隐藏） |
 | fs.susfs | B | P8 的 susfs 隐藏了 /proc/filesystems——非隐藏 susfs 设备未测 |
 | speedhack.clock_drift | B | 干净侧漂移 0ms 已证；加速外挂真机未测 |
-| screenshare.virtual_display_posture（C） | 干净侧零命中已证（默认屏）；自身落虚拟屏的端到端 TP 未走通（见上） |
 | attest.cross.* / keybox_revoked / software_backed | A/B | ~~断链未接线~~ → **已接线（2026-11-12 审计修正：5ac1805 后 L3 实质判定，真机 TEE 已验）**；TP 侧对抗组（TrickyStore 实机）仍待补 |
 
 ## 三、不可达 / 未接线 / 策展
