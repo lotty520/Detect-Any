@@ -1,0 +1,47 @@
+site_name: Detect-Any
+site_description: Industrial-grade Android environment integrity detection — 145 evidence-graded checks, open source (Apache-2.0)
+site_url: https://lotty520.github.io/Detect-Any/
+repo_url: https://github.com/lotty520/Detect-Any
+repo_name: lotty520/Detect-Any
+edit_uri: ""
+docs_dir: site
+site_dir: build/site
+
+theme:
+  name: material
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    logo: material/shield-check
+
+markdown_extensions:
+  - tables
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+nav:
+  - Home: index.md
+  - Detection Coverage: detection.md
+  - Accuracy Discipline: accuracy.md
+  - "Essay: OEM FP Forensics": essay-oem-fp-forensics.md
+  - Deep-Hiding Challenge: challenge.md
